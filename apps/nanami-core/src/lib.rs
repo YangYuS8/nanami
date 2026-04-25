@@ -26,6 +26,8 @@ use std::sync::Arc;
 use tokio_stream::{StreamExt, once};
 
 const DEFAULT_OPENCLAW_TIMEOUT_MS: u64 = 3000;
+type NanamiEventStream =
+    Pin<Box<dyn tokio_stream::Stream<Item = Result<EventEnvelope, ErrorPayload>> + Send>>;
 
 #[derive(Debug, Serialize)]
 struct HealthResponse {
@@ -65,7 +67,7 @@ trait OpenClawService: Send + Sync {
     fn stream_agent_events(
         &self,
         request: ChatRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<EventEnvelope>, ErrorPayload>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = Result<NanamiEventStream, ErrorPayload>> + Send + '_>>;
 }
 
 #[derive(Clone)]
@@ -245,16 +247,25 @@ async fn tasks_openclaw_stream(
 
     let events = match state.openclaw.stream_agent_events(request).await {
         Ok(events) => events,
-        Err(error) => vec![EventEnvelope::new(
+        Err(error) => Box::pin(once(Ok(EventEnvelope::new(
             "evt_openclaw_error_001",
             chrono::Utc::now(),
             Event::ErrorOccurred(error),
-        )],
+        )))) as NanamiEventStream,
     };
 
-    Sse::new(tokio_stream::iter(events.into_iter().map(|event| {
+    Sse::new(events.map(|event| {
+        let event = match event {
+            Ok(event) => event,
+            Err(error) => EventEnvelope::new(
+                "evt_openclaw_error_001",
+                chrono::Utc::now(),
+                Event::ErrorOccurred(error),
+            ),
+        };
+
         Ok::<_, Infallible>(SseEvent::default().data(serde_json::to_string(&event).unwrap()))
-    })))
+    }))
     .keep_alive(KeepAlive::default())
     .into_response()
 }
@@ -356,7 +367,7 @@ impl OpenClawService for EnvOpenClawService {
     fn stream_agent_events(
         &self,
         request: ChatRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<EventEnvelope>, ErrorPayload>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = Result<NanamiEventStream, ErrorPayload>> + Send + '_>> {
         Box::pin(async move {
             let gateway_url = std::env::var("NANAMI_OPENCLAW_GATEWAY_URL").unwrap_or_default();
             if gateway_url.trim().is_empty() {
@@ -375,16 +386,17 @@ impl OpenClawService for EnvOpenClawService {
                 })
                 .await
                 .map_err(map_openclaw_chat_error)?;
-
-            let mut items = stream.collect::<Vec<_>>().await;
-            let mut events = Vec::new();
-            for item in items.drain(..) {
-                match item.map_err(map_openclaw_chat_error)? {
-                    OpenClawStreamItem::Event(event) => events.push(event),
-                    OpenClawStreamItem::Chat(_) => {}
+            let mapped = futures_util::StreamExt::flat_map(stream, |item| match item {
+                Ok(OpenClawStreamItem::Event(event)) => {
+                    tokio_stream::iter(vec![Ok::<_, ErrorPayload>(event)])
                 }
-            }
-            Ok(events)
+                Ok(OpenClawStreamItem::Chat(_)) => tokio_stream::iter(Vec::new()),
+                Err(error) => tokio_stream::iter(vec![Err::<EventEnvelope, _>(
+                    map_openclaw_chat_error(error),
+                )]),
+            });
+
+            Ok(Box::pin(mapped) as NanamiEventStream)
         })
     }
 }
@@ -434,6 +446,7 @@ fn chat_error(code: &str, message: &str, action_hint: Option<&str>) -> ErrorPayl
 
 #[cfg(test)]
 mod tests {
+    use crate::NanamiEventStream;
     use crate::OpenClawService;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
@@ -556,9 +569,13 @@ mod tests {
         fn stream_agent_events(
             &self,
             _request: ChatRequest,
-        ) -> Pin<Box<dyn Future<Output = Result<Vec<EventEnvelope>, ErrorPayload>> + Send + '_>>
+        ) -> Pin<Box<dyn Future<Output = Result<NanamiEventStream, ErrorPayload>> + Send + '_>>
         {
-            Box::pin(async { self.agent_stream_response.clone() })
+            Box::pin(async move {
+                self.agent_stream_response.clone().map(|events| {
+                    Box::pin(tokio_stream::iter(events.into_iter().map(Ok))) as NanamiEventStream
+                })
+            })
         }
     }
 

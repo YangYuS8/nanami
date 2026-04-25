@@ -8,6 +8,7 @@ repository.workspace = true
 [dependencies]
 axum.workspace = true
 chrono.workspace = true
+futures-util.workspace = true
 nanami-openclaw = { path = "../../crates/nanami-openclaw" }
 nanami-protocol = { path = "../../crates/nanami-protocol" }
 serde.workspace = true

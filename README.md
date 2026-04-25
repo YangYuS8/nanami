@@ -91,14 +91,14 @@ Agents working on Nanami MUST follow these rules:
 
 ## Current Priority
 
-The current goal is Nanami 0.2:
+The current goal is Nanami 0.3:
 
-- OpenClaw Gateway configuration and connection status.
-- Basic chat request forwarding through `nanami-core` and `nanami-openclaw`.
-- Complete assistant response display in `nanami-ui`.
-- Structured error responses for connection, auth, and chat failures.
-- No direct OpenClaw, model, CubeSandbox, or host command access from UI.
-- Token streaming, tool call visualization, CubeSandbox, and permission business logic remain out of scope for 0.2b.
+- 0.3a completed: mock Task/Tool visualization foundation.
+- 0.3b completed: OpenClaw tool event mapping into Nanami task/tool events.
+- 0.3b now forwards `/tasks/openclaw/stream` as a true event stream instead of buffering all events first.
+- UI continues to call only `nanami-core` and only displays structured task/tool events.
+- 0.3c is the next step: upgrade the Task Panel from text timeline to a structured Task Panel data model.
+- Real tool execution, CubeSandbox, and PermissionManager business logic remain out of scope.
 
 ## Development
 
