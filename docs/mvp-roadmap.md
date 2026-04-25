@@ -100,6 +100,8 @@ Goal: enforce explicit user approval.
 
 Current 0.4a phase: permission protocol + mock permission flow. This phase adds structured permission events, a mock core permission stream, and a UI permission dialog skeleton.
 
+Current 0.4b phase: dangerous tool request interception visibility. This phase classifies mapped OpenClaw tool requests and inserts `permission.requested` events into task streams, but does not execute tools or return decisions back to OpenClaw.
+
 Required:
 
 - PermissionManager.
@@ -117,7 +119,7 @@ User chooses allow_once / allow_for_task / deny.
 Nanami records the mock decision.
 ```
 
-0.4b will connect this flow to real OpenClaw dangerous tool request interception. CubeSandbox remains part of 0.5.
+0.4c will connect this flow to decision flow + audit log memory record. CubeSandbox remains part of 0.5.
 
 ## Version 0.5: CubeSandbox Integration View
 

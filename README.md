@@ -93,11 +93,13 @@ Agents working on Nanami MUST follow these rules:
 
 The current goal is Nanami 0.4:
 
-- 0.4a in progress: permission protocol + mock permission flow.
+- 0.4a completed: permission protocol + mock permission flow.
+- 0.4b in progress: dangerous tool request interception visibility.
 - `nanami-core` provides mock permission request and resolve endpoints.
 - `nanami-ui` displays a mock permission dialog skeleton.
 - Decisions are recorded only; no dangerous action is executed.
-- Real OpenClaw dangerous tool interception is not implemented yet.
+- `permission.requested` may now appear in `/tasks/openclaw/stream` when mapped tool events look dangerous.
+- Allow/deny decisions are still not returned to OpenClaw and do not execute anything.
 
 ## Development
 

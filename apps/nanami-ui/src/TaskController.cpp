@@ -112,6 +112,7 @@ void TaskController::startOpenClawTaskStream(const QString &message)
 void TaskController::resetState()
 {
     m_currentTask = TaskViewState {};
+    m_permissionLines.clear();
     m_taskTimelineText.clear();
     emit currentTaskChanged();
     emit taskTimelineTextChanged();
@@ -153,6 +154,8 @@ void TaskController::rebuildTimeline()
                          .arg(m_currentTask.taskId,
                               m_currentTask.summary.isEmpty() ? m_currentTask.status : m_currentTask.summary));
     }
+
+    lines.append(m_permissionLines);
 
     m_taskTimelineText = lines.join(QStringLiteral("\n"));
     emit taskTimelineTextChanged();
@@ -247,6 +250,15 @@ void TaskController::handleEvent(const QJsonObject &event)
         m_currentTask.summary = event.value(QStringLiteral("summary")).toString();
         rebuildTimeline();
         emit currentTaskChanged();
+        return;
+    }
+
+    if (type == QStringLiteral("permission.requested")) {
+        m_permissionLines.append(QStringLiteral("Permission requested: %1 %2 target=%3")
+                                     .arg(event.value(QStringLiteral("level")).toString(),
+                                          event.value(QStringLiteral("action")).toString(),
+                                          event.value(QStringLiteral("target")).toString()));
+        rebuildTimeline();
         return;
     }
 

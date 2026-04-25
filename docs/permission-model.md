@@ -8,6 +8,8 @@ Default deny.
 
 Current 0.4a status: mock flow only. Permission requests and resolutions are structured and visible, but decisions only record mock state and do not trigger any real operation.
 
+Current 0.4b status: OpenClaw dangerous tool requests are classified and surfaced as `permission.requested` events. Decisions are still non-executing and non-persistent unless a later 0.4c phase changes that behavior.
+
 Nanami MUST ask the user before performing risky actions.
 
 Permission decisions MUST be explicit, scoped, recorded, and revocable where possible.
@@ -166,6 +168,18 @@ In 0.4a:
 - `allow_for_task` only records a mock task-scoped decision.
 - `deny` records explicit rejection.
 - No actual file read/write, command execution, screenshot, clipboard, or network escalation is performed as a result of these decisions.
+
+OpenClaw dangerous tool classification guide:
+
+```text
+read_file/filesystem.read/project.read -> L2
+write_file/filesystem.write/apply_patch -> L3
+shell/command.run/local.exec/process.spawn -> L4
+sandbox.mount/cubesandbox.mount -> L5
+http.request/network.fetch/download/dependency.install -> L6
+delete_file/filesystem.delete/system.modify/package.install/service.modify -> L7
+unknown dangerous-looking tool -> L7
+```
 
 ## Permission Request Shape
 

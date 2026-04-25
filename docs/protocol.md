@@ -319,6 +319,8 @@ Preferred internal format is always Nanami `EventEnvelope`. OpenClaw-specific fr
 
 Permission events provide the structured 0.4 permission flow. In 0.4a, these events are emitted by mock-only endpoints and UI actions; they do not authorize or execute real dangerous operations yet.
 
+In 0.4b, `permission.requested` may also be inserted into `/tasks/openclaw/stream` when `nanami-core` classifies mapped OpenClaw tool events as dangerous.
+
 Permission levels:
 
 ```text
@@ -370,6 +372,15 @@ Examples:
   "permission_id": "perm_mock_read_project",
   "decision": "allow_once"
 }
+```
+
+Example task stream ordering in 0.4b:
+
+```text
+tool.started
+permission.requested
+tool.output
+tool.completed
 ```
 
 For 0.3c, UI state mapping should also remain structured. `TaskController` or equivalent UI-side controllers should build in-memory task/tool state from `EventEnvelope` values first, then derive display text or widgets from that state instead of appending raw strings directly.

@@ -281,6 +281,33 @@ async fn tasks_openclaw_stream(
     .into_response()
 }
 
+fn maybe_permission_for_tool_event(event: &EventEnvelope) -> Option<EventEnvelope> {
+    let tool_started = match &event.event {
+        Event::ToolStarted(payload) => payload,
+        _ => return None,
+    };
+
+    let manager = PermissionManager::new();
+    let permission = manager.classify_tool_request(nanami_permission::DangerousToolRequest {
+        task_id: Some(tool_started.task_id.clone()),
+        tool_call_id: tool_started.tool_call_id.clone(),
+        tool: tool_started.tool.clone(),
+        arguments: Some(
+            [tool_started.tool.clone(), tool_started.summary.clone().unwrap_or_default()]
+                .join(" ")
+                .trim()
+                .to_owned(),
+        ),
+        summary: tool_started.summary.clone(),
+    })?;
+
+    Some(EventEnvelope::new(
+        format!("evt_perm_{}", tool_started.tool_call_id),
+        chrono::Utc::now(),
+        Event::PermissionRequested(permission),
+    ))
+}
+
 async fn permissions_mock_stream() -> Response {
     // 0.4a mock only: fixed permission request for UI permission flow.
     let event = EventEnvelope::new(
@@ -438,7 +465,11 @@ impl OpenClawService for EnvOpenClawService {
                 .map_err(map_openclaw_chat_error)?;
             let mapped = futures_util::StreamExt::flat_map(stream, |item| match item {
                 Ok(OpenClawStreamItem::Event(event)) => {
-                    tokio_stream::iter(vec![Ok::<_, ErrorPayload>(event)])
+                    let mut events = vec![Ok::<_, ErrorPayload>(event.clone())];
+                    if let Some(permission_event) = maybe_permission_for_tool_event(&event) {
+                        events.push(Ok(permission_event));
+                    }
+                    tokio_stream::iter(events)
                 }
                 Ok(OpenClawStreamItem::Chat(_)) => tokio_stream::iter(Vec::new()),
                 Err(error) => tokio_stream::iter(vec![Err::<EventEnvelope, _>(
@@ -1015,6 +1046,62 @@ mod tests {
         assert!(text.contains("tool.started"));
         assert!(text.contains("tool.output"));
         assert!(text.contains("task.completed"));
+    }
+
+    #[tokio::test]
+    async fn tasks_openclaw_stream_inserts_permission_for_shell_tool() {
+        let event = EventEnvelope::new(
+            "evt_shell_started_001",
+            chrono::Utc::now(),
+            Event::ToolStarted(ToolStartedPayload {
+                task_id: "task_openclaw_stream_001".into(),
+                tool_call_id: "call_shell_001".into(),
+                tool: "command.run".into(),
+                summary: Some("cargo check".into()),
+            }),
+        );
+
+        let permission = crate::maybe_permission_for_tool_event(&event).unwrap();
+        let json = serde_json::to_value(permission).unwrap();
+
+        assert_eq!(json["type"], "permission.requested");
+        assert_eq!(json["level"], "l4");
+    }
+
+    #[tokio::test]
+    async fn tasks_openclaw_stream_inserts_permission_for_read_file_tool() {
+        let event = EventEnvelope::new(
+            "evt_read_started_001",
+            chrono::Utc::now(),
+            Event::ToolStarted(ToolStartedPayload {
+                task_id: "task_openclaw_stream_001".into(),
+                tool_call_id: "call_read_001".into(),
+                tool: "read_file".into(),
+                summary: Some("/workspace/project/src/main.rs".into()),
+            }),
+        );
+
+        let permission = crate::maybe_permission_for_tool_event(&event).unwrap();
+        let json = serde_json::to_value(permission).unwrap();
+
+        assert_eq!(json["type"], "permission.requested");
+        assert_eq!(json["level"], "l2");
+    }
+
+    #[tokio::test]
+    async fn tasks_openclaw_stream_does_not_insert_permission_for_harmless_tool() {
+        let event = EventEnvelope::new(
+            "evt_harmless_started_001",
+            chrono::Utc::now(),
+            Event::ToolStarted(ToolStartedPayload {
+                task_id: "task_openclaw_stream_001".into(),
+                tool_call_id: "call_harmless_001".into(),
+                tool: "display.message".into(),
+                summary: Some("show info".into()),
+            }),
+        );
+
+        assert!(crate::maybe_permission_for_tool_event(&event).is_none());
     }
 
     #[tokio::test]

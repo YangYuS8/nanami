@@ -4,6 +4,7 @@
 #include <QHash>
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <QVector>
 
 class TaskController final : public QObject
@@ -70,6 +71,7 @@ private:
     QString m_taskTimelineText;
     QString m_streamBuffer;
     QString m_error;
+    QStringList m_permissionLines;
     TaskViewState m_currentTask;
     bool m_busy = false;
 };
