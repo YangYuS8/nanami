@@ -3,8 +3,12 @@
 #include "PersonaController.h"
 
 #include <QAction>
+#include <QBrush>
 #include <QGuiApplication>
 #include <QIcon>
+#include <QPainter>
+#include <QPen>
+#include <QPixmap>
 #include <QStyleHints>
 #include <QWindow>
 
@@ -68,8 +72,24 @@ void DesktopController::setupTray()
         return;
     }
 
+    QPixmap trayPixmap(32, 32);
+    trayPixmap.fill(Qt::transparent);
+    {
+        QPainter painter(&trayPixmap);
+        painter.setRenderHint(QPainter::Antialiasing, true);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(QBrush(QColor("#7c5cff")));
+        painter.drawEllipse(2, 2, 28, 28);
+        painter.setPen(QPen(Qt::white));
+        auto font = painter.font();
+        font.setBold(true);
+        font.setPixelSize(16);
+        painter.setFont(font);
+        painter.drawText(trayPixmap.rect(), Qt::AlignCenter, QStringLiteral("N"));
+    }
+
     m_trayIcon.setToolTip(QStringLiteral("Nanami"));
-    m_trayIcon.setIcon(QIcon());
+    m_trayIcon.setIcon(QIcon(trayPixmap));
 
     auto *toggleAction = m_trayMenu.addAction(QStringLiteral("Show/Hide Nanami"));
     connect(toggleAction, &QAction::triggered, this, &DesktopController::toggleMainWindow);

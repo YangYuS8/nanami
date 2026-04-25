@@ -6,14 +6,14 @@
 #include "StatusController.h"
 #include "TaskController.h"
 
-#include <QGuiApplication>
+#include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickWindow>
 
 int main(int argc, char *argv[])
 {
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
 
     ChatController chatController;
     PersonaController personaController;
