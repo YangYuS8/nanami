@@ -6,6 +6,7 @@
 #include "SandboxController.h"
 #include "StatusController.h"
 #include "TaskController.h"
+#include "WorkflowController.h"
 
 #include <QApplication>
 #include <QQmlApplicationEngine>
@@ -24,6 +25,7 @@ int main(int argc, char *argv[])
     SandboxController sandboxController;
     StatusController statusController;
     TaskController taskController;
+    WorkflowController workflowController;
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("chatController", &chatController);
     engine.rootContext()->setContextProperty("desktopController", &desktopController);
@@ -33,6 +35,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("sandboxController", &sandboxController);
     engine.rootContext()->setContextProperty("statusController", &statusController);
     engine.rootContext()->setContextProperty("taskController", &taskController);
+    engine.rootContext()->setContextProperty("workflowController", &workflowController);
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreationFailed,

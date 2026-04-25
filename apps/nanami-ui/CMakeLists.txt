@@ -37,6 +37,8 @@ qt_add_executable(nanami-ui
     src/StatusController.h
     src/TaskController.cpp
     src/TaskController.h
+    src/WorkflowController.cpp
+    src/WorkflowController.h
     src/main.cpp
 )
 

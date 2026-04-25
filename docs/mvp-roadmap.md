@@ -181,6 +181,8 @@ Nanami displays a placeholder companion shell while exposing a clear renderer ad
 
 Goal: support a real assisted development loop.
 
+Current 0.7a phase: development workflow protocol + mock workflow stream + UI skeleton. This phase adds structured workflow events, a mock-only workflow SSE endpoint, and a lightweight workflow panel in `nanami-ui`. It does not read real project files, execute commands, call real CubeSandbox, write files, or apply patches.
+
 Required:
 
 - Open project.
@@ -195,8 +197,8 @@ Required:
 Expected demo:
 
 ```text
-User asks Nanami to fix a small project issue.
-Nanami analyzes, tests in sandbox, proposes diff, applies after approval, and verifies.
+User runs a mock development workflow stream.
+Nanami shows open project, analyze project, run tests, patch proposal, and apply patch waiting-permission steps without touching a real project.
 ```
 
 ## Out of Scope for MVP

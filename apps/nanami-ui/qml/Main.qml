@@ -407,6 +407,70 @@ ApplicationWindow {
                 visible: sandboxController.error.length > 0
                 wrapMode: Text.Wrap
             }
+
+            Button {
+                text: workflowController.busy ? "Running mock workflow" : "Run mock workflow"
+                enabled: !workflowController.busy
+                onClicked: workflowController.startMockWorkflowStream()
+            }
+
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 13
+                text: "Workflow ID: " + (workflowController.workflowId.length > 0 ? workflowController.workflowId : "none")
+            }
+
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 13
+                text: "Workflow Status: " + (workflowController.workflowStatus.length > 0 ? workflowController.workflowStatus : "none")
+            }
+
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 13
+                text: "Project Path: " + (workflowController.projectPath.length > 0 ? workflowController.projectPath : "none")
+                wrapMode: Text.Wrap
+            }
+
+            TextArea {
+                width: parent.width
+                height: 100
+                readOnly: true
+                wrapMode: TextArea.Wrap
+                text: workflowController.stepText
+                placeholderText: "Workflow steps will appear here"
+            }
+
+            TextArea {
+                width: parent.width
+                height: 70
+                readOnly: true
+                wrapMode: TextArea.Wrap
+                text: workflowController.testResultText
+                placeholderText: "Workflow test result will appear here"
+            }
+
+            TextArea {
+                width: parent.width
+                height: 110
+                readOnly: true
+                wrapMode: TextArea.Wrap
+                text: workflowController.patchText
+                placeholderText: "Mock patch proposal will appear here"
+            }
+
+            Text {
+                width: parent.width
+                color: "#ff9a9a"
+                font.pixelSize: 13
+                text: workflowController.error
+                visible: workflowController.error.length > 0
+                wrapMode: Text.Wrap
+            }
         }
     }
 }

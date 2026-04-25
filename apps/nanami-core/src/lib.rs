@@ -22,7 +22,10 @@ use nanami_protocol::{
     PermissionRequestPayload, PermissionResolvedPayload, PermissionScope, PersonaEmotion,
     PersonaState, PersonaStatePayload, PersonaStateSource, TaskCompletedPayload,
     TaskStartedPayload, TaskStatus, ToolCallStatus, ToolCompletedPayload, ToolOutputPayload,
-    ToolOutputStream, ToolStartedPayload,
+    ToolOutputStream, ToolStartedPayload, WorkflowChangeType, WorkflowCompletedPayload,
+    WorkflowPatchFilePreviewPayload, WorkflowPatchProposedPayload, WorkflowStartedPayload,
+    WorkflowStatus, WorkflowStepKind, WorkflowStepPayload, WorkflowStepStatus,
+    WorkflowTestResultPayload,
 };
 use serde::Serialize;
 use std::convert::Infallible;
@@ -56,6 +59,7 @@ fn router_with_openclaw(openclaw: Arc<dyn OpenClawService>) -> Router {
         .route("/tasks/openclaw/stream", post(tasks_openclaw_stream))
         .route("/sandbox/mock/stream", get(sandbox_mock_stream))
         .route("/persona/mock/stream", get(persona_mock_stream))
+        .route("/workflow/mock/stream", get(workflow_mock_stream))
         .route("/permissions/mock/stream", get(permissions_mock_stream))
         .route("/permissions/resolve", post(permissions_resolve))
         .route(
@@ -393,6 +397,109 @@ async fn persona_mock_stream() -> Response {
                 emotion: PersonaEmotion::Worried,
                 text: "Something went wrong".into(),
                 source: PersonaStateSource::Mock,
+            }),
+        ),
+    ];
+
+    Sse::new(tokio_stream::iter(events.into_iter().map(|event| {
+        Ok::<_, Infallible>(SseEvent::default().data(serde_json::to_string(&event).unwrap()))
+    })))
+    .keep_alive(KeepAlive::default())
+    .into_response()
+}
+
+async fn workflow_mock_stream() -> Response {
+    let events = vec![
+        EventEnvelope::new(
+            "evt_workflow_started_001",
+            chrono::Utc::now(),
+            Event::WorkflowStarted(WorkflowStartedPayload {
+                workflow_id: "workflow_mock_001".into(),
+                task_id: "task_workflow_mock_001".into(),
+                project_path: "/mock/project".into(),
+                status: WorkflowStatus::Running,
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_workflow_step_open_project_001",
+            chrono::Utc::now(),
+            Event::WorkflowStep(WorkflowStepPayload {
+                workflow_id: "workflow_mock_001".into(),
+                task_id: "task_workflow_mock_001".into(),
+                step_kind: WorkflowStepKind::OpenProject,
+                status: WorkflowStepStatus::Completed,
+                summary: "Mock project context opened".into(),
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_workflow_step_analyze_project_001",
+            chrono::Utc::now(),
+            Event::WorkflowStep(WorkflowStepPayload {
+                workflow_id: "workflow_mock_001".into(),
+                task_id: "task_workflow_mock_001".into(),
+                step_kind: WorkflowStepKind::AnalyzeProject,
+                status: WorkflowStepStatus::Completed,
+                summary: "Mock analysis finished".into(),
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_workflow_step_run_tests_001",
+            chrono::Utc::now(),
+            Event::WorkflowStep(WorkflowStepPayload {
+                workflow_id: "workflow_mock_001".into(),
+                task_id: "task_workflow_mock_001".into(),
+                step_kind: WorkflowStepKind::RunTests,
+                status: WorkflowStepStatus::Completed,
+                summary: "Mock tests executed".into(),
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_workflow_test_result_001",
+            chrono::Utc::now(),
+            Event::WorkflowTestResult(WorkflowTestResultPayload {
+                workflow_id: "workflow_mock_001".into(),
+                task_id: "task_workflow_mock_001".into(),
+                status: WorkflowStatus::Completed,
+                summary: "2 tests passed".into(),
+                passed: 2,
+                failed: 0,
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_workflow_patch_proposed_001",
+            chrono::Utc::now(),
+            Event::WorkflowPatchProposed(WorkflowPatchProposedPayload {
+                workflow_id: "workflow_mock_001".into(),
+                task_id: "task_workflow_mock_001".into(),
+                patch_id: "patch_mock_001".into(),
+                summary: "Mock patch proposal ready".into(),
+                diff_summary: "1 file modified".into(),
+                files: vec![WorkflowPatchFilePreviewPayload {
+                    path: "src/main.rs".into(),
+                    change_type: WorkflowChangeType::Modified,
+                    diff_preview: "- old line\n+ new line".into(),
+                }],
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_workflow_step_apply_patch_001",
+            chrono::Utc::now(),
+            Event::WorkflowStep(WorkflowStepPayload {
+                workflow_id: "workflow_mock_001".into(),
+                task_id: "task_workflow_mock_001".into(),
+                step_kind: WorkflowStepKind::ApplyPatch,
+                status: WorkflowStepStatus::WaitingPermission,
+                summary: "Waiting for patch approval".into(),
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_workflow_completed_001",
+            chrono::Utc::now(),
+            Event::WorkflowCompleted(WorkflowCompletedPayload {
+                workflow_id: "workflow_mock_001".into(),
+                task_id: "task_workflow_mock_001".into(),
+                status: WorkflowStatus::Completed,
+                summary: "Mock workflow completed".into(),
             }),
         ),
     ];
@@ -1184,6 +1291,53 @@ mod tests {
         assert!(text.contains("\"state\":\"success\""));
         assert!(text.contains("\"state\":\"error\""));
         assert!(text.contains("\"source\":\"mock\""));
+    }
+
+    #[tokio::test]
+    async fn workflow_mock_stream_returns_sse_content_type() {
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .uri("/workflow/mock/stream")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers().get("content-type").unwrap(),
+            "text/event-stream"
+        );
+    }
+
+    #[tokio::test]
+    async fn workflow_mock_stream_contains_workflow_event_sequence() {
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .uri("/workflow/mock/stream")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+
+        assert!(text.contains("workflow.started"));
+        assert!(text.contains("workflow.step"));
+        assert!(text.contains("workflow.test_result"));
+        assert!(text.contains("workflow.patch_proposed"));
+        assert!(text.contains("workflow.completed"));
+        assert!(text.contains("\"step_kind\":\"open_project\""));
+        assert!(text.contains("\"step_kind\":\"analyze_project\""));
+        assert!(text.contains("\"step_kind\":\"run_tests\""));
+        assert!(text.contains("\"step_kind\":\"apply_patch\""));
+        assert!(text.contains("\"status\":\"waiting_permission\""));
     }
 
     #[tokio::test]

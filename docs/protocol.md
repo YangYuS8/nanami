@@ -611,6 +611,110 @@ data: {"type":"persona.state","id":"evt_persona_mock_success_001",...}
 data: {"type":"persona.state","id":"evt_persona_mock_error_001",...}
 ```
 
+### Workflow Events
+
+Workflow events provide the 0.7a development workflow visualization foundation. In 0.7a, these events are mock-only. They do not read real project files, do not execute commands, do not call real CubeSandbox, do not write files, and do not apply patches.
+
+Valid workflow statuses:
+
+```text
+running
+waiting_permission
+completed
+failed
+```
+
+Valid workflow step kinds:
+
+```text
+open_project
+analyze_project
+run_tests
+patch_proposed
+apply_patch
+verify
+```
+
+Valid workflow step statuses:
+
+```text
+pending
+running
+completed
+waiting_permission
+failed
+```
+
+Valid workflow change types:
+
+```text
+added
+modified
+deleted
+renamed
+```
+
+Examples:
+
+```json
+{
+  "type": "workflow.started",
+  "id": "evt_workflow_started_001",
+  "timestamp": "2026-01-01T00:00:00Z",
+  "workflow_id": "workflow_mock_001",
+  "task_id": "task_workflow_mock_001",
+  "project_path": "/mock/project",
+  "status": "running"
+}
+{
+  "type": "workflow.step",
+  "id": "evt_workflow_step_analyze_project_001",
+  "timestamp": "2026-01-01T00:00:01Z",
+  "workflow_id": "workflow_mock_001",
+  "task_id": "task_workflow_mock_001",
+  "step_kind": "analyze_project",
+  "status": "completed",
+  "summary": "Mock analysis finished"
+}
+{
+  "type": "workflow.test_result",
+  "id": "evt_workflow_test_result_001",
+  "timestamp": "2026-01-01T00:00:02Z",
+  "workflow_id": "workflow_mock_001",
+  "task_id": "task_workflow_mock_001",
+  "status": "completed",
+  "summary": "2 tests passed",
+  "passed": 2,
+  "failed": 0
+}
+{
+  "type": "workflow.patch_proposed",
+  "id": "evt_workflow_patch_proposed_001",
+  "timestamp": "2026-01-01T00:00:03Z",
+  "workflow_id": "workflow_mock_001",
+  "task_id": "task_workflow_mock_001",
+  "patch_id": "patch_mock_001",
+  "summary": "Mock patch proposal ready",
+  "diff_summary": "1 file modified",
+  "files": [
+    {
+      "path": "src/main.rs",
+      "change_type": "modified",
+      "diff_preview": "- old line\n+ new line"
+    }
+  ]
+}
+{
+  "type": "workflow.completed",
+  "id": "evt_workflow_completed_001",
+  "timestamp": "2026-01-01T00:00:04Z",
+  "workflow_id": "workflow_mock_001",
+  "task_id": "task_workflow_mock_001",
+  "status": "completed",
+  "summary": "Mock workflow completed"
+}
+```
+
 ### Tool Events
 
 ```json

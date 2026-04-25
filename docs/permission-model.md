@@ -18,6 +18,8 @@ Current 0.5b status: OpenClaw sandbox event mapping only. Structured sandbox eve
 
 Current 0.5c status: structured sandbox view + permission/audit link. Sandbox mount and network information can be displayed in a clearer structured UI state, and related audit information can be shown alongside the view, but real mount/network capability still must go through `PermissionManager` in a future phase. Permission decisions still do not trigger sandbox execution.
 
+Current 0.7a status: development workflow mock visualization only. Workflow steps may include mock patch proposal and mock apply-patch waiting-permission states, but no permission decision triggers real file reads, writes, command execution, sandbox execution, or patch application.
+
 Nanami MUST ask the user before performing risky actions.
 
 Permission decisions MUST be explicit, scoped, recorded, and revocable where possible.
