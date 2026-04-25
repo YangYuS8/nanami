@@ -543,6 +543,74 @@ data: {"type":"sandbox.completed","id":"evt_sandbox_mock_completed_001",...}
 {"sandbox_id":"sandbox_001","status":"failed","exit_code":1} -> sandbox.completed
 ```
 
+### Persona Events
+
+Persona events provide the 0.6a companion shell foundation. In 0.6a, these events are mock-only. They do not drive a real Live2D renderer, do not require model assets, and do not imply tray, notification, or special window behavior.
+
+Valid persona states:
+
+```text
+idle
+listening
+thinking
+speaking
+tool_call
+waiting_permission
+success
+error
+```
+
+Valid persona emotions:
+
+```text
+neutral
+happy
+focused
+worried
+surprised
+```
+
+Valid persona sources:
+
+```text
+mock
+ui
+system
+openclaw
+```
+
+Example:
+
+```json
+{
+  "type": "persona.state",
+  "id": "evt_persona_mock_001",
+  "timestamp": "2026-01-01T00:00:00Z",
+  "state": "thinking",
+  "emotion": "focused",
+  "text": "Thinking through the task",
+  "source": "mock"
+}
+```
+
+0.6a mock SSE example:
+
+```text
+data: {"type":"persona.state","id":"evt_persona_mock_idle_001",...}
+
+data: {"type":"persona.state","id":"evt_persona_mock_listening_001",...}
+
+data: {"type":"persona.state","id":"evt_persona_mock_thinking_001",...}
+
+data: {"type":"persona.state","id":"evt_persona_mock_tool_001",...}
+
+data: {"type":"persona.state","id":"evt_persona_mock_waiting_permission_001",...}
+
+data: {"type":"persona.state","id":"evt_persona_mock_success_001",...}
+
+data: {"type":"persona.state","id":"evt_persona_mock_error_001",...}
+```
+
 ### Tool Events
 
 ```json

@@ -23,6 +23,8 @@ qt_standard_project_setup(REQUIRES 6.5)
 qt_add_executable(nanami-ui
     src/ChatController.cpp
     src/ChatController.h
+    src/PersonaController.cpp
+    src/PersonaController.h
     src/PermissionController.cpp
     src/PermissionController.h
     src/SandboxController.cpp

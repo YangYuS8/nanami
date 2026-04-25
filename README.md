@@ -99,14 +99,18 @@ The current goal is Nanami 0.5:
 - 0.5a completed: sandbox protocol + mock sandbox stream + UI skeleton.
 - 0.5b completed: OpenClaw sandbox event mapping.
 - 0.5c completed: structured sandbox view + permission/audit link.
+- 0.6a completed: companion shell + persona state mock foundation.
 - `nanami-core` provides mock permission request, decision, audit, and sandbox stream endpoints.
-- `nanami-ui` displays mock permission and sandbox visualization skeletons with structured sandbox view state.
+- `nanami-core` also provides a mock persona state stream endpoint.
+- `nanami-ui` displays mock permission and sandbox visualization skeletons with structured sandbox view state, plus a placeholder pet view.
 - 0.5a is mock sandbox visualization only.
 - 0.5a does not call the real CubeSandbox API, does not execute commands, does not mount host directories, does not read or write artifact files, does not use network access, and does not consume real OpenClaw cube-sandbox events.
 - 0.5b maps OpenClaw structured sandbox events into Nanami sandbox events through `/tasks/openclaw/stream` only.
 - 0.5b still does not call the real CubeSandbox API, execute commands, mount host directories, read or write artifact files, or enable network access.
 - 0.5c upgrades the Sandbox View to structured UI state and clearer permission/audit guidance only.
 - Real sandbox mount/network capability still belongs to future PermissionManager-gated phases and is not executed in 0.5c.
+- 0.6a adds persona state protocol and a mock companion shell only.
+- Real Live2D renderer, tray integration, notifications, and advanced window behavior remain deferred to 0.6b/0.6c.
 
 ## Development
 
@@ -241,6 +245,14 @@ Nanami 0.5a provides mock sandbox visualization only. It does not call real Cube
 Nanami 0.5b adds OpenClaw structured sandbox event mapping to `/tasks/openclaw/stream`. This is event mapping only: it does not call real CubeSandbox, does not execute commands, does not mount host directories, does not read or write artifact files, and does not enable network access.
 
 Nanami 0.5c upgrades the Sandbox View to structured UI state derived from sandbox events and links the view more clearly to permission/audit guidance. It still does not call real CubeSandbox, execute commands, mount host directories, read or write artifact files, or enable network access.
+
+Run the 0.6a mock persona stream through `nanami-core`:
+
+```bash
+curl -N http://127.0.0.1:17878/persona/mock/stream
+```
+
+Nanami 0.6a provides a companion shell and mock persona state foundation only. It does not integrate a real Live2D SDK, does not load model assets, and does not implement tray, notification, transparent window, always-on-top, or drag behaviors yet.
 
 ## Verification
 

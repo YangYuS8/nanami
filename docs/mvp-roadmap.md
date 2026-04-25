@@ -154,6 +154,8 @@ Nanami shows sandbox ID, template, network policy, mounts, output, artifacts, co
 
 Goal: make Nanami feel like a companion.
 
+Current 0.6a phase: companion shell + persona state mock foundation. This phase adds `persona.state` protocol events, a mock persona SSE endpoint, and a placeholder pet view in `nanami-ui`. It does not integrate a real Live2D renderer, model assets, tray, notifications, or advanced window behavior.
+
 Required:
 
 - Pet window.
@@ -167,7 +169,8 @@ Required:
 Expected demo:
 
 ```text
-Nanami reacts visually to idle, thinking, tool_call, waiting_permission, success, and error states.
+User runs a mock persona stream.
+Nanami displays a placeholder companion shell that shows idle, listening, thinking, tool_call, waiting_permission, success, and error persona states.
 ```
 
 ## Version 0.7: Development Workflow

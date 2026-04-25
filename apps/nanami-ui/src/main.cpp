@@ -1,4 +1,5 @@
 #include "ChatController.h"
+#include "PersonaController.h"
 #include "PermissionController.h"
 #include "SandboxController.h"
 #include "StatusController.h"
@@ -13,12 +14,14 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
 
     ChatController chatController;
+    PersonaController personaController;
     PermissionController permissionController;
     SandboxController sandboxController;
     StatusController statusController;
     TaskController taskController;
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("chatController", &chatController);
+    engine.rootContext()->setContextProperty("personaController", &personaController);
     engine.rootContext()->setContextProperty("permissionController", &permissionController);
     engine.rootContext()->setContextProperty("sandboxController", &sandboxController);
     engine.rootContext()->setContextProperty("statusController", &statusController);

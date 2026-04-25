@@ -19,7 +19,8 @@ use nanami_protocol::{
     ChatRequest, ChatResponse, ChatStreamEvent, ChatStreamEventKind, ErrorPayload, ErrorSeverity,
     Event, EventEnvelope, OpenClawConnectionStatus, OpenClawStatusPayload,
     PermissionAuditLogResponse, PermissionDecision, PermissionDecisionStatus, PermissionLevel,
-    PermissionRequestPayload, PermissionResolvedPayload, PermissionScope, TaskCompletedPayload,
+    PermissionRequestPayload, PermissionResolvedPayload, PermissionScope, PersonaEmotion,
+    PersonaState, PersonaStatePayload, PersonaStateSource, TaskCompletedPayload,
     TaskStartedPayload, TaskStatus, ToolCallStatus, ToolCompletedPayload, ToolOutputPayload,
     ToolOutputStream, ToolStartedPayload,
 };
@@ -54,6 +55,7 @@ fn router_with_openclaw(openclaw: Arc<dyn OpenClawService>) -> Router {
         .route("/tasks/mock/stream", get(tasks_mock_stream))
         .route("/tasks/openclaw/stream", post(tasks_openclaw_stream))
         .route("/sandbox/mock/stream", get(sandbox_mock_stream))
+        .route("/persona/mock/stream", get(persona_mock_stream))
         .route("/permissions/mock/stream", get(permissions_mock_stream))
         .route("/permissions/resolve", post(permissions_resolve))
         .route(
@@ -317,6 +319,87 @@ async fn sandbox_mock_stream() -> Response {
                 )
             }),
     ))
+    .keep_alive(KeepAlive::default())
+    .into_response()
+}
+
+async fn persona_mock_stream() -> Response {
+    let events = vec![
+        EventEnvelope::new(
+            "evt_persona_mock_idle_001",
+            chrono::Utc::now(),
+            Event::PersonaState(PersonaStatePayload {
+                state: PersonaState::Idle,
+                emotion: PersonaEmotion::Neutral,
+                text: "Standing by".into(),
+                source: PersonaStateSource::Mock,
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_persona_mock_listening_001",
+            chrono::Utc::now(),
+            Event::PersonaState(PersonaStatePayload {
+                state: PersonaState::Listening,
+                emotion: PersonaEmotion::Focused,
+                text: "Listening to your request".into(),
+                source: PersonaStateSource::Mock,
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_persona_mock_thinking_001",
+            chrono::Utc::now(),
+            Event::PersonaState(PersonaStatePayload {
+                state: PersonaState::Thinking,
+                emotion: PersonaEmotion::Focused,
+                text: "Thinking through the task".into(),
+                source: PersonaStateSource::Mock,
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_persona_mock_tool_001",
+            chrono::Utc::now(),
+            Event::PersonaState(PersonaStatePayload {
+                state: PersonaState::ToolCall,
+                emotion: PersonaEmotion::Surprised,
+                text: "Preparing a tool call".into(),
+                source: PersonaStateSource::Mock,
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_persona_mock_waiting_permission_001",
+            chrono::Utc::now(),
+            Event::PersonaState(PersonaStatePayload {
+                state: PersonaState::WaitingPermission,
+                emotion: PersonaEmotion::Worried,
+                text: "Waiting for permission".into(),
+                source: PersonaStateSource::Mock,
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_persona_mock_success_001",
+            chrono::Utc::now(),
+            Event::PersonaState(PersonaStatePayload {
+                state: PersonaState::Success,
+                emotion: PersonaEmotion::Happy,
+                text: "Task finished successfully".into(),
+                source: PersonaStateSource::Mock,
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_persona_mock_error_001",
+            chrono::Utc::now(),
+            Event::PersonaState(PersonaStatePayload {
+                state: PersonaState::Error,
+                emotion: PersonaEmotion::Worried,
+                text: "Something went wrong".into(),
+                source: PersonaStateSource::Mock,
+            }),
+        ),
+    ];
+
+    Sse::new(tokio_stream::iter(events.into_iter().map(|event| {
+        Ok::<_, Infallible>(SseEvent::default().data(serde_json::to_string(&event).unwrap()))
+    })))
     .keep_alive(KeepAlive::default())
     .into_response()
 }
@@ -1055,6 +1138,52 @@ mod tests {
         assert!(text.contains("sandbox.output"));
         assert!(text.contains("sandbox.artifact"));
         assert!(text.contains("sandbox.completed"));
+    }
+
+    #[tokio::test]
+    async fn persona_mock_stream_returns_sse_content_type() {
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .uri("/persona/mock/stream")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers().get("content-type").unwrap(),
+            "text/event-stream"
+        );
+    }
+
+    #[tokio::test]
+    async fn persona_mock_stream_contains_persona_event_sequence() {
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .uri("/persona/mock/stream")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+
+        assert!(text.contains("persona.state"));
+        assert!(text.contains("\"state\":\"idle\""));
+        assert!(text.contains("\"state\":\"listening\""));
+        assert!(text.contains("\"state\":\"thinking\""));
+        assert!(text.contains("\"state\":\"tool_call\""));
+        assert!(text.contains("\"state\":\"waiting_permission\""));
+        assert!(text.contains("\"state\":\"success\""));
+        assert!(text.contains("\"state\":\"error\""));
+        assert!(text.contains("\"source\":\"mock\""));
     }
 
     #[tokio::test]
