@@ -91,7 +91,7 @@ ApplicationWindow {
 
                         Text {
                             anchors.centerIn: parent
-                            text: personaController.state === "happy" ? "^_^" : "N"
+                            text: personaController.emotion === "happy" ? "^_^" : "N"
                             color: "white"
                             font.pixelSize: 26
                             font.bold: true

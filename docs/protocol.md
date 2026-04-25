@@ -688,32 +688,6 @@ allow_for_task
 deny
 ```
 
-### Persona Events
-
-```json
-{
-  "type": "persona.state",
-  "id": "evt_060",
-  "timestamp": "2026-01-01T00:00:03Z",
-  "state": "thinking",
-  "emotion": "focused",
-  "text": "我先看一下项目结构。"
-}
-```
-
-Valid persona states:
-
-```text
-idle
-listening
-thinking
-speaking
-tool_call
-waiting_permission
-success
-error
-```
-
 ### Error Events
 
 ```json
