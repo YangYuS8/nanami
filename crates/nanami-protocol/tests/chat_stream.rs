@@ -47,7 +47,7 @@ fn chat_stream_error_serializes_json_shape() {
         error: Some(ErrorPayload {
             task_id: None,
             severity: ErrorSeverity::Error,
-            code: "OPENCLAW_STREAM_FAILED".into(),
+            code: "OPENCLAW_CHAT_FAILED".into(),
             message: "stream failed".into(),
             action_hint: None,
         }),
@@ -56,5 +56,5 @@ fn chat_stream_error_serializes_json_shape() {
     let json = serde_json::to_value(event).unwrap();
 
     assert_eq!(json["kind"], "error");
-    assert_eq!(json["error"]["code"], "OPENCLAW_STREAM_FAILED");
+    assert_eq!(json["error"]["code"], "OPENCLAW_CHAT_FAILED");
 }
