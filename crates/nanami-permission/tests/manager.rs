@@ -30,7 +30,8 @@ fn resolve_allow_once_records_decision() {
     let mut manager = PermissionManager::new();
     let request = manager.request_permission(mock_request());
 
-    let resolved = manager.resolve_permission(&request.permission_id, PermissionDecision::AllowOnce);
+    let resolved =
+        manager.resolve_permission(&request.permission_id, PermissionDecision::AllowOnce);
 
     assert_eq!(resolved.decision, PermissionDecision::AllowOnce);
     assert_eq!(
@@ -44,7 +45,8 @@ fn resolve_allow_for_task_records_decision() {
     let mut manager = PermissionManager::new();
     let request = manager.request_permission(mock_request());
 
-    let resolved = manager.resolve_permission(&request.permission_id, PermissionDecision::AllowForTask);
+    let resolved =
+        manager.resolve_permission(&request.permission_id, PermissionDecision::AllowForTask);
 
     assert_eq!(resolved.decision, PermissionDecision::AllowForTask);
     assert_eq!(

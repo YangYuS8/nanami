@@ -24,7 +24,10 @@ impl PermissionManager {
         Self::default()
     }
 
-    pub fn request_permission(&mut self, request: PermissionRequestPayload) -> PermissionRequestPayload {
+    pub fn request_permission(
+        &mut self,
+        request: PermissionRequestPayload,
+    ) -> PermissionRequestPayload {
         request
     }
 
@@ -53,18 +56,62 @@ impl PermissionManager {
         let tool = request.tool.to_lowercase();
         let arguments = request.arguments.unwrap_or_default();
 
-        let (level, action) = if matches_any(&tool, &["filesystem.read", "file.read", "read_file", "project.read"]) {
+        let (level, action) = if matches_any(
+            &tool,
+            &["filesystem.read", "file.read", "read_file", "project.read"],
+        ) {
             (PermissionLevel::L2, "filesystem.read")
-        } else if matches_any(&tool, &["filesystem.write", "file.write", "write_file", "apply_patch"]) {
+        } else if matches_any(
+            &tool,
+            &[
+                "filesystem.write",
+                "file.write",
+                "write_file",
+                "apply_patch",
+            ],
+        ) {
             (PermissionLevel::L3, "filesystem.write")
-        } else if matches_any(&tool, &["shell", "terminal", "command.run", "local.exec", "process.spawn"]) {
+        } else if matches_any(
+            &tool,
+            &[
+                "shell",
+                "terminal",
+                "command.run",
+                "local.exec",
+                "process.spawn",
+            ],
+        ) {
             (PermissionLevel::L4, "command.execute")
         } else if matches_any(&tool, &["sandbox.mount", "cubesandbox.mount"]) {
             (PermissionLevel::L5, "sandbox.mount")
-        } else if matches_any(&tool, &["network.fetch", "http.request", "download", "dependency.install"]) {
+        } else if matches_any(
+            &tool,
+            &[
+                "network.fetch",
+                "http.request",
+                "download",
+                "dependency.install",
+            ],
+        ) {
             (PermissionLevel::L6, "network.access")
-        } else if matches_any(&tool, &["delete_file", "filesystem.delete", "system.modify", "package.install", "service.modify"]) {
-            (PermissionLevel::L7, if tool.contains("delete") { "filesystem.delete" } else { "system.modify" })
+        } else if matches_any(
+            &tool,
+            &[
+                "delete_file",
+                "filesystem.delete",
+                "system.modify",
+                "package.install",
+                "service.modify",
+            ],
+        ) {
+            (
+                PermissionLevel::L7,
+                if tool.contains("delete") {
+                    "filesystem.delete"
+                } else {
+                    "system.modify"
+                },
+            )
         } else if looks_dangerous(&tool, &arguments) {
             (PermissionLevel::L7, "system.modify")
         } else {
@@ -76,7 +123,11 @@ impl PermissionManager {
             permission_id: format!("perm_{}", request.tool_call_id),
             level,
             action: action.into(),
-            target: sanitize_target(if arguments.is_empty() { &request.tool } else { &arguments }),
+            target: sanitize_target(if arguments.is_empty() {
+                &request.tool
+            } else {
+                &arguments
+            }),
             reason: format!(
                 "OpenClaw requested potentially dangerous tool: {}",
                 request.tool
@@ -88,7 +139,9 @@ impl PermissionManager {
 }
 
 fn matches_any(tool: &str, candidates: &[&str]) -> bool {
-    candidates.iter().any(|candidate| tool == *candidate || tool.contains(candidate))
+    candidates
+        .iter()
+        .any(|candidate| tool == *candidate || tool.contains(candidate))
 }
 
 fn looks_dangerous(tool: &str, arguments: &str) -> bool {

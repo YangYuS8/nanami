@@ -15,11 +15,10 @@ use nanami_openclaw::{
 use nanami_permission::PermissionManager;
 use nanami_protocol::{
     ChatRequest, ChatResponse, ChatStreamEvent, ChatStreamEventKind, ErrorPayload, ErrorSeverity,
-    Event, EventEnvelope, OpenClawConnectionStatus, OpenClawStatusPayload, TaskCompletedPayload,
-    PermissionDecision, PermissionLevel, PermissionRequestPayload, PermissionResolvedPayload,
-    PermissionScope,
-    TaskStartedPayload, TaskStatus, ToolCallStatus, ToolCompletedPayload, ToolOutputPayload,
-    ToolOutputStream, ToolStartedPayload,
+    Event, EventEnvelope, OpenClawConnectionStatus, OpenClawStatusPayload, PermissionDecision,
+    PermissionLevel, PermissionRequestPayload, PermissionResolvedPayload, PermissionScope,
+    TaskCompletedPayload, TaskStartedPayload, TaskStatus, ToolCallStatus, ToolCompletedPayload,
+    ToolOutputPayload, ToolOutputStream, ToolStartedPayload,
 };
 use serde::Serialize;
 use std::convert::Infallible;
@@ -293,10 +292,13 @@ fn maybe_permission_for_tool_event(event: &EventEnvelope) -> Option<EventEnvelop
         tool_call_id: tool_started.tool_call_id.clone(),
         tool: tool_started.tool.clone(),
         arguments: Some(
-            [tool_started.tool.clone(), tool_started.summary.clone().unwrap_or_default()]
-                .join(" ")
-                .trim()
-                .to_owned(),
+            [
+                tool_started.tool.clone(),
+                tool_started.summary.clone().unwrap_or_default(),
+            ]
+            .join(" ")
+            .trim()
+            .to_owned(),
         ),
         summary: tool_started.summary.clone(),
     })?;
