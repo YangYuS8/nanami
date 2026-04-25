@@ -156,6 +156,8 @@ Goal: make Nanami feel like a companion.
 
 Current 0.6a phase: companion shell + persona state mock foundation. This phase adds `persona.state` protocol events, a mock persona SSE endpoint, and a placeholder pet view in `nanami-ui`. It does not integrate a real Live2D renderer, model assets, tray, notifications, or advanced window behavior.
 
+Current 0.6b phase: tray + notifications + basic window behavior. This phase adds a minimal system tray menu, tray-backed notifications, and show/hide/toggle main window behavior. It does not integrate a real Live2D renderer, transparent or always-on-top window behavior, dragging, or platform-specific hacks.
+
 Required:
 
 - Pet window.
@@ -169,8 +171,8 @@ Required:
 Expected demo:
 
 ```text
-User runs a mock persona stream.
-Nanami displays a placeholder companion shell that shows idle, listening, thinking, tool_call, waiting_permission, success, and error persona states.
+User runs a mock persona stream, toggles the main window from the tray, and triggers a mock notification.
+Nanami displays a placeholder companion shell while exposing minimal desktop shell behavior without advanced pet window effects.
 ```
 
 ## Version 0.7: Development Workflow

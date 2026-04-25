@@ -6,11 +6,11 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(Qt6 QUIET COMPONENTS Network Quick)
+find_package(Qt6 QUIET COMPONENTS Network Quick Widgets)
 
 if(NOT Qt6_FOUND)
     if(NANAMI_REQUIRE_QT)
-        find_package(Qt6 REQUIRED COMPONENTS Network Quick)
+        find_package(Qt6 REQUIRED COMPONENTS Network Quick Widgets)
     endif()
 
     message(WARNING "Qt6 Quick was not found; skipping nanami-ui target")
@@ -23,6 +23,8 @@ qt_standard_project_setup(REQUIRES 6.5)
 qt_add_executable(nanami-ui
     src/ChatController.cpp
     src/ChatController.h
+    src/DesktopController.cpp
+    src/DesktopController.h
     src/PersonaController.cpp
     src/PersonaController.h
     src/PermissionController.cpp
@@ -47,4 +49,5 @@ target_link_libraries(nanami-ui
     PRIVATE
         Qt6::Network
         Qt6::Quick
+        Qt6::Widgets
 )

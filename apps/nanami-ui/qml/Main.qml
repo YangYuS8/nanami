@@ -113,6 +113,20 @@ ApplicationWindow {
                         onClicked: personaController.startMockPersonaStream()
                     }
 
+                    Row {
+                        spacing: 8
+
+                        Button {
+                            text: "Toggle window"
+                            onClicked: desktopController.toggleMainWindow()
+                        }
+
+                        Button {
+                            text: "Test notification"
+                            onClicked: desktopController.showNotification("Nanami", "Mock desktop notification")
+                        }
+                    }
+
                     Text {
                         color: "#ff9a9a"
                         text: personaController.error
