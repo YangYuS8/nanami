@@ -98,6 +98,8 @@ Nanami displays mapped task timeline and tool status without executing tools.
 
 Goal: enforce explicit user approval.
 
+Current 0.4a phase: permission protocol + mock permission flow. This phase adds structured permission events, a mock core permission stream, and a UI permission dialog skeleton.
+
 Required:
 
 - PermissionManager.
@@ -110,11 +112,12 @@ Required:
 Expected demo:
 
 ```text
-OpenClaw requests project file read.
-Nanami asks permission.
-User approves.
-Task continues.
+Mock permission request appears in Nanami.
+User chooses allow_once / allow_for_task / deny.
+Nanami records the mock decision.
 ```
+
+0.4b will connect this flow to real OpenClaw dangerous tool request interception. CubeSandbox remains part of 0.5.
 
 ## Version 0.5: CubeSandbox Integration View
 

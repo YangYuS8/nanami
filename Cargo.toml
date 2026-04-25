@@ -2,6 +2,7 @@
 members = [
     "apps/nanami-core",
     "crates/nanami-openclaw",
+    "crates/nanami-permission",
     "crates/nanami-protocol",
 ]
 resolver = "2"

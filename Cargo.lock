@@ -761,6 +761,7 @@ dependencies = [
  "chrono",
  "futures-util",
  "nanami-openclaw",
+ "nanami-permission",
  "nanami-protocol",
  "serde",
  "serde_json",
@@ -783,6 +784,13 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "wiremock",
+]
+
+[[package]]
+name = "nanami-permission"
+version = "0.1.0"
+dependencies = [
+ "nanami-protocol",
 ]
 
 [[package]]

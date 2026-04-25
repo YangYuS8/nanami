@@ -91,15 +91,13 @@ Agents working on Nanami MUST follow these rules:
 
 ## Current Priority
 
-The current goal is Nanami 0.3:
+The current goal is Nanami 0.4:
 
-- 0.3a completed: mock Task/Tool visualization foundation.
-- 0.3b completed: OpenClaw tool event mapping into Nanami task/tool events.
-- 0.3b now forwards `/tasks/openclaw/stream` as a true event stream instead of buffering all events first.
-- 0.3c completed: Task Panel structured state is now maintained inside `TaskController`.
-- UI continues to call only `nanami-core` and only displays structured task/tool events.
-- 0.3c still uses a text timeline as a transitional view, but its contents are rebuilt from structured in-memory task/tool state.
-- Real tool execution, CubeSandbox, and PermissionManager business logic remain out of scope.
+- 0.4a in progress: permission protocol + mock permission flow.
+- `nanami-core` provides mock permission request and resolve endpoints.
+- `nanami-ui` displays a mock permission dialog skeleton.
+- Decisions are recorded only; no dangerous action is executed.
+- Real OpenClaw dangerous tool interception is not implemented yet.
 
 ## Development
 
@@ -194,6 +192,20 @@ curl -N -X POST http://127.0.0.1:17878/tasks/openclaw/stream \
 ```
 
 Nanami 0.3b maps OpenClaw streaming tool events into Nanami task/tool events for visualization only. It does not execute tools.
+
+Run the 0.4a mock permission request stream through `nanami-core`:
+
+```bash
+curl -N http://127.0.0.1:17878/permissions/mock/stream
+```
+
+Resolve a mock permission request:
+
+```bash
+curl -X POST http://127.0.0.1:17878/permissions/resolve \
+  -H 'content-type: application/json' \
+  -d '{"permission_id":"perm_mock_read_project","decision":"allow_once"}'
+```
 
 ## Verification
 

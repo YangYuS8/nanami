@@ -12,9 +12,12 @@ use nanami_openclaw::{
     OpenClawChatRequest, OpenClawChatStream, OpenClawClient, OpenClawConfig, OpenClawError,
     OpenClawStreamItem,
 };
+use nanami_permission::PermissionManager;
 use nanami_protocol::{
     ChatRequest, ChatResponse, ChatStreamEvent, ChatStreamEventKind, ErrorPayload, ErrorSeverity,
     Event, EventEnvelope, OpenClawConnectionStatus, OpenClawStatusPayload, TaskCompletedPayload,
+    PermissionDecision, PermissionLevel, PermissionRequestPayload, PermissionResolvedPayload,
+    PermissionScope,
     TaskStartedPayload, TaskStatus, ToolCallStatus, ToolCompletedPayload, ToolOutputPayload,
     ToolOutputStream, ToolStartedPayload,
 };
@@ -47,12 +50,20 @@ fn router_with_openclaw(openclaw: Arc<dyn OpenClawService>) -> Router {
         .route("/chat/stream", post(chat_stream))
         .route("/tasks/mock/stream", get(tasks_mock_stream))
         .route("/tasks/openclaw/stream", post(tasks_openclaw_stream))
+        .route("/permissions/mock/stream", get(permissions_mock_stream))
+        .route("/permissions/resolve", post(permissions_resolve))
         .with_state(AppState { openclaw })
 }
 
 #[derive(Clone)]
 struct AppState {
     openclaw: Arc<dyn OpenClawService>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct PermissionResolveRequest {
+    permission_id: String,
+    decision: PermissionDecision,
 }
 
 trait OpenClawService: Send + Sync {
@@ -268,6 +279,45 @@ async fn tasks_openclaw_stream(
     }))
     .keep_alive(KeepAlive::default())
     .into_response()
+}
+
+async fn permissions_mock_stream() -> Response {
+    // 0.4a mock only: fixed permission request for UI permission flow.
+    let event = EventEnvelope::new(
+        "evt_permission_mock_requested_001",
+        chrono::Utc::now(),
+        Event::PermissionRequested(PermissionRequestPayload {
+            task_id: Some("task_mock_001".into()),
+            permission_id: "perm_mock_read_project".into(),
+            level: PermissionLevel::L2,
+            action: "filesystem.read".into(),
+            target: "/home/user/Code/nanami".into(),
+            reason: "Need to read project files for analysis".into(),
+            scope: PermissionScope::Task,
+            expires: "task_completed".into(),
+        }),
+    );
+
+    Sse::new(tokio_stream::iter(vec![Ok::<_, Infallible>(
+        SseEvent::default().data(serde_json::to_string(&event).unwrap()),
+    )]))
+    .keep_alive(KeepAlive::default())
+    .into_response()
+}
+
+async fn permissions_resolve(Json(request): Json<PermissionResolveRequest>) -> impl IntoResponse {
+    let mut manager = PermissionManager::new();
+    let resolved = manager.resolve_permission(&request.permission_id, request.decision);
+    let event = EventEnvelope::new(
+        "evt_permission_mock_resolved_001",
+        chrono::Utc::now(),
+        Event::PermissionResolved(PermissionResolvedPayload {
+            permission_id: resolved.permission_id,
+            decision: resolved.decision,
+        }),
+    );
+
+    (StatusCode::OK, Json(event))
 }
 
 #[derive(Debug, Serialize)]
@@ -995,5 +1045,127 @@ mod tests {
 
         assert!(text.contains("error.occurred"));
         assert!(text.contains("OPENCLAW_GATEWAY_UNCONFIGURED"));
+    }
+
+    #[tokio::test]
+    async fn permissions_mock_stream_returns_sse_content_type() {
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .uri("/permissions/mock/stream")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers().get("content-type").unwrap(),
+            "text/event-stream"
+        );
+    }
+
+    #[tokio::test]
+    async fn permissions_mock_stream_contains_requested_event() {
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .uri("/permissions/mock/stream")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+
+        assert!(text.contains("permission.requested"));
+        assert!(text.contains("perm_mock_read_project"));
+    }
+
+    #[tokio::test]
+    async fn permissions_resolve_accepts_allow_once() {
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/permissions/resolve")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"permission_id":"perm_mock_read_project","decision":"allow_once"}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = response.status();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(json["type"], "permission.resolved");
+        assert_eq!(json["decision"], "allow_once");
+    }
+
+    #[tokio::test]
+    async fn permissions_resolve_accepts_allow_for_task() {
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/permissions/resolve")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"permission_id":"perm_mock_read_project","decision":"allow_for_task"}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["decision"], "allow_for_task");
+    }
+
+    #[tokio::test]
+    async fn permissions_resolve_accepts_deny() {
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/permissions/resolve")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"permission_id":"perm_mock_read_project","decision":"deny"}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["decision"], "deny");
+    }
+
+    #[tokio::test]
+    async fn permissions_resolve_rejects_invalid_decision() {
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/permissions/resolve")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"permission_id":"perm_mock_read_project","decision":"invalid"}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     }
 }

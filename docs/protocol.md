@@ -315,6 +315,63 @@ Simple tool event JSON -> tool.started/tool.output/tool.completed based on struc
 
 Preferred internal format is always Nanami `EventEnvelope`. OpenClaw-specific frames should be mapped into this structure inside `crates/nanami-openclaw`, not in UI.
 
+### Permission Events
+
+Permission events provide the structured 0.4 permission flow. In 0.4a, these events are emitted by mock-only endpoints and UI actions; they do not authorize or execute real dangerous operations yet.
+
+Permission levels:
+
+```text
+l0
+l1
+l2
+l3
+l4
+l5
+l6
+l7
+```
+
+Permission decisions:
+
+```text
+allow_once
+allow_for_task
+deny
+```
+
+Permission scopes:
+
+```text
+once
+task
+```
+
+Examples:
+
+```json
+{
+  "type": "permission.requested",
+  "id": "evt_permission_mock_requested_001",
+  "timestamp": "2026-01-01T00:00:00Z",
+  "task_id": "task_mock_001",
+  "permission_id": "perm_mock_read_project",
+  "level": "l2",
+  "action": "filesystem.read",
+  "target": "/home/user/Code/nanami",
+  "reason": "Need to read project files for analysis",
+  "scope": "task",
+  "expires": "task_completed"
+}
+{
+  "type": "permission.resolved",
+  "id": "evt_permission_mock_resolved_001",
+  "timestamp": "2026-01-01T00:00:05Z",
+  "permission_id": "perm_mock_read_project",
+  "decision": "allow_once"
+}
+```
+
 For 0.3c, UI state mapping should also remain structured. `TaskController` or equivalent UI-side controllers should build in-memory task/tool state from `EventEnvelope` values first, then derive display text or widgets from that state instead of appending raw strings directly.
 
 ### Tool Events

@@ -6,6 +6,8 @@ Nanami has access to sensitive desktop and development capabilities. Agents MUST
 
 Default deny.
 
+Current 0.4a status: mock flow only. Permission requests and resolutions are structured and visible, but decisions only record mock state and do not trigger any real operation.
+
 Nanami MUST ask the user before performing risky actions.
 
 Permission decisions MUST be explicit, scoped, recorded, and revocable where possible.
@@ -157,6 +159,13 @@ always_deny
 ```
 
 But persistent permissions MUST be designed carefully and stored securely.
+
+In 0.4a:
+
+- `allow_once` only records a mock one-time decision.
+- `allow_for_task` only records a mock task-scoped decision.
+- `deny` records explicit rejection.
+- No actual file read/write, command execution, screenshot, clipboard, or network escalation is performed as a result of these decisions.
 
 ## Permission Request Shape
 
