@@ -6,9 +6,9 @@ members = [
 resolver = "2"
 
 [workspace.package]
-edition = "2021"
+edition = "2024"
 license = "MIT"
-repository = "https://github.com/OpenClaw/nanami"
+repository = "https://github.com/YangYuS8/nanami"
 
 [workspace.dependencies]
 axum = "0.7"

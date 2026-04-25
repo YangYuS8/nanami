@@ -7,6 +7,7 @@ description: 当实现 nanami-core、Rust crate、任务状态机、权限系统
 ## 技术原则
 
 - 使用 tokio 异步运行时。
+- 使用官方最新稳定 Rust edition。当前项目默认使用 Rust 2024 edition。
 - 使用 serde 定义所有协议类型。
 - 使用 tracing 记录结构化日志。
 - 所有外部调用都必须有 timeout。

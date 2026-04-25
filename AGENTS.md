@@ -17,4 +17,5 @@ Nanami is a desktop-native AI companion and development control surface for Open
 - Prefer CubeSandbox for untrusted code execution.
 - Always update protocol types before UI event handling.
 - Always add tests for Rust core logic.
+- Rust code MUST use the latest official stable Rust edition unless there is a documented compatibility reason not to.
 - Always run verification before claiming completion.
