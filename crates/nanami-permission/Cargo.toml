@@ -6,4 +6,5 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+chrono.workspace = true
 nanami-protocol = { path = "../nanami-protocol" }

@@ -374,6 +374,41 @@ Examples:
 }
 ```
 
+0.4c decision and audit responses:
+
+```json
+{
+  "permission_id": "perm_mock_read_project",
+  "decision": "allow_once"
+}
+{
+  "records": [
+    {
+      "audit_id": "audit_001",
+      "timestamp": "2026-01-01T00:00:00Z",
+      "task_id": "task_mock_001",
+      "permission_id": "perm_mock_read_project",
+      "action": "permission_requested",
+      "level": "l2",
+      "permission_action": "filesystem.read",
+      "target": "/home/user/Code/nanami",
+      "result": "recorded_only"
+    },
+    {
+      "audit_id": "audit_002",
+      "timestamp": "2026-01-01T00:00:05Z",
+      "task_id": null,
+      "permission_id": "perm_mock_read_project",
+      "action": "permission_resolved",
+      "decision": "allow_once",
+      "result": "recorded_only"
+    }
+  ]
+}
+```
+
+Current 0.4c note: these decision and audit responses are in-memory only and are not persisted across process restarts.
+
 Example task stream ordering in 0.4b:
 
 ```text

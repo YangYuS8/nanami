@@ -10,6 +10,8 @@ Current 0.4a status: mock flow only. Permission requests and resolutions are str
 
 Current 0.4b status: OpenClaw dangerous tool requests are classified and surfaced as `permission.requested` events. Decisions are still non-executing and non-persistent unless a later 0.4c phase changes that behavior.
 
+Current 0.4c status: decision flow + in-memory audit log. `allow_once` / `allow_for_task` / `deny` are stored only in process memory, and audit records are stored only in memory as well.
+
 Nanami MUST ask the user before performing risky actions.
 
 Permission decisions MUST be explicit, scoped, recorded, and revocable where possible.
@@ -168,6 +170,13 @@ In 0.4a:
 - `allow_for_task` only records a mock task-scoped decision.
 - `deny` records explicit rejection.
 - No actual file read/write, command execution, screenshot, clipboard, or network escalation is performed as a result of these decisions.
+
+In 0.4c:
+
+- `allow_once` / `allow_for_task` / `deny` still only record decisions.
+- Audit records are generated for `permission_requested` and `permission_resolved`.
+- Audit records are queryable from memory only.
+- No persistent storage or secure vault integration is implemented yet.
 
 OpenClaw dangerous tool classification guide:
 

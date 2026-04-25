@@ -790,6 +790,7 @@ dependencies = [
 name = "nanami-permission"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "nanami-protocol",
 ]
 

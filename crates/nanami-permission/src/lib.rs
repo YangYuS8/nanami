@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use nanami_protocol::{
-    PermissionDecision, PermissionLevel, PermissionRequestPayload, PermissionResolvedPayload,
-    PermissionScope,
+    AuditAction, AuditRecord, PermissionDecision, PermissionLevel, PermissionRequestPayload,
+    PermissionResolvedPayload, PermissionScope,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -17,6 +17,8 @@ pub struct DangerousToolRequest {
 #[derive(Debug, Default)]
 pub struct PermissionManager {
     decisions: HashMap<String, PermissionDecision>,
+    audit_records: Vec<AuditRecord>,
+    next_audit_id: usize,
 }
 
 impl PermissionManager {
@@ -28,6 +30,20 @@ impl PermissionManager {
         &mut self,
         request: PermissionRequestPayload,
     ) -> PermissionRequestPayload {
+        let audit_id = self.next_audit_id();
+        self.audit_records.push(AuditRecord {
+            audit_id,
+            timestamp: chrono::Utc::now(),
+            task_id: request.task_id.clone(),
+            permission_id: request.permission_id.clone(),
+            action: AuditAction::PermissionRequested,
+            level: Some(request.level.clone()),
+            permission_action: Some(request.action.clone()),
+            target: Some(sanitize_target(&request.target)),
+            decision: None,
+            result: "recorded_only".into(),
+        });
+
         request
     }
 
@@ -39,6 +55,20 @@ impl PermissionManager {
         self.decisions
             .insert(permission_id.to_owned(), decision.clone());
 
+        let audit_id = self.next_audit_id();
+        self.audit_records.push(AuditRecord {
+            audit_id,
+            timestamp: chrono::Utc::now(),
+            task_id: None,
+            permission_id: permission_id.to_owned(),
+            action: AuditAction::PermissionResolved,
+            level: None,
+            permission_action: None,
+            target: None,
+            decision: Some(decision.clone()),
+            result: "recorded_only".into(),
+        });
+
         PermissionResolvedPayload {
             permission_id: permission_id.to_owned(),
             decision,
@@ -47,6 +77,10 @@ impl PermissionManager {
 
     pub fn decision_for(&self, permission_id: &str) -> Option<PermissionDecision> {
         self.decisions.get(permission_id).cloned()
+    }
+
+    pub fn audit_records(&self) -> Vec<AuditRecord> {
+        self.audit_records.clone()
     }
 
     pub fn classify_tool_request(
@@ -135,6 +169,11 @@ impl PermissionManager {
             scope: PermissionScope::Task,
             expires: "task_completed".into(),
         })
+    }
+
+    fn next_audit_id(&mut self) -> String {
+        self.next_audit_id += 1;
+        format!("audit_{:03}", self.next_audit_id)
     }
 }
 

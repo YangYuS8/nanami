@@ -102,6 +102,8 @@ Current 0.4a phase: permission protocol + mock permission flow. This phase adds 
 
 Current 0.4b phase: dangerous tool request interception visibility. This phase classifies mapped OpenClaw tool requests and inserts `permission.requested` events into task streams, but does not execute tools or return decisions back to OpenClaw.
 
+Current 0.4c phase: permission decision flow + in-memory audit log. This phase records permission decisions in memory, exposes query endpoints, and keeps an in-memory audit trail without executing any real operation.
+
 Required:
 
 - PermissionManager.
@@ -119,7 +121,7 @@ User chooses allow_once / allow_for_task / deny.
 Nanami records the mock decision.
 ```
 
-0.4c will connect this flow to decision flow + audit log memory record. CubeSandbox remains part of 0.5.
+CubeSandbox remains part of 0.5. Real tool execution is still out of scope.
 
 ## Version 0.5: CubeSandbox Integration View
 

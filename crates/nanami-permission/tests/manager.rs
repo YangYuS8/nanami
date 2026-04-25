@@ -1,6 +1,6 @@
 use nanami_permission::PermissionManager;
 use nanami_protocol::{
-    PermissionDecision, PermissionLevel, PermissionRequestPayload, PermissionScope,
+    AuditAction, PermissionDecision, PermissionLevel, PermissionRequestPayload, PermissionScope,
 };
 
 use nanami_permission::DangerousToolRequest;
@@ -187,4 +187,56 @@ fn classify_harmless_tool_as_none() {
     });
 
     assert!(permission.is_none());
+}
+
+#[test]
+fn request_permission_creates_audit_record() {
+    let mut manager = PermissionManager::new();
+
+    manager.request_permission(mock_request());
+
+    let records = manager.audit_records();
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0].action, AuditAction::PermissionRequested);
+    assert_eq!(records[0].result, "recorded_only");
+}
+
+#[test]
+fn resolve_permission_creates_audit_record() {
+    let mut manager = PermissionManager::new();
+    let request = manager.request_permission(mock_request());
+
+    manager.resolve_permission(&request.permission_id, PermissionDecision::AllowOnce);
+
+    let records = manager.audit_records();
+    assert_eq!(records.len(), 2);
+    assert_eq!(records[1].action, AuditAction::PermissionResolved);
+    assert_eq!(records[1].decision, Some(PermissionDecision::AllowOnce));
+    assert_eq!(records[1].result, "recorded_only");
+}
+
+#[test]
+fn audit_records_return_in_order() {
+    let mut manager = PermissionManager::new();
+    let request = manager.request_permission(mock_request());
+    manager.resolve_permission(&request.permission_id, PermissionDecision::Deny);
+
+    let records = manager.audit_records();
+    assert_eq!(records[0].action, AuditAction::PermissionRequested);
+    assert_eq!(records[1].action, AuditAction::PermissionResolved);
+}
+
+#[test]
+fn target_is_redacted_in_audit_records() {
+    let mut manager = PermissionManager::new();
+    let mut request = mock_request();
+    request.target = "authorization=Bearer secret-token cookie=session token=abc".into();
+
+    manager.request_permission(request);
+
+    let records = manager.audit_records();
+    let target = records[0].target.clone().unwrap();
+    assert!(!target.contains("secret-token"));
+    assert!(!target.contains("cookie"));
+    assert!(!target.contains("token="));
 }

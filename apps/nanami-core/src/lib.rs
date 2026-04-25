@@ -1,5 +1,6 @@
 use axum::{
     Json, Router,
+    extract::Path,
     extract::State,
     http::StatusCode,
     response::{
@@ -8,6 +9,7 @@ use axum::{
     },
     routing::{get, post},
 };
+use futures_util::StreamExt as FuturesStreamExt;
 use nanami_openclaw::{
     OpenClawChatRequest, OpenClawChatStream, OpenClawClient, OpenClawConfig, OpenClawError,
     OpenClawStreamItem,
@@ -15,17 +17,19 @@ use nanami_openclaw::{
 use nanami_permission::PermissionManager;
 use nanami_protocol::{
     ChatRequest, ChatResponse, ChatStreamEvent, ChatStreamEventKind, ErrorPayload, ErrorSeverity,
-    Event, EventEnvelope, OpenClawConnectionStatus, OpenClawStatusPayload, PermissionDecision,
-    PermissionLevel, PermissionRequestPayload, PermissionResolvedPayload, PermissionScope,
-    TaskCompletedPayload, TaskStartedPayload, TaskStatus, ToolCallStatus, ToolCompletedPayload,
-    ToolOutputPayload, ToolOutputStream, ToolStartedPayload,
+    Event, EventEnvelope, OpenClawConnectionStatus, OpenClawStatusPayload,
+    PermissionAuditLogResponse, PermissionDecision, PermissionDecisionStatus, PermissionLevel,
+    PermissionRequestPayload, PermissionResolvedPayload, PermissionScope, TaskCompletedPayload,
+    TaskStartedPayload, TaskStatus, ToolCallStatus, ToolCompletedPayload, ToolOutputPayload,
+    ToolOutputStream, ToolStartedPayload,
 };
 use serde::Serialize;
 use std::convert::Infallible;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
-use tokio_stream::{StreamExt, once};
+use std::sync::Mutex;
+use tokio_stream::once;
 
 const DEFAULT_OPENCLAW_TIMEOUT_MS: u64 = 3000;
 type NanamiEventStream =
@@ -51,12 +55,21 @@ fn router_with_openclaw(openclaw: Arc<dyn OpenClawService>) -> Router {
         .route("/tasks/openclaw/stream", post(tasks_openclaw_stream))
         .route("/permissions/mock/stream", get(permissions_mock_stream))
         .route("/permissions/resolve", post(permissions_resolve))
-        .with_state(AppState { openclaw })
+        .route(
+            "/permissions/decision/:permission_id",
+            get(permission_decision),
+        )
+        .route("/permissions/audit", get(permission_audit))
+        .with_state(AppState {
+            openclaw,
+            permission_manager: Arc::new(Mutex::new(PermissionManager::new())),
+        })
 }
 
 #[derive(Clone)]
 struct AppState {
     openclaw: Arc<dyn OpenClawService>,
+    permission_manager: Arc<Mutex<PermissionManager>>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -147,7 +160,7 @@ async fn chat_stream(State(state): State<AppState>, Json(request): Json<ChatRequ
         }))) as OpenClawChatStream,
     };
 
-    Sse::new(stream.map(|result| {
+    Sse::new(tokio_stream::StreamExt::map(stream, |result| {
         let event = match result {
             Ok(event) => event,
             Err(error) => ChatStreamEvent {
@@ -264,7 +277,9 @@ async fn tasks_openclaw_stream(
         )))) as NanamiEventStream,
     };
 
-    Sse::new(events.map(|event| {
+    let permission_manager = Arc::clone(&state.permission_manager);
+    Sse::new(FuturesStreamExt::flat_map(events, move |event| {
+        let permission_manager = Arc::clone(&permission_manager);
         let event = match event {
             Ok(event) => event,
             Err(error) => EventEnvelope::new(
@@ -274,7 +289,18 @@ async fn tasks_openclaw_stream(
             ),
         };
 
-        Ok::<_, Infallible>(SseEvent::default().data(serde_json::to_string(&event).unwrap()))
+        let mut response_events = vec![event.clone()];
+        if let Some(permission_event) = maybe_permission_for_tool_event(&event) {
+            let mut manager = permission_manager.lock().unwrap();
+            if let Event::PermissionRequested(payload) = &permission_event.event {
+                manager.request_permission(payload.clone());
+            }
+            response_events.push(permission_event);
+        }
+
+        tokio_stream::iter(response_events.into_iter().map(|event| {
+            Ok::<_, Infallible>(SseEvent::default().data(serde_json::to_string(&event).unwrap()))
+        }))
     }))
     .keep_alive(KeepAlive::default())
     .into_response()
@@ -310,7 +336,7 @@ fn maybe_permission_for_tool_event(event: &EventEnvelope) -> Option<EventEnvelop
     ))
 }
 
-async fn permissions_mock_stream() -> Response {
+async fn permissions_mock_stream(State(state): State<AppState>) -> Response {
     // 0.4a mock only: fixed permission request for UI permission flow.
     let event = EventEnvelope::new(
         "evt_permission_mock_requested_001",
@@ -327,6 +353,13 @@ async fn permissions_mock_stream() -> Response {
         }),
     );
 
+    {
+        let mut manager = state.permission_manager.lock().unwrap();
+        if let Event::PermissionRequested(payload) = &event.event {
+            manager.request_permission(payload.clone());
+        }
+    }
+
     Sse::new(tokio_stream::iter(vec![Ok::<_, Infallible>(
         SseEvent::default().data(serde_json::to_string(&event).unwrap()),
     )]))
@@ -334,8 +367,11 @@ async fn permissions_mock_stream() -> Response {
     .into_response()
 }
 
-async fn permissions_resolve(Json(request): Json<PermissionResolveRequest>) -> impl IntoResponse {
-    let mut manager = PermissionManager::new();
+async fn permissions_resolve(
+    State(state): State<AppState>,
+    Json(request): Json<PermissionResolveRequest>,
+) -> impl IntoResponse {
+    let mut manager = state.permission_manager.lock().unwrap();
     let resolved = manager.resolve_permission(&request.permission_id, request.decision);
     let event = EventEnvelope::new(
         "evt_permission_mock_resolved_001",
@@ -347,6 +383,26 @@ async fn permissions_resolve(Json(request): Json<PermissionResolveRequest>) -> i
     );
 
     (StatusCode::OK, Json(event))
+}
+
+async fn permission_decision(
+    State(state): State<AppState>,
+    Path(permission_id): Path<String>,
+) -> Json<PermissionDecisionStatus> {
+    let manager = state.permission_manager.lock().unwrap();
+
+    Json(PermissionDecisionStatus {
+        permission_id: permission_id.clone(),
+        decision: manager.decision_for(&permission_id),
+    })
+}
+
+async fn permission_audit(State(state): State<AppState>) -> Json<PermissionAuditLogResponse> {
+    let manager = state.permission_manager.lock().unwrap();
+
+    Json(PermissionAuditLogResponse {
+        records: manager.audit_records(),
+    })
 }
 
 #[derive(Debug, Serialize)]
@@ -1176,6 +1232,39 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn permissions_mock_stream_creates_audit_record() {
+        let app = crate::router();
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/permissions/mock/stream")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let audit_response = app.clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/permissions/audit")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(audit_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["records"][0]["action"], "permission_requested");
+    }
+
+    #[tokio::test]
     async fn permissions_resolve_accepts_allow_once() {
         let response = crate::router()
             .oneshot(
@@ -1183,7 +1272,9 @@ mod tests {
                     .method("POST")
                     .uri("/permissions/resolve")
                     .header("content-type", "application/json")
-                    .body(Body::from(r#"{"permission_id":"perm_mock_read_project","decision":"allow_once"}"#))
+                    .body(Body::from(
+                        r#"{"permission_id":"perm_mock_read_project","decision":"allow_once"}"#,
+                    ))
                     .unwrap(),
             )
             .await
@@ -1200,6 +1291,43 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn permissions_decision_returns_allow_once_after_resolve() {
+        let app = crate::router();
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/permissions/resolve")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        r#"{"permission_id":"perm_mock_read_project","decision":"allow_once"}"#,
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let decision_response = app.clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/permissions/decision/perm_mock_read_project")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(decision_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["decision"], "allow_once");
+    }
+
+    #[tokio::test]
     async fn permissions_resolve_accepts_allow_for_task() {
         let response = crate::router()
             .oneshot(
@@ -1207,12 +1335,51 @@ mod tests {
                     .method("POST")
                     .uri("/permissions/resolve")
                     .header("content-type", "application/json")
-                    .body(Body::from(r#"{"permission_id":"perm_mock_read_project","decision":"allow_for_task"}"#))
+                    .body(Body::from(
+                        r#"{"permission_id":"perm_mock_read_project","decision":"allow_for_task"}"#,
+                    ))
                     .unwrap(),
             )
             .await
             .unwrap();
         let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["decision"], "allow_for_task");
+    }
+
+    #[tokio::test]
+    async fn permissions_decision_returns_allow_for_task_after_resolve() {
+        let app = crate::router();
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/permissions/resolve")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        r#"{"permission_id":"perm_mock_read_project","decision":"allow_for_task"}"#,
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let decision_response = app.clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/permissions/decision/perm_mock_read_project")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(decision_response.into_body(), usize::MAX)
             .await
             .unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
@@ -1228,12 +1395,51 @@ mod tests {
                     .method("POST")
                     .uri("/permissions/resolve")
                     .header("content-type", "application/json")
-                    .body(Body::from(r#"{"permission_id":"perm_mock_read_project","decision":"deny"}"#))
+                    .body(Body::from(
+                        r#"{"permission_id":"perm_mock_read_project","decision":"deny"}"#,
+                    ))
                     .unwrap(),
             )
             .await
             .unwrap();
         let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["decision"], "deny");
+    }
+
+    #[tokio::test]
+    async fn permissions_decision_returns_deny_after_resolve() {
+        let app = crate::router();
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/permissions/resolve")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        r#"{"permission_id":"perm_mock_read_project","decision":"deny"}"#,
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let decision_response = app.clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/permissions/decision/perm_mock_read_project")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(decision_response.into_body(), usize::MAX)
             .await
             .unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
@@ -1249,7 +1455,9 @@ mod tests {
                     .method("POST")
                     .uri("/permissions/resolve")
                     .header("content-type", "application/json")
-                    .body(Body::from(r#"{"permission_id":"perm_mock_read_project","decision":"invalid"}"#))
+                    .body(Body::from(
+                        r#"{"permission_id":"perm_mock_read_project","decision":"invalid"}"#,
+                    ))
                     .unwrap(),
             )
             .await

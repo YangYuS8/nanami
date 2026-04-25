@@ -224,6 +224,22 @@ ApplicationWindow {
                 visible: permissionController.error.length > 0
                 wrapMode: Text.Wrap
             }
+
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 13
+                text: "Last decision: " + permissionController.lastDecision
+            }
+
+            TextArea {
+                width: parent.width
+                height: 120
+                readOnly: true
+                wrapMode: TextArea.Wrap
+                text: permissionController.auditText
+                placeholderText: "Permission audit log summary will appear here"
+            }
         }
     }
 }

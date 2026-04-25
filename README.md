@@ -94,8 +94,10 @@ Agents working on Nanami MUST follow these rules:
 The current goal is Nanami 0.4:
 
 - 0.4a completed: permission protocol + mock permission flow.
-- 0.4b in progress: dangerous tool request interception visibility.
+- 0.4b completed: dangerous tool request interception visibility.
+- 0.4c in progress: permission decision flow + in-memory audit log.
 - `nanami-core` provides mock permission request and resolve endpoints.
+- `nanami-core` now exposes in-memory permission decision and audit endpoints.
 - `nanami-ui` displays a mock permission dialog skeleton.
 - Decisions are recorded only; no dangerous action is executed.
 - `permission.requested` may now appear in `/tasks/openclaw/stream` when mapped tool events look dangerous.
@@ -208,6 +210,20 @@ curl -X POST http://127.0.0.1:17878/permissions/resolve \
   -H 'content-type: application/json' \
   -d '{"permission_id":"perm_mock_read_project","decision":"allow_once"}'
 ```
+
+Query the current in-memory decision for a permission:
+
+```bash
+curl http://127.0.0.1:17878/permissions/decision/perm_mock_read_project
+```
+
+Read the in-memory permission audit log:
+
+```bash
+curl http://127.0.0.1:17878/permissions/audit
+```
+
+The current audit log only exists in memory and is not persisted.
 
 ## Verification
 
