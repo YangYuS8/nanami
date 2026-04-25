@@ -6,11 +6,11 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(Qt6 QUIET COMPONENTS Quick)
+find_package(Qt6 QUIET COMPONENTS Network Quick)
 
 if(NOT Qt6_FOUND)
     if(NANAMI_REQUIRE_QT)
-        find_package(Qt6 REQUIRED COMPONENTS Quick)
+        find_package(Qt6 REQUIRED COMPONENTS Network Quick)
     endif()
 
     message(WARNING "Qt6 Quick was not found; skipping nanami-ui target")
@@ -21,6 +21,8 @@ qt_policy(SET QTP0004 NEW)
 qt_standard_project_setup(REQUIRES 6.5)
 
 qt_add_executable(nanami-ui
+    src/HealthController.cpp
+    src/HealthController.h
     src/main.cpp
 )
 
@@ -32,5 +34,7 @@ qt_add_qml_module(nanami-ui
 )
 
 target_link_libraries(nanami-ui
-    PRIVATE Qt6::Quick
+    PRIVATE
+        Qt6::Network
+        Qt6::Quick
 )

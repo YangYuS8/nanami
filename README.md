@@ -101,3 +101,58 @@ The first goal is Nanami 0.1:
 - Basic chat surface.
 - Basic task event model.
 - Basic permission model.
+
+## Development
+
+Install Rust stable, CMake, Ninja, and Qt 6 Quick development packages.
+
+Check the Rust workspace:
+
+```bash
+cargo fmt --check
+cargo check
+cargo test
+cargo clippy -- -D warnings
+```
+
+Configure and build the Qt/CMake skeleton:
+
+```bash
+cmake -S . -B build -G Ninja
+cmake --build build
+```
+
+## Run
+
+Start `nanami-core`:
+
+```bash
+cargo run -p nanami-core
+```
+
+Check the health endpoint:
+
+```bash
+curl http://127.0.0.1:17878/health
+```
+
+Run `nanami-ui` after building:
+
+```bash
+./build/apps/nanami-ui/nanami-ui
+```
+
+The 0.1 UI only displays the `/health` connection status for `nanami-core`.
+
+## Verification
+
+Run all current project checks:
+
+```bash
+cargo fmt --check
+cargo check
+cargo test
+cargo clippy -- -D warnings
+cmake -S . -B build -G Ninja
+cmake --build build
+```

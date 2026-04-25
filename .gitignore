@@ -4,13 +4,18 @@ CMakeFiles/
 CMakeCache.txt
 cmake-build-*/
 compile_commands.json
+install_manifest.txt
+*.cmake.user
 
 # Rust
 /target/
+**/*.rs.bk
 
 # Editors
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # Env / secrets
 .env
@@ -19,6 +24,14 @@ compile_commands.json
 
 # Logs
 *.log
+*.out
+*.err
+
+# Qt
+*.qmlc
+*.jsc
+.qmake.stash
+qmlcache/
 
 # OS
 .DS_Store

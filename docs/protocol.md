@@ -146,6 +146,9 @@ waiting_permission
 failed
 completed
 cancelled
+```
+
+```json
 {
   "type": "task.updated",
   "id": "evt_021",
@@ -194,6 +197,9 @@ stdout
 stderr
 log
 artifact
+```
+
+```json
 {
   "type": "tool.completed",
   "id": "evt_032",

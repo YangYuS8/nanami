@@ -20,10 +20,10 @@ description: 当实现 nanami-core、Rust crate、任务状态机、权限系统
 每次完成后运行：
 
 ```bash
-cargo fmt
+cargo fmt --check
 cargo check
 cargo test
-cargo clippy
+cargo clippy -- -D warnings
 ```
 
 ## 建议模块

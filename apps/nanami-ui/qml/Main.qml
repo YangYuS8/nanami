@@ -28,7 +28,7 @@ ApplicationWindow {
                 anchors.horizontalCenter: parent.horizontalCenter
                 color: "#aeb4c6"
                 font.pixelSize: 15
-                text: "Core connection: not connected"
+                text: "Core connection: " + healthController.status
             }
 
             Text {
