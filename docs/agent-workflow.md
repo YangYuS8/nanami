@@ -64,6 +64,8 @@ For Nanami 0.2b chat forwarding, agents MUST keep OpenClaw Gateway request/respo
 
 For Nanami 0.3a, agents MUST keep task/tool state structured in protocol types and core-produced SSE. UI may render mock task/tool events from `nanami-core`, but it must not infer tool state from free text and must not call OpenClaw, CubeSandbox, or system tools directly.
 
+For Nanami 0.3b, agents MUST map OpenClaw tool-call related JSON into Nanami `EventEnvelope` values inside `crates/nanami-openclaw` or `nanami-core`. UI must only render structured events from `nanami-core`, and tool arguments may only be displayed as text/log output, never executed.
+
 ### CubeSandbox integration
 
 Use:

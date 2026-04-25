@@ -2,7 +2,9 @@ use std::time::Duration;
 
 use async_stream::try_stream;
 use nanami_protocol::{
-    ChatStreamEvent, ChatStreamEventKind, OpenClawConnectionStatus, OpenClawStatusPayload,
+    ChatStreamEvent, ChatStreamEventKind, Event, EventEnvelope, OpenClawConnectionStatus,
+    OpenClawStatusPayload, TaskCompletedPayload, TaskStartedPayload, TaskStatus, ToolCallStatus,
+    ToolCompletedPayload, ToolOutputPayload, ToolOutputStream, ToolStartedPayload,
 };
 use serde_json::Value;
 use std::pin::Pin;
@@ -10,6 +12,14 @@ use tokio_stream::{Stream, StreamExt, iter};
 
 pub type OpenClawChatStream =
     Pin<Box<dyn Stream<Item = Result<ChatStreamEvent, OpenClawError>> + Send>>;
+pub type OpenClawAgentStream =
+    Pin<Box<dyn Stream<Item = Result<OpenClawStreamItem, OpenClawError>> + Send>>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum OpenClawStreamItem {
+    Chat(ChatStreamEvent),
+    Event(EventEnvelope),
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OpenClawConfig {
@@ -325,6 +335,96 @@ impl OpenClawClient {
         Ok(Box::pin(stream))
     }
 
+    pub async fn stream_agent_events(
+        &self,
+        request: OpenClawChatRequest,
+    ) -> Result<OpenClawAgentStream, OpenClawError> {
+        let url = format!(
+            "{}{}",
+            self.config.gateway_url.trim_end_matches('/'),
+            normalized_path(&self.config.chat_path)
+        );
+        let body = serde_json::json!({
+            "message": request.message,
+            "session_id": request.session_id,
+            "stream": true,
+        });
+
+        let mut http_request = self.http.post(url).json(&body);
+        if let Some(token) = &self.config.token {
+            http_request = http_request.bearer_auth(token);
+        }
+
+        let response = match http_request.send().await {
+            Ok(response) => response,
+            Err(error) if error.is_timeout() || error.is_connect() => {
+                return Err(OpenClawError::Disconnected);
+            }
+            Err(_) => return Err(OpenClawError::InvalidResponse),
+        };
+
+        let status = response.status();
+        if status.as_u16() == 401 || status.as_u16() == 403 {
+            return Err(OpenClawError::AuthFailed);
+        }
+        if !status.is_success() {
+            return Err(OpenClawError::UnexpectedStatus(status.as_u16()));
+        }
+
+        let header_is_sse = response
+            .headers()
+            .get(reqwest::header::CONTENT_TYPE)
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|value| value.contains("text/event-stream"));
+
+        if !header_is_sse {
+            let text = response
+                .text()
+                .await
+                .map_err(|_| OpenClawError::InvalidResponse)?;
+            let items = if text.trim_start().starts_with("data:") {
+                parse_agent_sse_events(&text)?
+            } else {
+                Vec::new()
+            };
+
+            return Ok(Box::pin(iter(items)));
+        }
+
+        let stream = try_stream! {
+            let mut bytes_stream = response.bytes_stream();
+            let mut buffer = String::new();
+            let mut state = ToolEventMappingState::default();
+
+            while let Some(chunk) = bytes_stream.next().await {
+                let chunk = chunk.map_err(|_| OpenClawError::InvalidResponse)?;
+                buffer.push_str(&String::from_utf8_lossy(&chunk));
+
+                while let Some(separator) = buffer.find("\n\n") {
+                    let frame = buffer[..separator].to_owned();
+                    buffer.drain(..separator + 2);
+                    let items = parse_agent_frame(&frame, &mut state)?;
+                    for item in items {
+                        yield item;
+                    }
+                }
+            }
+
+            if !buffer.trim().is_empty() {
+                let items = parse_agent_frame(&buffer, &mut state)?;
+                for item in items {
+                    yield item;
+                }
+            }
+
+            if state.task_started && !state.task_completed {
+                yield OpenClawStreamItem::Event(build_task_completed_event(&state.task_id));
+            }
+        };
+
+        Ok(Box::pin(stream))
+    }
+
     fn payload(
         &self,
         status: OpenClawConnectionStatus,
@@ -419,6 +519,267 @@ fn parse_sse_events(
     }
 
     Ok(events)
+}
+
+fn parse_agent_sse_events(
+    text: &str,
+) -> Result<Vec<Result<OpenClawStreamItem, OpenClawError>>, OpenClawError> {
+    let mut state = ToolEventMappingState::default();
+    let mut items = Vec::new();
+
+    for frame in text.split("\n\n") {
+        let frame = frame.trim();
+        if frame.is_empty() {
+            continue;
+        }
+
+        let events = parse_agent_frame(frame, &mut state)?;
+        items.extend(events.into_iter().map(Ok));
+    }
+
+    if state.task_started && !state.task_completed {
+        items.push(Ok(OpenClawStreamItem::Event(build_task_completed_event(
+            &state.task_id,
+        ))));
+    }
+
+    Ok(items)
+}
+
+#[derive(Default)]
+struct ToolEventMappingState {
+    counter: usize,
+    task_started: bool,
+    task_completed: bool,
+    task_id: String,
+}
+
+impl ToolEventMappingState {
+    fn next_event_id(&mut self) -> String {
+        self.counter += 1;
+        format!("evt_openclaw_tool_{:03}", self.counter)
+    }
+
+    fn ensure_task_id(&mut self) -> String {
+        if self.task_id.is_empty() {
+            self.task_id = "task_openclaw_stream_001".into();
+        }
+        self.task_id.clone()
+    }
+}
+
+fn parse_agent_frame(
+    frame: &str,
+    state: &mut ToolEventMappingState,
+) -> Result<Vec<OpenClawStreamItem>, OpenClawError> {
+    let data_lines = frame
+        .lines()
+        .map(str::trim)
+        .filter(|line| line.starts_with("data:"))
+        .map(|line| line.trim_start_matches("data:").trim())
+        .collect::<Vec<_>>();
+    if data_lines.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let data = data_lines.join("\n");
+    if data == "[DONE]" {
+        if state.task_started && !state.task_completed {
+            state.task_completed = true;
+            return Ok(vec![OpenClawStreamItem::Event(build_task_completed_event(
+                &state.ensure_task_id(),
+            ))]);
+        }
+        return Ok(Vec::new());
+    }
+
+    let json: Value = serde_json::from_str(&data).map_err(|_| OpenClawError::InvalidResponse)?;
+
+    if let Ok(event) = serde_json::from_value::<EventEnvelope>(json.clone()) {
+        return Ok(vec![OpenClawStreamItem::Event(event)]);
+    }
+
+    if let Some(items) = map_openai_tool_call_delta(&json, state) {
+        return Ok(items);
+    }
+
+    if let Some(items) = map_simple_tool_event(&json, state) {
+        return Ok(items);
+    }
+
+    Ok(Vec::new())
+}
+
+fn map_openai_tool_call_delta(
+    json: &Value,
+    state: &mut ToolEventMappingState,
+) -> Option<Vec<OpenClawStreamItem>> {
+    let tool_calls = json.pointer("/choices/0/delta/tool_calls")?.as_array()?;
+    let mut items = Vec::new();
+    let task_id = state.ensure_task_id();
+
+    if !state.task_started {
+        state.task_started = true;
+        items.push(OpenClawStreamItem::Event(build_task_started_event(
+            state.next_event_id(),
+            &task_id,
+            "OpenClaw task",
+        )));
+    }
+
+    for tool_call in tool_calls {
+        let tool_call_id = tool_call.get("id")?.as_str()?.to_owned();
+        let function = tool_call.get("function")?;
+        let tool_name = function.get("name")?.as_str()?.to_owned();
+        let arguments = function
+            .get("arguments")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_owned();
+
+        items.push(OpenClawStreamItem::Event(EventEnvelope::new(
+            state.next_event_id(),
+            chrono::Utc::now(),
+            Event::ToolStarted(ToolStartedPayload {
+                task_id: task_id.clone(),
+                tool_call_id: tool_call_id.clone(),
+                tool: tool_name,
+                summary: Some("OpenClaw tool call detected".into()),
+            }),
+        )));
+
+        if !arguments.is_empty() {
+            items.push(OpenClawStreamItem::Event(EventEnvelope::new(
+                state.next_event_id(),
+                chrono::Utc::now(),
+                Event::ToolOutput(ToolOutputPayload {
+                    task_id: task_id.clone(),
+                    tool_call_id,
+                    stream: ToolOutputStream::Log,
+                    content: arguments,
+                }),
+            )));
+        }
+    }
+
+    Some(items)
+}
+
+fn map_simple_tool_event(
+    json: &Value,
+    state: &mut ToolEventMappingState,
+) -> Option<Vec<OpenClawStreamItem>> {
+    let tool_call_id = json.get("tool_call_id")?.as_str()?.to_owned();
+    let tool = json.get("tool")?.as_str()?.to_owned();
+    let task_id = state.ensure_task_id();
+    let mut items = Vec::new();
+
+    if !state.task_started {
+        state.task_started = true;
+        items.push(OpenClawStreamItem::Event(build_task_started_event(
+            state.next_event_id(),
+            &task_id,
+            "OpenClaw task",
+        )));
+    }
+
+    if let Some(status) = json.get("status").and_then(Value::as_str) {
+        match status {
+            "running" => items.push(OpenClawStreamItem::Event(EventEnvelope::new(
+                state.next_event_id(),
+                chrono::Utc::now(),
+                Event::ToolStarted(ToolStartedPayload {
+                    task_id: task_id.clone(),
+                    tool_call_id: tool_call_id.clone(),
+                    tool: tool.clone(),
+                    summary: json
+                        .get("summary")
+                        .and_then(Value::as_str)
+                        .map(str::to_owned),
+                }),
+            ))),
+            "completed" => items.push(OpenClawStreamItem::Event(EventEnvelope::new(
+                state.next_event_id(),
+                chrono::Utc::now(),
+                Event::ToolCompleted(ToolCompletedPayload {
+                    task_id: task_id.clone(),
+                    tool_call_id: tool_call_id.clone(),
+                    status: ToolCallStatus::Completed,
+                    exit_code: json
+                        .get("exit_code")
+                        .and_then(Value::as_i64)
+                        .map(|value| value as i32),
+                }),
+            ))),
+            "failed" => items.push(OpenClawStreamItem::Event(EventEnvelope::new(
+                state.next_event_id(),
+                chrono::Utc::now(),
+                Event::ToolCompleted(ToolCompletedPayload {
+                    task_id: task_id.clone(),
+                    tool_call_id: tool_call_id.clone(),
+                    status: ToolCallStatus::Failed,
+                    exit_code: json
+                        .get("exit_code")
+                        .and_then(Value::as_i64)
+                        .map(|value| value as i32),
+                }),
+            ))),
+            _ => {}
+        }
+    }
+
+    if let Some(stdout) = json.get("stdout").and_then(Value::as_str) {
+        items.push(OpenClawStreamItem::Event(EventEnvelope::new(
+            state.next_event_id(),
+            chrono::Utc::now(),
+            Event::ToolOutput(ToolOutputPayload {
+                task_id: task_id.clone(),
+                tool_call_id: tool_call_id.clone(),
+                stream: ToolOutputStream::Stdout,
+                content: stdout.to_owned(),
+            }),
+        )));
+    }
+
+    if let Some(stderr) = json.get("stderr").and_then(Value::as_str) {
+        items.push(OpenClawStreamItem::Event(EventEnvelope::new(
+            state.next_event_id(),
+            chrono::Utc::now(),
+            Event::ToolOutput(ToolOutputPayload {
+                task_id,
+                tool_call_id,
+                stream: ToolOutputStream::Stderr,
+                content: stderr.to_owned(),
+            }),
+        )));
+    }
+
+    Some(items)
+}
+
+fn build_task_started_event(id: String, task_id: &str, title: &str) -> EventEnvelope {
+    EventEnvelope::new(
+        id,
+        chrono::Utc::now(),
+        Event::TaskStarted(TaskStartedPayload {
+            session_id: None,
+            task_id: task_id.to_owned(),
+            title: title.to_owned(),
+            status: TaskStatus::Running,
+        }),
+    )
+}
+
+fn build_task_completed_event(task_id: &str) -> EventEnvelope {
+    EventEnvelope::new(
+        "evt_openclaw_task_completed_001",
+        chrono::Utc::now(),
+        Event::TaskCompleted(TaskCompletedPayload {
+            task_id: task_id.to_owned(),
+            status: TaskStatus::Completed,
+            summary: Some("OpenClaw stream completed".into()),
+        }),
+    )
 }
 
 fn parse_sse_frame(

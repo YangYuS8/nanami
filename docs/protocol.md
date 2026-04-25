@@ -305,6 +305,16 @@ data: {"type":"tool.completed","id":"evt_tool_mock_completed_001",...}
 data: {"type":"task.completed","id":"evt_task_mock_completed_001",...}
 ```
 
+0.3b OpenClaw tool event mapping rules:
+
+```text
+Nanami-native EventEnvelope frame -> deserialize directly and forward
+OpenAI-compatible tool_calls delta -> task.started + tool.started (+ optional tool.output log)
+Simple tool event JSON -> tool.started/tool.output/tool.completed based on structured fields
+```
+
+Preferred internal format is always Nanami `EventEnvelope`. OpenClaw-specific frames should be mapped into this structure inside `crates/nanami-openclaw`, not in UI.
+
 ### Tool Events
 
 ```json

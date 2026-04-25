@@ -109,6 +109,29 @@ ApplicationWindow {
                 onClicked: taskController.startMockTaskStream()
             }
 
+            Row {
+                width: parent.width
+                spacing: 8
+
+                TextField {
+                    id: taskInput
+                    width: parent.width - runTaskButton.width - parent.spacing
+                    enabled: !taskController.busy
+                    placeholderText: "OpenClaw task prompt"
+                    onAccepted: runTaskButton.clicked()
+                }
+
+                Button {
+                    id: runTaskButton
+                    text: taskController.busy ? "Running OpenClaw task" : "Run OpenClaw task"
+                    enabled: !taskController.busy && taskInput.text.trim().length > 0
+                    onClicked: {
+                        taskController.startOpenClawTaskStream(taskInput.text)
+                        taskInput.text = ""
+                    }
+                }
+            }
+
             TextArea {
                 width: parent.width
                 height: 180

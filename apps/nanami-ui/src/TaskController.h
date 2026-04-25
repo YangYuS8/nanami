@@ -18,6 +18,7 @@ public:
     QString error() const;
     bool busy() const;
     Q_INVOKABLE void startMockTaskStream();
+    Q_INVOKABLE void startOpenClawTaskStream(const QString &message);
 
 signals:
     void taskTimelineTextChanged();

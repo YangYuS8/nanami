@@ -56,6 +56,41 @@ void TaskController::startMockTaskStream()
     });
 }
 
+void TaskController::startOpenClawTaskStream(const QString &message)
+{
+    const QString trimmed = message.trimmed();
+    if (trimmed.isEmpty() || m_busy) {
+        return;
+    }
+
+    m_streamBuffer.clear();
+    m_taskTimelineText.clear();
+    emit taskTimelineTextChanged();
+    setError(QString());
+    setBusy(true);
+
+    QJsonObject body;
+    body.insert(QStringLiteral("message"), trimmed);
+
+    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/tasks/openclaw/stream")));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+    auto *reply = m_network.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
+
+    connect(reply, &QNetworkReply::readyRead, this, [this, reply]() {
+        handleStreamData(reply->readAll());
+    });
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        reply->deleteLater();
+        handleStreamData(reply->readAll());
+        setBusy(false);
+
+        if (reply->error() != QNetworkReply::NoError) {
+            setError(QStringLiteral("nanami-core OpenClaw task stream is unavailable"));
+        }
+    });
+}
+
 void TaskController::appendTimeline(const QString &line)
 {
     if (!m_taskTimelineText.isEmpty()) {
@@ -116,9 +151,9 @@ void TaskController::handleEvent(const QJsonObject &event)
     }
 
     if (type == QStringLiteral("tool.completed")) {
-        appendTimeline(QStringLiteral("Tool %1 completed: exit_code=%2")
+        appendTimeline(QStringLiteral("Tool %1 completed: status=%2")
                            .arg(event.value(QStringLiteral("tool_call_id")).toString(),
-                                event.value(QStringLiteral("exit_code")).toVariant().toString()));
+                                event.value(QStringLiteral("status")).toString()));
         return;
     }
 
@@ -126,6 +161,11 @@ void TaskController::handleEvent(const QJsonObject &event)
         appendTimeline(QStringLiteral("Task %1 completed: %2")
                            .arg(event.value(QStringLiteral("task_id")).toString(),
                                 event.value(QStringLiteral("summary")).toString()));
+        return;
+    }
+
+    if (type == QStringLiteral("error.occurred")) {
+        setError(event.value(QStringLiteral("message")).toString(QStringLiteral("OpenClaw task stream failed")));
     }
 }
 

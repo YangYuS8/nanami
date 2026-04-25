@@ -74,6 +74,8 @@ Goal: show agent activity as structured tasks.
 
 Current 0.3a phase: Task/Tool visualization foundation only. This phase adds protocol types, a mock task stream endpoint, and a UI task panel skeleton. Real OpenClaw tool call parsing is deferred to 0.3b.
 
+Current 0.3b phase: OpenClaw tool event mapping. This phase maps OpenClaw streaming tool call JSON into Nanami task/tool events for visualization only. 0.3c will upgrade the Task Panel from simple text timeline to a structured data model.
+
 Required:
 
 - Task state machine.
@@ -86,8 +88,8 @@ Required:
 Expected demo:
 
 ```text
-User runs the mock task stream.
-Nanami displays task timeline and tool status.
+User runs an OpenClaw task stream.
+Nanami displays mapped task timeline and tool status without executing tools.
 ```
 
 ## Version 0.4: Permission System

@@ -184,6 +184,16 @@ curl -N http://127.0.0.1:17878/tasks/mock/stream
 
 Nanami 0.3a provides a mock Task/Tool visualization foundation only. It does not parse real OpenClaw tool calls yet.
 
+Run the 0.3b OpenClaw task/tool event mapping stream through `nanami-core`:
+
+```bash
+curl -N -X POST http://127.0.0.1:17878/tasks/openclaw/stream \
+  -H 'content-type: application/json' \
+  -d '{"message":"Run project check"}'
+```
+
+Nanami 0.3b maps OpenClaw streaming tool events into Nanami task/tool events for visualization only. It does not execute tools.
+
 ## Verification
 
 Run all current project checks:
