@@ -27,6 +27,8 @@ qt_add_executable(nanami-ui
     src/DesktopController.h
     src/PersonaController.cpp
     src/PersonaController.h
+    src/PetRendererController.cpp
+    src/PetRendererController.h
     src/PermissionController.cpp
     src/PermissionController.h
     src/SandboxController.cpp

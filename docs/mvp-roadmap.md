@@ -158,6 +158,8 @@ Current 0.6a phase: companion shell + persona state mock foundation. This phase 
 
 Current 0.6b phase: tray + notifications + basic window behavior. This phase adds a minimal system tray menu, tray-backed notifications, and show/hide/toggle main window behavior. It does not integrate a real Live2D renderer, transparent or always-on-top window behavior, dragging, or platform-specific hacks.
 
+Current 0.6c phase: Live2D renderer adapter boundary + placeholder renderer abstraction. This phase adds a UI-side renderer controller that receives persona state and exposes renderer-facing state to QML, without integrating a real Live2D SDK, model assets, or complex animation.
+
 Required:
 
 - Pet window.
@@ -171,8 +173,8 @@ Required:
 Expected demo:
 
 ```text
-User runs a mock persona stream, toggles the main window from the tray, and triggers a mock notification.
-Nanami displays a placeholder companion shell while exposing minimal desktop shell behavior without advanced pet window effects.
+User runs a mock persona stream, toggles the main window from the tray, triggers a mock notification, and sees renderer-facing placeholder state update with persona changes.
+Nanami displays a placeholder companion shell while exposing a clear renderer adapter boundary without advanced pet window effects.
 ```
 
 ## Version 0.7: Development Workflow

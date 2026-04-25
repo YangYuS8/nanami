@@ -101,6 +101,7 @@ The current goal is Nanami 0.6:
 - 0.5c completed: structured sandbox view + permission/audit link.
 - 0.6a completed: companion shell + persona state mock foundation.
 - 0.6b completed: tray + notifications + basic window behavior.
+- 0.6c completed: Live2D renderer adapter boundary + placeholder renderer abstraction.
 - `nanami-core` provides mock permission request, decision, audit, and sandbox stream endpoints.
 - `nanami-core` also provides a mock persona state stream endpoint.
 - `nanami-ui` displays mock permission and sandbox visualization skeletons with structured sandbox view state, plus a placeholder pet view.
@@ -114,6 +115,8 @@ The current goal is Nanami 0.6:
 - Real Live2D renderer, tray integration, notifications, and advanced window behavior remain deferred to 0.6b/0.6c.
 - 0.6b adds a system tray, basic notifications, and show/hide/toggle window behavior only.
 - Real Live2D renderer and advanced desktop window behavior such as transparency, always-on-top, dragging, and other pet-specific effects remain deferred to 0.6c or later.
+- 0.6c adds a placeholder renderer abstraction and renderer adapter boundary only.
+- Real Live2D SDK integration, model assets, complex animation, transparency, always-on-top, dragging, and other advanced pet effects remain deferred to later phases.
 
 ## Development
 
@@ -258,6 +261,8 @@ curl -N http://127.0.0.1:17878/persona/mock/stream
 Nanami 0.6a provides a companion shell and mock persona state foundation only. It does not integrate a real Live2D SDK, does not load model assets, and does not implement tray, notification, transparent window, always-on-top, or drag behaviors yet.
 
 Nanami 0.6b adds a basic tray menu, tray-backed notifications, and show/hide/toggle window behavior. It still does not integrate a real Live2D SDK, model assets, transparent window behavior, always-on-top, dragging, or platform-specific desktop hacks.
+
+Nanami 0.6c adds a UI-side renderer adapter boundary and placeholder renderer abstraction for persona-driven pet display. It still does not integrate a real Live2D SDK, load model assets, implement complex animation, or enable advanced pet window behavior.
 
 ## Verification
 

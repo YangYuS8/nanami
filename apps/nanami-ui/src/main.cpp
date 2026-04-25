@@ -1,6 +1,7 @@
 #include "ChatController.h"
 #include "DesktopController.h"
 #include "PersonaController.h"
+#include "PetRendererController.h"
 #include "PermissionController.h"
 #include "SandboxController.h"
 #include "StatusController.h"
@@ -17,6 +18,7 @@ int main(int argc, char *argv[])
 
     ChatController chatController;
     PersonaController personaController;
+    PetRendererController petRendererController;
     DesktopController desktopController(&personaController);
     PermissionController permissionController;
     SandboxController sandboxController;
@@ -26,6 +28,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("chatController", &chatController);
     engine.rootContext()->setContextProperty("desktopController", &desktopController);
     engine.rootContext()->setContextProperty("personaController", &personaController);
+    engine.rootContext()->setContextProperty("petRendererController", &petRendererController);
     engine.rootContext()->setContextProperty("permissionController", &permissionController);
     engine.rootContext()->setContextProperty("sandboxController", &sandboxController);
     engine.rootContext()->setContextProperty("statusController", &statusController);
@@ -41,6 +44,14 @@ int main(int argc, char *argv[])
         desktopController.attachWindow(
             qobject_cast<QQuickWindow *>(engine.rootObjects().constFirst()));
     }
+    QObject::connect(
+        &personaController,
+        &PersonaController::personaChanged,
+        &petRendererController,
+        [&personaController, &petRendererController]() {
+            petRendererController.setPersonaState(
+                personaController.state(), personaController.emotion());
+        });
     statusController.refresh();
 
     return app.exec();

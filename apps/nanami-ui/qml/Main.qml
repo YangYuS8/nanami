@@ -91,15 +91,20 @@ ApplicationWindow {
 
                         Text {
                             anchors.centerIn: parent
-                            text: personaController.emotion === "happy" ? "^_^" : "N"
+                            text: petRendererController.currentEmotion === "happy" ? "^_^"
+                                  : petRendererController.currentState === "thinking" ? "..."
+                                  : petRendererController.currentState === "error" ? ">_<"
+                                  : "N"
                             color: "white"
                             font.pixelSize: 26
                             font.bold: true
                         }
                     }
 
-                    Text { color: "#aeb4c6"; text: "State: " + (personaController.state.length > 0 ? personaController.state : "none") }
-                    Text { color: "#aeb4c6"; text: "Emotion: " + (personaController.emotion.length > 0 ? personaController.emotion : "none") }
+                    Text { color: "#aeb4c6"; text: "Renderer: " + petRendererController.rendererName }
+                    Text { color: "#aeb4c6"; text: "Renderer Status: " + petRendererController.rendererStatus }
+                    Text { color: "#aeb4c6"; text: "State: " + (petRendererController.currentState.length > 0 ? petRendererController.currentState : "none") }
+                    Text { color: "#aeb4c6"; text: "Emotion: " + (petRendererController.currentEmotion.length > 0 ? petRendererController.currentEmotion : "none") }
                     Text { color: "#aeb4c6"; text: "Source: " + (personaController.source.length > 0 ? personaController.source : "none") }
                     Text {
                         color: "#aeb4c6"
