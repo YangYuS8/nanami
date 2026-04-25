@@ -42,7 +42,7 @@ Goal: connect Nanami to OpenClaw.
 
 Current first phase: OpenClaw Gateway connection status only. This phase establishes configuration, reachability checks, auth/pairing/scope status mapping, and UI status display. It is not the full chat or streaming implementation.
 
-Current 0.2b phase: basic chat request forwarding and response display. `nanami-ui` sends user input to `nanami-core`, `nanami-core` forwards through `nanami-openclaw`, and the UI displays the complete assistant response. True token streaming is deferred to 0.2c or a later small step.
+Current 0.2b phase: basic chat request forwarding and complete response display. `nanami-ui` sends user input to `nanami-core`, `nanami-core` forwards through `nanami-openclaw`, and the UI displays the complete assistant response. True token streaming belongs to 0.2c or a later small step.
 
 Required:
 
@@ -56,7 +56,7 @@ Required:
 
 Deferred within 0.2:
 
-- True token streaming.
+- True token streaming, which belongs to 0.2c or a later small step.
 - OpenClaw tool call visualization, which belongs to 0.3.
 
 Expected demo:
@@ -64,7 +64,7 @@ Expected demo:
 ```text
 User sends a message from Nanami.
 OpenClaw responds.
-Nanami displays streaming reply.
+Nanami displays the complete assistant response.
 ```
 
 ## Version 0.3: Task and Tool Call Visualization

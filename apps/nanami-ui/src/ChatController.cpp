@@ -48,26 +48,33 @@ void ChatController::sendMessage(const QString &text)
         reply->deleteLater();
         setBusy(false);
 
+        const auto document = QJsonDocument::fromJson(reply->readAll());
+        if (document.isObject()) {
+            const auto object = document.object();
+            const QString content = object.value(QStringLiteral("content")).toString();
+            if (!content.isEmpty()) {
+                appendConversation(QStringLiteral("Assistant"), content);
+                return;
+            }
+
+            const QString message = object.value(QStringLiteral("message")).toString();
+            if (!message.isEmpty()) {
+                setError(message);
+                return;
+            }
+        }
+
         if (reply->error() != QNetworkReply::NoError) {
             setError(QStringLiteral("nanami-core chat endpoint is unavailable"));
             return;
         }
 
-        const auto document = QJsonDocument::fromJson(reply->readAll());
         if (!document.isObject()) {
             setError(QStringLiteral("Invalid chat response"));
             return;
         }
 
-        const auto object = document.object();
-        const QString content = object.value(QStringLiteral("content")).toString();
-        if (!content.isEmpty()) {
-            appendConversation(QStringLiteral("Assistant"), content);
-            return;
-        }
-
-        const QString message = object.value(QStringLiteral("message")).toString(QStringLiteral("Chat request failed"));
-        setError(message);
+        setError(QStringLiteral("Chat request failed"));
     });
 }
 

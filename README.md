@@ -91,16 +91,14 @@ Agents working on Nanami MUST follow these rules:
 
 ## Current Priority
 
-The first goal is Nanami 0.1:
+The current goal is Nanami 0.2:
 
-- Project skeleton.
-- Rust `nanami-core` daemon.
-- Qt/QML `nanami-ui`.
-- Local WebSocket or HTTP bridge.
-- Basic OpenClaw connection status.
-- Basic chat surface.
-- Basic task event model.
-- Basic permission model.
+- OpenClaw Gateway configuration and connection status.
+- Basic chat request forwarding through `nanami-core` and `nanami-openclaw`.
+- Complete assistant response display in `nanami-ui`.
+- Structured error responses for connection, auth, and chat failures.
+- No direct OpenClaw, model, CubeSandbox, or host command access from UI.
+- Token streaming, tool call visualization, CubeSandbox, and permission business logic remain out of scope for 0.2b.
 
 ## Development
 
