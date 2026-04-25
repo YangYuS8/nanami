@@ -36,45 +36,30 @@ void ChatController::sendMessage(const QString &text)
     setError(QString());
     setBusy(true);
     appendConversation(QStringLiteral("User"), trimmed);
+    appendConversation(QStringLiteral("Assistant"), QString());
+    m_assistantOpen = true;
+    m_streamBuffer.clear();
 
     QJsonObject body;
     body.insert(QStringLiteral("message"), trimmed);
 
-    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/chat")));
+    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/chat/stream")));
     request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
     auto *reply = m_network.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
 
+    connect(reply, &QNetworkReply::readyRead, this, [this, reply]() {
+        handleStreamData(reply->readAll());
+    });
+
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
+        handleStreamData(reply->readAll());
         setBusy(false);
 
-        const auto document = QJsonDocument::fromJson(reply->readAll());
-        if (document.isObject()) {
-            const auto object = document.object();
-            const QString content = object.value(QStringLiteral("content")).toString();
-            if (!content.isEmpty()) {
-                appendConversation(QStringLiteral("Assistant"), content);
-                return;
-            }
-
-            const QString message = object.value(QStringLiteral("message")).toString();
-            if (!message.isEmpty()) {
-                setError(message);
-                return;
-            }
-        }
-
         if (reply->error() != QNetworkReply::NoError) {
-            setError(QStringLiteral("nanami-core chat endpoint is unavailable"));
+            setError(QStringLiteral("nanami-core streaming chat endpoint is unavailable"));
             return;
         }
-
-        if (!document.isObject()) {
-            setError(QStringLiteral("Invalid chat response"));
-            return;
-        }
-
-        setError(QStringLiteral("Chat request failed"));
     });
 }
 
@@ -86,6 +71,67 @@ void ChatController::appendConversation(const QString &speaker, const QString &m
 
     m_conversationText.append(speaker + QStringLiteral(": ") + message);
     emit conversationTextChanged();
+}
+
+void ChatController::appendAssistantDelta(const QString &delta)
+{
+    if (!m_assistantOpen) {
+        appendConversation(QStringLiteral("Assistant"), QString());
+        m_assistantOpen = true;
+    }
+
+    m_conversationText.append(delta);
+    emit conversationTextChanged();
+}
+
+void ChatController::handleStreamData(const QByteArray &data)
+{
+    if (data.isEmpty()) {
+        return;
+    }
+
+    m_streamBuffer.append(QString::fromUtf8(data));
+    int separator = m_streamBuffer.indexOf(QStringLiteral("\n\n"));
+    while (separator >= 0) {
+        const QString frame = m_streamBuffer.left(separator).trimmed();
+        m_streamBuffer.remove(0, separator + 2);
+
+        if (frame.startsWith(QStringLiteral("data:"))) {
+            const QString payload = frame.mid(5).trimmed();
+            const auto document = QJsonDocument::fromJson(payload.toUtf8());
+            if (document.isObject()) {
+                handleStreamEvent(document.object());
+            }
+        }
+
+        separator = m_streamBuffer.indexOf(QStringLiteral("\n\n"));
+    }
+}
+
+void ChatController::handleStreamEvent(const QJsonObject &event)
+{
+    const QString kind = event.value(QStringLiteral("kind")).toString();
+    if (kind == QStringLiteral("message_delta")) {
+        appendAssistantDelta(event.value(QStringLiteral("delta")).toString());
+        return;
+    }
+
+    if (kind == QStringLiteral("message_completed")) {
+        const QString content = event.value(QStringLiteral("content")).toString();
+        if (!content.isEmpty() && !m_assistantOpen) {
+            appendConversation(QStringLiteral("Assistant"), content);
+        }
+        m_assistantOpen = false;
+        setBusy(false);
+        return;
+    }
+
+    if (kind == QStringLiteral("error")) {
+        const QJsonObject error = event.value(QStringLiteral("error")).toObject();
+        setError(error.value(QStringLiteral("message")).toString(QStringLiteral("Chat stream failed")));
+        m_assistantOpen = false;
+        setBusy(false);
+    }
 }
 
 void ChatController::setError(const QString &error)

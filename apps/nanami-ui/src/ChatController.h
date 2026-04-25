@@ -26,11 +26,16 @@ signals:
 
 private:
     void appendConversation(const QString &speaker, const QString &message);
+    void appendAssistantDelta(const QString &delta);
+    void handleStreamData(const QByteArray &data);
+    void handleStreamEvent(const QJsonObject &event);
     void setError(const QString &error);
     void setBusy(bool busy);
 
     QNetworkAccessManager m_network;
     QString m_conversationText;
+    QString m_streamBuffer;
     QString m_error;
     bool m_busy = false;
+    bool m_assistantOpen = false;
 };

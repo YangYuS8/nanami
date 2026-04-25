@@ -184,6 +184,26 @@ system
 
 0.2b exposes `POST /chat` as a basic forwarding endpoint returning a complete `ChatResponse`. True token streaming is deferred.
 
+0.2c exposes `POST /chat/stream` as a Server-Sent Events endpoint. Each frame contains one `ChatStreamEvent` JSON payload:
+
+```text
+data: {"kind":"message_delta","session_id":"sess_001","message_id":"msg_001","delta":"你"}
+
+data: {"kind":"message_delta","session_id":"sess_001","message_id":"msg_001","delta":"好"}
+
+data: {"kind":"message_completed","session_id":"sess_001","message_id":"msg_001","content":"你好"}
+```
+
+Valid chat stream event kinds:
+
+```text
+message_delta
+message_completed
+error
+```
+
+`error` stream events include an `error` object with the same shape as `error.occurred` payloads.
+
 ### Task Events
 
 ```json

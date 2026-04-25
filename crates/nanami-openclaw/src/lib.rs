@@ -1,7 +1,14 @@
 use std::time::Duration;
 
-use nanami_protocol::{OpenClawConnectionStatus, OpenClawStatusPayload};
+use nanami_protocol::{
+    ChatStreamEvent, ChatStreamEventKind, OpenClawConnectionStatus, OpenClawStatusPayload,
+};
 use serde_json::Value;
+use std::pin::Pin;
+use tokio_stream::{Stream, iter};
+
+pub type OpenClawChatStream =
+    Pin<Box<dyn Stream<Item = Result<ChatStreamEvent, OpenClawError>> + Send>>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OpenClawConfig {
@@ -205,6 +212,77 @@ impl OpenClawClient {
         })
     }
 
+    pub async fn stream_chat_message(
+        &self,
+        request: OpenClawChatRequest,
+    ) -> Result<OpenClawChatStream, OpenClawError> {
+        let url = format!(
+            "{}{}",
+            self.config.gateway_url.trim_end_matches('/'),
+            normalized_path(&self.config.chat_path)
+        );
+        let body = serde_json::json!({
+            "message": request.message,
+            "session_id": request.session_id,
+            "stream": true,
+        });
+
+        let mut http_request = self.http.post(url).json(&body);
+        if let Some(token) = &self.config.token {
+            http_request = http_request.bearer_auth(token);
+        }
+
+        let response = match http_request.send().await {
+            Ok(response) => response,
+            Err(error) if error.is_timeout() || error.is_connect() => {
+                return Err(OpenClawError::Disconnected);
+            }
+            Err(_) => return Err(OpenClawError::InvalidResponse),
+        };
+
+        let status = response.status();
+        if status.as_u16() == 401 || status.as_u16() == 403 {
+            return Err(OpenClawError::AuthFailed);
+        }
+        if !status.is_success() {
+            return Err(OpenClawError::UnexpectedStatus(status.as_u16()));
+        }
+
+        let header_is_sse = response
+            .headers()
+            .get(reqwest::header::CONTENT_TYPE)
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|value| value.contains("text/event-stream"));
+        let text = response
+            .text()
+            .await
+            .map_err(|_| OpenClawError::InvalidResponse)?;
+
+        let events = if header_is_sse || text.trim_start().starts_with("data:") {
+            parse_sse_events(&text)?
+        } else {
+            let json: Value =
+                serde_json::from_str(&text).map_err(|_| OpenClawError::InvalidResponse)?;
+            let content = extract_content(&json).ok_or(OpenClawError::InvalidResponse)?;
+            vec![Ok(ChatStreamEvent {
+                kind: ChatStreamEventKind::MessageCompleted,
+                session_id: json
+                    .get("session_id")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned),
+                message_id: json
+                    .get("message_id")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned),
+                delta: None,
+                content: Some(content),
+                error: None,
+            })]
+        };
+
+        Ok(Box::pin(iter(events)))
+    }
+
     fn payload(
         &self,
         status: OpenClawConnectionStatus,
@@ -218,6 +296,87 @@ impl OpenClawClient {
             profile: None,
         }
     }
+}
+
+fn parse_sse_events(
+    text: &str,
+) -> Result<Vec<Result<ChatStreamEvent, OpenClawError>>, OpenClawError> {
+    let mut events = Vec::new();
+    let mut content = String::new();
+    let mut completed = false;
+
+    for line in text.lines() {
+        let line = line.trim();
+        if line.is_empty() || !line.starts_with("data:") {
+            continue;
+        }
+
+        let data = line.trim_start_matches("data:").trim();
+        if data == "[DONE]" {
+            completed = true;
+            events.push(Ok(ChatStreamEvent {
+                kind: ChatStreamEventKind::MessageCompleted,
+                session_id: None,
+                message_id: None,
+                delta: None,
+                content: Some(content.clone()),
+                error: None,
+            }));
+            continue;
+        }
+
+        let json: Value = serde_json::from_str(data).map_err(|_| OpenClawError::InvalidResponse)?;
+        if let Some(delta) = extract_delta(&json) {
+            content.push_str(&delta);
+            events.push(Ok(ChatStreamEvent {
+                kind: ChatStreamEventKind::MessageDelta,
+                session_id: json
+                    .get("session_id")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned),
+                message_id: json
+                    .get("message_id")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned),
+                delta: Some(delta),
+                content: None,
+                error: None,
+            }));
+        } else if let Some(final_content) = extract_content(&json) {
+            completed = true;
+            events.push(Ok(ChatStreamEvent {
+                kind: ChatStreamEventKind::MessageCompleted,
+                session_id: json
+                    .get("session_id")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned),
+                message_id: json
+                    .get("message_id")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned),
+                delta: None,
+                content: Some(final_content),
+                error: None,
+            }));
+        }
+    }
+
+    if events.is_empty() {
+        return Err(OpenClawError::InvalidResponse);
+    }
+
+    if !completed {
+        events.push(Ok(ChatStreamEvent {
+            kind: ChatStreamEventKind::MessageCompleted,
+            session_id: None,
+            message_id: None,
+            delta: None,
+            content: Some(content),
+            error: None,
+        }));
+    }
+
+    Ok(events)
 }
 
 fn normalized_path(path: &str) -> String {
@@ -235,6 +394,16 @@ fn extract_content(json: &Value) -> Option<String> {
             json.pointer("/choices/0/message/content")
                 .and_then(Value::as_str)
         })
+        .or_else(|| {
+            json.pointer("/choices/0/delta/content")
+                .and_then(Value::as_str)
+        })
+        .map(str::to_owned)
+}
+
+fn extract_delta(json: &Value) -> Option<String> {
+    json.get("delta")
+        .and_then(Value::as_str)
         .or_else(|| {
             json.pointer("/choices/0/delta/content")
                 .and_then(Value::as_str)
