@@ -72,6 +72,8 @@ Nanami displays the assistant response incrementally through SSE.
 
 Goal: show agent activity as structured tasks.
 
+Current 0.3a phase: Task/Tool visualization foundation only. This phase adds protocol types, a mock task stream endpoint, and a UI task panel skeleton. Real OpenClaw tool call parsing is deferred to 0.3b.
+
 Required:
 
 - Task state machine.
@@ -84,7 +86,7 @@ Required:
 Expected demo:
 
 ```text
-OpenClaw starts a task.
+User runs the mock task stream.
 Nanami displays task timeline and tool status.
 ```
 

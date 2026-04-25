@@ -758,6 +758,7 @@ name = "nanami-core"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "chrono",
  "nanami-openclaw",
  "nanami-protocol",
  "serde",

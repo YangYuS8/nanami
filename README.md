@@ -176,6 +176,14 @@ Run `nanami-ui` after building:
 
 The current UI displays `nanami-core` health, OpenClaw Gateway connection status, and a streaming chat form through `nanami-core` only. Nanami 0.2c now performs true incremental assistant streaming rather than emitting a single buffered SSE body; tool call visualization is not implemented yet.
 
+Run the 0.3a mock task stream through `nanami-core`:
+
+```bash
+curl -N http://127.0.0.1:17878/tasks/mock/stream
+```
+
+Nanami 0.3a provides a mock Task/Tool visualization foundation only. It does not parse real OpenClaw tool calls yet.
+
 ## Verification
 
 Run all current project checks:

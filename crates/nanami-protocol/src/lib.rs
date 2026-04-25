@@ -105,6 +105,86 @@ pub struct ErrorPayload {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum TaskStatus {
+    Pending,
+    Running,
+    WaitingPermission,
+    Failed,
+    Completed,
+    Cancelled,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ToolCallStatus {
+    Pending,
+    Running,
+    Failed,
+    Completed,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ToolOutputStream {
+    Stdout,
+    Stderr,
+    Log,
+    Artifact,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct TaskStartedPayload {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    pub task_id: String,
+    pub title: String,
+    pub status: TaskStatus,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct TaskUpdatedPayload {
+    pub task_id: String,
+    pub status: TaskStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub summary: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct TaskCompletedPayload {
+    pub task_id: String,
+    pub status: TaskStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub summary: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ToolStartedPayload {
+    pub task_id: String,
+    pub tool_call_id: String,
+    pub tool: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub summary: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ToolOutputPayload {
+    pub task_id: String,
+    pub tool_call_id: String,
+    pub stream: ToolOutputStream,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ToolCompletedPayload {
+    pub task_id: String,
+    pub tool_call_id: String,
+    pub status: ToolCallStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exit_code: Option<i32>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(tag = "type")]
 pub enum Event {
     #[serde(rename = "session.started")]
@@ -130,6 +210,18 @@ pub enum Event {
     },
     #[serde(rename = "message.completed")]
     MessageCompleted(ChatResponse),
+    #[serde(rename = "task.started")]
+    TaskStarted(TaskStartedPayload),
+    #[serde(rename = "task.updated")]
+    TaskUpdated(TaskUpdatedPayload),
+    #[serde(rename = "task.completed")]
+    TaskCompleted(TaskCompletedPayload),
+    #[serde(rename = "tool.started")]
+    ToolStarted(ToolStartedPayload),
+    #[serde(rename = "tool.output")]
+    ToolOutput(ToolOutputPayload),
+    #[serde(rename = "tool.completed")]
+    ToolCompleted(ToolCompletedPayload),
     #[serde(rename = "error.occurred")]
     ErrorOccurred(ErrorPayload),
 }

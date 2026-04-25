@@ -3,8 +3,8 @@ import QtQuick.Controls
 
 ApplicationWindow {
     id: window
-    width: 560
-    height: 560
+    width: 720
+    height: 760
     visible: true
     title: "Nanami"
 
@@ -101,6 +101,30 @@ ApplicationWindow {
                         chatInput.text = ""
                     }
                 }
+            }
+
+            Button {
+                text: taskController.busy ? "Running mock task" : "Run mock task"
+                enabled: !taskController.busy
+                onClicked: taskController.startMockTaskStream()
+            }
+
+            TextArea {
+                width: parent.width
+                height: 180
+                readOnly: true
+                wrapMode: TextArea.Wrap
+                text: taskController.taskTimelineText
+                placeholderText: "Mock task timeline will appear here"
+            }
+
+            Text {
+                width: parent.width
+                color: "#ff9a9a"
+                font.pixelSize: 13
+                text: taskController.error
+                visible: taskController.error.length > 0
+                wrapMode: Text.Wrap
             }
         }
     }

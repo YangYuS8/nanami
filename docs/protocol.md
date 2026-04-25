@@ -206,6 +206,8 @@ error
 
 ### Task Events
 
+Task and tool events provide the structured foundation for 0.3 visualization. In 0.3a, `nanami-core` may emit a mock-only SSE stream for UI development and testing.
+
 ```json
 {
   "type": "task.started",
@@ -246,6 +248,61 @@ cancelled
   "status": "completed",
   "summary": "构建问题已定位"
 }
+```
+
+Tool event examples:
+
+```json
+{
+  "type": "tool.started",
+  "id": "evt_tool_001",
+  "timestamp": "2026-01-01T00:00:05Z",
+  "task_id": "task_mock_001",
+  "tool_call_id": "tool_mock_001",
+  "tool": "mock.shell",
+  "summary": "Mock shell run"
+}
+{
+  "type": "tool.output",
+  "id": "evt_tool_002",
+  "timestamp": "2026-01-01T00:00:06Z",
+  "task_id": "task_mock_001",
+  "tool_call_id": "tool_mock_001",
+  "stream": "stdout",
+  "content": "checking project..."
+}
+{
+  "type": "tool.output",
+  "id": "evt_tool_003",
+  "timestamp": "2026-01-01T00:00:07Z",
+  "task_id": "task_mock_001",
+  "tool_call_id": "tool_mock_001",
+  "stream": "stderr",
+  "content": "warning: mock warning"
+}
+{
+  "type": "tool.completed",
+  "id": "evt_tool_004",
+  "timestamp": "2026-01-01T00:00:08Z",
+  "task_id": "task_mock_001",
+  "tool_call_id": "tool_mock_001",
+  "status": "completed",
+  "exit_code": 0
+}
+```
+
+0.3a mock SSE example:
+
+```text
+data: {"type":"task.started","id":"evt_task_mock_started_001",...}
+
+data: {"type":"tool.started","id":"evt_tool_mock_started_001",...}
+
+data: {"type":"tool.output","id":"evt_tool_mock_stdout_001",...}
+
+data: {"type":"tool.completed","id":"evt_tool_mock_completed_001",...}
+
+data: {"type":"task.completed","id":"evt_task_mock_completed_001",...}
 ```
 
 ### Tool Events

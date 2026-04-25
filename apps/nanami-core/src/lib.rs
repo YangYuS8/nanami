@@ -13,7 +13,9 @@ use nanami_openclaw::{
 };
 use nanami_protocol::{
     ChatRequest, ChatResponse, ChatStreamEvent, ChatStreamEventKind, ErrorPayload, ErrorSeverity,
-    OpenClawConnectionStatus, OpenClawStatusPayload,
+    Event, EventEnvelope, OpenClawConnectionStatus, OpenClawStatusPayload, TaskCompletedPayload,
+    TaskStartedPayload, TaskStatus, ToolCallStatus, ToolCompletedPayload, ToolOutputPayload,
+    ToolOutputStream, ToolStartedPayload,
 };
 use serde::Serialize;
 use std::convert::Infallible;
@@ -40,6 +42,7 @@ fn router_with_openclaw(openclaw: Arc<dyn OpenClawService>) -> Router {
         .route("/openclaw/status", get(openclaw_status))
         .route("/chat", post(chat))
         .route("/chat/stream", post(chat_stream))
+        .route("/tasks/mock/stream", get(tasks_mock_stream))
         .with_state(AppState { openclaw })
 }
 
@@ -141,6 +144,77 @@ async fn chat_stream(State(state): State<AppState>, Json(request): Json<ChatRequ
 
         Ok::<_, Infallible>(SseEvent::default().data(serde_json::to_string(&event).unwrap()))
     }))
+    .keep_alive(KeepAlive::default())
+    .into_response()
+}
+
+async fn tasks_mock_stream() -> Response {
+    // 0.3a mock only: fixed task/tool event sequence for Task Panel visualization.
+    let events = vec![
+        EventEnvelope::new(
+            "evt_task_mock_started_001",
+            chrono::Utc::now(),
+            Event::TaskStarted(TaskStartedPayload {
+                session_id: Some("sess_mock_001".into()),
+                task_id: "task_mock_001".into(),
+                title: "Mock project check".into(),
+                status: TaskStatus::Running,
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_tool_mock_started_001",
+            chrono::Utc::now(),
+            Event::ToolStarted(ToolStartedPayload {
+                task_id: "task_mock_001".into(),
+                tool_call_id: "tool_mock_001".into(),
+                tool: "mock.shell".into(),
+                summary: Some("Mock shell run".into()),
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_tool_mock_stdout_001",
+            chrono::Utc::now(),
+            Event::ToolOutput(ToolOutputPayload {
+                task_id: "task_mock_001".into(),
+                tool_call_id: "tool_mock_001".into(),
+                stream: ToolOutputStream::Stdout,
+                content: "checking project...".into(),
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_tool_mock_stderr_001",
+            chrono::Utc::now(),
+            Event::ToolOutput(ToolOutputPayload {
+                task_id: "task_mock_001".into(),
+                tool_call_id: "tool_mock_001".into(),
+                stream: ToolOutputStream::Stderr,
+                content: "warning: mock warning".into(),
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_tool_mock_completed_001",
+            chrono::Utc::now(),
+            Event::ToolCompleted(ToolCompletedPayload {
+                task_id: "task_mock_001".into(),
+                tool_call_id: "tool_mock_001".into(),
+                status: ToolCallStatus::Completed,
+                exit_code: Some(0),
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_task_mock_completed_001",
+            chrono::Utc::now(),
+            Event::TaskCompleted(TaskCompletedPayload {
+                task_id: "task_mock_001".into(),
+                status: TaskStatus::Completed,
+                summary: Some("Mock task completed".into()),
+            }),
+        ),
+    ];
+
+    Sse::new(tokio_stream::iter(events.into_iter().map(|event| {
+        Ok::<_, Infallible>(SseEvent::default().data(serde_json::to_string(&event).unwrap()))
+    })))
     .keep_alive(KeepAlive::default())
     .into_response()
 }
@@ -638,5 +712,47 @@ mod tests {
         };
 
         assert_eq!(error.code, "OPENCLAW_GATEWAY_UNCONFIGURED");
+    }
+
+    #[tokio::test]
+    async fn tasks_mock_stream_returns_sse_content_type() {
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .uri("/tasks/mock/stream")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers().get("content-type").unwrap(),
+            "text/event-stream"
+        );
+    }
+
+    #[tokio::test]
+    async fn tasks_mock_stream_contains_mock_task_and_tool_events() {
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .uri("/tasks/mock/stream")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+
+        assert!(text.contains("task.started"));
+        assert!(text.contains("tool.started"));
+        assert!(text.contains("tool.output"));
+        assert!(text.contains("tool.completed"));
+        assert!(text.contains("task.completed"));
     }
 }

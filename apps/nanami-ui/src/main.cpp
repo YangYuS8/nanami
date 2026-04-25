@@ -1,5 +1,6 @@
 #include "ChatController.h"
 #include "StatusController.h"
+#include "TaskController.h"
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -11,9 +12,11 @@ int main(int argc, char *argv[])
 
     ChatController chatController;
     StatusController statusController;
+    TaskController taskController;
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("chatController", &chatController);
     engine.rootContext()->setContextProperty("statusController", &statusController);
+    engine.rootContext()->setContextProperty("taskController", &taskController);
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreationFailed,

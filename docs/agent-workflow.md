@@ -62,6 +62,8 @@ For Nanami 0.2, agents MUST keep OpenClaw integration inside `nanami-core` and `
 
 For Nanami 0.2b chat forwarding, agents MUST keep OpenClaw Gateway request/response parsing inside `crates/nanami-openclaw`. `nanami-core` owns `/chat`, validation, and error mapping. `nanami-ui` may only call `nanami-core` and must not parse OpenClaw-specific response shapes.
 
+For Nanami 0.3a, agents MUST keep task/tool state structured in protocol types and core-produced SSE. UI may render mock task/tool events from `nanami-core`, but it must not infer tool state from free text and must not call OpenClaw, CubeSandbox, or system tools directly.
+
 ### CubeSandbox integration
 
 Use:
