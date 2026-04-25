@@ -14,6 +14,8 @@ Current 0.4c status: decision flow + in-memory audit log. `allow_once` / `allow_
 
 Current 0.5a status: mock sandbox visualization only. Sandbox mounts, network policy, output, artifacts, and completion can be displayed from mock events, but Nanami still does not call real CubeSandbox, execute commands, mount host directories, read or write artifact files, or enable network access.
 
+Current 0.5b status: OpenClaw sandbox event mapping only. Structured sandbox events from OpenClaw may be displayed in Nanami task streams, but Nanami still does not call real CubeSandbox, execute commands, mount host directories, read or write artifact files, or enable network access.
+
 Nanami MUST ask the user before performing risky actions.
 
 Permission decisions MUST be explicit, scoped, recorded, and revocable where possible.

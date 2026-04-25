@@ -1160,6 +1160,84 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn tasks_openclaw_stream_contains_sandbox_events() {
+        let response = crate::router_with_openclaw(Arc::new(StubOpenClawService {
+            response: Err(crate::chat_error("unused", "unused", None)),
+            stream_response: Ok(Vec::new()),
+            agent_stream_response: Ok(vec![
+                EventEnvelope::new(
+                    "evt_sandbox_started_001",
+                    chrono::Utc::now(),
+                    Event::SandboxStarted(nanami_protocol::SandboxStartedPayload {
+                        sandbox_id: "sandbox_001".into(),
+                        task_id: "task_openclaw_stream_001".into(),
+                        template_id: "rust-workspace".into(),
+                        status: nanami_protocol::SandboxStatus::Starting,
+                        network_policy: nanami_protocol::SandboxNetworkPolicy::Disabled,
+                        mounts: vec![nanami_protocol::SandboxMountPayload {
+                            host_path: "/mock/host/project".into(),
+                            sandbox_path: "/workspace/project".into(),
+                            mode: nanami_protocol::SandboxMountMode::ReadOnly,
+                        }],
+                    }),
+                ),
+                EventEnvelope::new(
+                    "evt_sandbox_output_001",
+                    chrono::Utc::now(),
+                    Event::SandboxOutput(nanami_protocol::SandboxOutputPayload {
+                        task_id: "task_openclaw_stream_001".into(),
+                        sandbox_id: "sandbox_001".into(),
+                        stream: ToolOutputStream::Stdout,
+                        content: "checking workspace...".into(),
+                    }),
+                ),
+                EventEnvelope::new(
+                    "evt_sandbox_artifact_001",
+                    chrono::Utc::now(),
+                    Event::SandboxArtifact(nanami_protocol::SandboxArtifactPayload {
+                        sandbox_id: "sandbox_001".into(),
+                        task_id: "task_openclaw_stream_001".into(),
+                        name: "mock-report.txt".into(),
+                        path: "/workspace/output/mock-report.txt".into(),
+                        media_type: "text/plain".into(),
+                        size_bytes: 128,
+                    }),
+                ),
+                EventEnvelope::new(
+                    "evt_sandbox_completed_001",
+                    chrono::Utc::now(),
+                    Event::SandboxCompleted(nanami_protocol::SandboxCompletedPayload {
+                        sandbox_id: "sandbox_001".into(),
+                        task_id: "task_openclaw_stream_001".into(),
+                        status: nanami_protocol::SandboxStatus::Completed,
+                        exit_code: Some(0),
+                        summary: Some("sandbox finished".into()),
+                    }),
+                ),
+            ]),
+        }))
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/tasks/openclaw/stream")
+                .header("content-type", "application/json")
+                .body(Body::from(r#"{"message":"Run task"}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+
+        assert!(text.contains("sandbox.started"));
+        assert!(text.contains("sandbox.output"));
+        assert!(text.contains("sandbox.artifact"));
+        assert!(text.contains("sandbox.completed"));
+    }
+
+    #[tokio::test]
     async fn tasks_openclaw_stream_inserts_permission_for_shell_tool() {
         let event = EventEnvelope::new(
             "evt_shell_started_001",

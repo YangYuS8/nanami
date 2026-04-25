@@ -113,6 +113,7 @@ void TaskController::resetState()
 {
     m_currentTask = TaskViewState {};
     m_permissionLines.clear();
+    m_sandboxLines.clear();
     m_taskTimelineText.clear();
     emit currentTaskChanged();
     emit taskTimelineTextChanged();
@@ -156,6 +157,7 @@ void TaskController::rebuildTimeline()
     }
 
     lines.append(m_permissionLines);
+    lines.append(m_sandboxLines);
 
     m_taskTimelineText = lines.join(QStringLiteral("\n"));
     emit taskTimelineTextChanged();
@@ -258,6 +260,63 @@ void TaskController::handleEvent(const QJsonObject &event)
                                      .arg(event.value(QStringLiteral("level")).toString(),
                                           event.value(QStringLiteral("action")).toString(),
                                           event.value(QStringLiteral("target")).toString()));
+        rebuildTimeline();
+        return;
+    }
+
+    if (type == QStringLiteral("sandbox.started")) {
+        m_sandboxLines.append(QStringLiteral("Sandbox %1 started: template=%2 network=%3")
+                                  .arg(event.value(QStringLiteral("sandbox_id")).toString(),
+                                       event.value(QStringLiteral("template_id")).toString(),
+                                       event.value(QStringLiteral("network_policy")).toString()));
+        rebuildTimeline();
+        return;
+    }
+
+    if (type == QStringLiteral("sandbox.updated")) {
+        QString line = QStringLiteral("Sandbox %1 updated: status=%2")
+                           .arg(event.value(QStringLiteral("sandbox_id")).toString(),
+                                event.value(QStringLiteral("status")).toString());
+        const QString summary = event.value(QStringLiteral("summary")).toString();
+        if (!summary.isEmpty()) {
+            line.append(QStringLiteral(", summary=%1").arg(summary));
+        }
+        m_sandboxLines.append(line);
+        rebuildTimeline();
+        return;
+    }
+
+    if (type == QStringLiteral("sandbox.output")) {
+        m_sandboxLines.append(QStringLiteral("Sandbox %1 %2: %3")
+                                  .arg(event.value(QStringLiteral("sandbox_id")).toString(),
+                                       event.value(QStringLiteral("stream")).toString(),
+                                       event.value(QStringLiteral("content")).toString()));
+        rebuildTimeline();
+        return;
+    }
+
+    if (type == QStringLiteral("sandbox.artifact")) {
+        m_sandboxLines.append(QStringLiteral("Sandbox %1 artifact: %2 @ %3")
+                                  .arg(event.value(QStringLiteral("sandbox_id")).toString(),
+                                       event.value(QStringLiteral("name")).toString(),
+                                       event.value(QStringLiteral("path")).toString()));
+        rebuildTimeline();
+        return;
+    }
+
+    if (type == QStringLiteral("sandbox.completed")) {
+        QString line = QStringLiteral("Sandbox %1 completed: status=%2")
+                           .arg(event.value(QStringLiteral("sandbox_id")).toString(),
+                                event.value(QStringLiteral("status")).toString());
+        if (event.contains(QStringLiteral("exit_code"))) {
+            line.append(
+                QStringLiteral(", exit_code=%1").arg(event.value(QStringLiteral("exit_code")).toVariant().toString()));
+        }
+        const QString summary = event.value(QStringLiteral("summary")).toString();
+        if (!summary.isEmpty()) {
+            line.append(QStringLiteral(", summary=%1").arg(summary));
+        }
+        m_sandboxLines.append(line);
         rebuildTimeline();
         return;
     }

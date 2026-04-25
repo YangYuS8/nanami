@@ -97,10 +97,13 @@ The current goal is Nanami 0.5:
 - 0.4b completed: dangerous tool request interception visibility.
 - 0.4c completed: permission decision flow + in-memory audit log.
 - 0.5a completed: sandbox protocol + mock sandbox stream + UI skeleton.
+- 0.5b completed: OpenClaw sandbox event mapping.
 - `nanami-core` provides mock permission request, decision, audit, and sandbox stream endpoints.
 - `nanami-ui` displays mock permission and sandbox visualization skeletons.
 - 0.5a is mock sandbox visualization only.
 - 0.5a does not call the real CubeSandbox API, does not execute commands, does not mount host directories, does not read or write artifact files, does not use network access, and does not consume real OpenClaw cube-sandbox events.
+- 0.5b maps OpenClaw structured sandbox events into Nanami sandbox events through `/tasks/openclaw/stream` only.
+- 0.5b still does not call the real CubeSandbox API, execute commands, mount host directories, read or write artifact files, or enable network access.
 
 ## Development
 
@@ -231,6 +234,8 @@ curl -N http://127.0.0.1:17878/sandbox/mock/stream
 ```
 
 Nanami 0.5a provides mock sandbox visualization only. It does not call real CubeSandbox, does not execute commands, does not mount host directories, does not read or write artifact files, and does not enable network access.
+
+Nanami 0.5b adds OpenClaw structured sandbox event mapping to `/tasks/openclaw/stream`. This is event mapping only: it does not call real CubeSandbox, does not execute commands, does not mount host directories, does not read or write artifact files, and does not enable network access.
 
 ## Verification
 

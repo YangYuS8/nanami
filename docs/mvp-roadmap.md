@@ -129,6 +129,8 @@ Goal: visualize isolated execution.
 
 Current 0.5a phase: sandbox protocol + mock sandbox stream + UI skeleton. This phase adds structured sandbox events, a mock-only sandbox SSE endpoint, and a basic Sandbox View. It does not call the real CubeSandbox API, execute commands, mount host directories, read or write artifact files, use network access, or consume real OpenClaw cube-sandbox events.
 
+Current 0.5b phase: OpenClaw sandbox event mapping. This phase maps structured OpenClaw sandbox events into Nanami `sandbox.started` / `sandbox.updated` / `sandbox.output` / `sandbox.artifact` / `sandbox.completed` events on `/tasks/openclaw/stream`. It does not call the real CubeSandbox API, execute commands, mount host directories, read or write artifact files, or use network access.
+
 Required:
 
 - CubeSandbox/E2B adapter boundary.
@@ -142,7 +144,7 @@ Required:
 Expected demo:
 
 ```text
-User runs a mock sandbox stream.
+User runs a mock sandbox stream or receives mapped OpenClaw sandbox events.
 Nanami shows sandbox ID, template, network policy, mounts, output, artifacts, and completion state without performing any real sandbox operation.
 ```
 

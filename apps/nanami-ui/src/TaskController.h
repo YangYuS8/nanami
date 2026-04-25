@@ -72,6 +72,7 @@ private:
     QString m_streamBuffer;
     QString m_error;
     QStringList m_permissionLines;
+    QStringList m_sandboxLines;
     TaskViewState m_currentTask;
     bool m_busy = false;
 };

@@ -422,7 +422,7 @@ For 0.3c, UI state mapping should also remain structured. `TaskController` or eq
 
 ### Sandbox Events
 
-Sandbox events provide the structured 0.5a CubeSandbox visualization foundation. In 0.5a, these events are mock-only. They do not call the real CubeSandbox API, do not execute commands, do not mount host directories, do not read or write artifact files, do not use network access, and do not consume real OpenClaw cube-sandbox events.
+Sandbox events provide the structured 0.5 CubeSandbox visualization foundation. In 0.5a, these events are mock-only. In 0.5b, `nanami-openclaw` may also map structured OpenClaw sandbox JSON into the same Nanami sandbox events. This remains event mapping only: Nanami does not call the real CubeSandbox API, does not execute commands, does not mount host directories, does not read or write artifact files, and does not use network access.
 
 Valid sandbox statuses:
 
@@ -530,6 +530,17 @@ data: {"type":"sandbox.output","id":"evt_sandbox_mock_stdout_001",...}
 data: {"type":"sandbox.artifact","id":"evt_sandbox_mock_artifact_001",...}
 
 data: {"type":"sandbox.completed","id":"evt_sandbox_mock_completed_001",...}
+```
+
+0.5b OpenClaw structured mapping examples:
+
+```text
+{"sandbox_id":"sandbox_001","template_id":"rust-workspace","network_policy":"disabled","mounts":[...]} -> sandbox.started
+{"sandbox_id":"sandbox_001","status":"running","summary":"sandbox running"} -> sandbox.updated
+{"sandbox_id":"sandbox_001","stdout":"checking workspace..."} -> sandbox.output
+{"sandbox_id":"sandbox_001","artifact":{"name":"mock-report.txt",...}} -> sandbox.artifact
+{"sandbox_id":"sandbox_001","status":"completed","exit_code":0} -> sandbox.completed
+{"sandbox_id":"sandbox_001","status":"failed","exit_code":1} -> sandbox.completed
 ```
 
 ### Tool Events
