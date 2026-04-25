@@ -95,7 +95,7 @@ The current goal is Nanami 0.4:
 
 - 0.4a completed: permission protocol + mock permission flow.
 - 0.4b completed: dangerous tool request interception visibility.
-- 0.4c in progress: permission decision flow + in-memory audit log.
+- 0.4c completed: permission decision flow + in-memory audit log.
 - `nanami-core` provides mock permission request and resolve endpoints.
 - `nanami-core` now exposes in-memory permission decision and audit endpoints.
 - `nanami-ui` displays a mock permission dialog skeleton.

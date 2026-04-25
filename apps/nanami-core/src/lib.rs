@@ -523,11 +523,7 @@ impl OpenClawService for EnvOpenClawService {
                 .map_err(map_openclaw_chat_error)?;
             let mapped = futures_util::StreamExt::flat_map(stream, |item| match item {
                 Ok(OpenClawStreamItem::Event(event)) => {
-                    let mut events = vec![Ok::<_, ErrorPayload>(event.clone())];
-                    if let Some(permission_event) = maybe_permission_for_tool_event(&event) {
-                        events.push(Ok(permission_event));
-                    }
-                    tokio_stream::iter(events)
+                    tokio_stream::iter(vec![Ok::<_, ErrorPayload>(event)])
                 }
                 Ok(OpenClawStreamItem::Chat(_)) => tokio_stream::iter(Vec::new()),
                 Err(error) => tokio_stream::iter(vec![Err::<EventEnvelope, _>(
@@ -1127,6 +1123,66 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn tasks_openclaw_stream_inserts_shell_permission_once_and_records_single_audit() {
+        let app = crate::router_with_openclaw(Arc::new(StubOpenClawService {
+            response: Err(crate::chat_error("unused", "unused", None)),
+            stream_response: Ok(Vec::new()),
+            agent_stream_response: Ok(vec![EventEnvelope::new(
+                "evt_shell_started_001",
+                chrono::Utc::now(),
+                Event::ToolStarted(ToolStartedPayload {
+                    task_id: "task_openclaw_stream_001".into(),
+                    tool_call_id: "call_shell_001".into(),
+                    tool: "command.run".into(),
+                    summary: Some("cargo check".into()),
+                }),
+            )]),
+        }));
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/tasks/openclaw/stream")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"message":"Run task"}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+
+        assert_eq!(text.matches("permission.requested").count(), 1);
+
+        let audit_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/permissions/audit")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(audit_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        let requested_count = json["records"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|record| record["action"] == "permission_requested")
+            .count();
+
+        assert_eq!(requested_count, 1);
+    }
+
+    #[tokio::test]
     async fn tasks_openclaw_stream_inserts_permission_for_read_file_tool() {
         let event = EventEnvelope::new(
             "evt_read_started_001",
@@ -1160,6 +1216,40 @@ mod tests {
         );
 
         assert!(crate::maybe_permission_for_tool_event(&event).is_none());
+    }
+
+    #[tokio::test]
+    async fn tasks_openclaw_stream_does_not_insert_permission_for_harmless_tool_route() {
+        let response = crate::router_with_openclaw(Arc::new(StubOpenClawService {
+            response: Err(crate::chat_error("unused", "unused", None)),
+            stream_response: Ok(Vec::new()),
+            agent_stream_response: Ok(vec![EventEnvelope::new(
+                "evt_harmless_started_001",
+                chrono::Utc::now(),
+                Event::ToolStarted(ToolStartedPayload {
+                    task_id: "task_openclaw_stream_001".into(),
+                    tool_call_id: "call_harmless_001".into(),
+                    tool: "display.message".into(),
+                    summary: Some("show info".into()),
+                }),
+            )]),
+        }))
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/tasks/openclaw/stream")
+                .header("content-type", "application/json")
+                .body(Body::from(r#"{"message":"Run task"}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+
+        assert!(!text.contains("permission.requested"));
     }
 
     #[tokio::test]
@@ -1247,7 +1337,8 @@ mod tests {
             .unwrap();
         assert_eq!(response.status(), StatusCode::OK);
 
-        let audit_response = app.clone()
+        let audit_response = app
+            .clone()
             .oneshot(
                 Request::builder()
                     .uri("/permissions/audit")
@@ -1310,7 +1401,8 @@ mod tests {
             .unwrap();
         assert_eq!(response.status(), StatusCode::OK);
 
-        let decision_response = app.clone()
+        let decision_response = app
+            .clone()
             .oneshot(
                 Request::builder()
                     .uri("/permissions/decision/perm_mock_read_project")
@@ -1370,7 +1462,8 @@ mod tests {
             .unwrap();
         assert_eq!(response.status(), StatusCode::OK);
 
-        let decision_response = app.clone()
+        let decision_response = app
+            .clone()
             .oneshot(
                 Request::builder()
                     .uri("/permissions/decision/perm_mock_read_project")
@@ -1430,7 +1523,8 @@ mod tests {
             .unwrap();
         assert_eq!(response.status(), StatusCode::OK);
 
-        let decision_response = app.clone()
+        let decision_response = app
+            .clone()
             .oneshot(
                 Request::builder()
                     .uri("/permissions/decision/perm_mock_read_project")
@@ -1445,6 +1539,99 @@ mod tests {
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
 
         assert_eq!(json["decision"], "deny");
+    }
+
+    #[tokio::test]
+    async fn dangerous_stream_permission_can_be_resolved_and_audit_includes_requested_and_resolved()
+    {
+        let app = crate::router_with_openclaw(Arc::new(StubOpenClawService {
+            response: Err(crate::chat_error("unused", "unused", None)),
+            stream_response: Ok(Vec::new()),
+            agent_stream_response: Ok(vec![EventEnvelope::new(
+                "evt_shell_started_001",
+                chrono::Utc::now(),
+                Event::ToolStarted(ToolStartedPayload {
+                    task_id: "task_openclaw_stream_001".into(),
+                    tool_call_id: "call_shell_001".into(),
+                    tool: "command.run".into(),
+                    summary: Some("cargo check".into()),
+                }),
+            )]),
+        }));
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/tasks/openclaw/stream")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"message":"Run task"}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let _body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+
+        let resolve_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/permissions/resolve")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        r#"{"permission_id":"perm_call_shell_001","decision":"allow_once"}"#,
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resolve_response.status(), StatusCode::OK);
+
+        let decision_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/permissions/decision/perm_call_shell_001")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let decision_body = axum::body::to_bytes(decision_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let decision_json: serde_json::Value = serde_json::from_slice(&decision_body).unwrap();
+
+        assert_eq!(decision_json["decision"], "allow_once");
+
+        let audit_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/permissions/audit")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let audit_body = axum::body::to_bytes(audit_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let audit_json: serde_json::Value = serde_json::from_slice(&audit_body).unwrap();
+        let actions: Vec<_> = audit_json["records"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|record| record["action"].as_str().unwrap())
+            .collect();
+
+        assert!(actions.contains(&"permission_requested"));
+        assert!(actions.contains(&"permission_resolved"));
     }
 
     #[tokio::test]
