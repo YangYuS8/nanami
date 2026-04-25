@@ -156,7 +156,7 @@ curl -N -X POST http://127.0.0.1:17878/chat/stream \
   -d '{"message":"Hello Nanami"}'
 ```
 
-`POST /chat` remains a non-streaming fallback. `POST /chat/stream` is the 0.2c true token streaming path used by the UI.
+`POST /chat` remains a non-streaming fallback. `POST /chat/stream` is the 0.2c true token streaming path used by the UI, with upstream chunks forwarded incrementally instead of buffering the whole response first.
 
 Configure the OpenClaw Gateway URL before starting `nanami-core`:
 
@@ -174,7 +174,7 @@ Run `nanami-ui` after building:
 ./build/apps/nanami-ui/nanami-ui
 ```
 
-The current UI displays `nanami-core` health, OpenClaw Gateway connection status, and a streaming chat form through `nanami-core` only. Nanami 0.2c streams assistant text incrementally; tool call visualization is not implemented yet.
+The current UI displays `nanami-core` health, OpenClaw Gateway connection status, and a streaming chat form through `nanami-core` only. Nanami 0.2c now performs true incremental assistant streaming rather than emitting a single buffered SSE body; tool call visualization is not implemented yet.
 
 ## Verification
 

@@ -38,6 +38,7 @@ void ChatController::sendMessage(const QString &text)
     appendConversation(QStringLiteral("User"), trimmed);
     appendConversation(QStringLiteral("Assistant"), QString());
     m_assistantOpen = true;
+    m_assistantHasContent = false;
     m_streamBuffer.clear();
 
     QJsonObject body;
@@ -58,6 +59,8 @@ void ChatController::sendMessage(const QString &text)
 
         if (reply->error() != QNetworkReply::NoError) {
             setError(QStringLiteral("nanami-core streaming chat endpoint is unavailable"));
+            m_assistantOpen = false;
+            m_assistantHasContent = false;
             return;
         }
     });
@@ -78,9 +81,11 @@ void ChatController::appendAssistantDelta(const QString &delta)
     if (!m_assistantOpen) {
         appendConversation(QStringLiteral("Assistant"), QString());
         m_assistantOpen = true;
+        m_assistantHasContent = false;
     }
 
     m_conversationText.append(delta);
+    m_assistantHasContent = true;
     emit conversationTextChanged();
 }
 
@@ -118,10 +123,11 @@ void ChatController::handleStreamEvent(const QJsonObject &event)
 
     if (kind == QStringLiteral("message_completed")) {
         const QString content = event.value(QStringLiteral("content")).toString();
-        if (!content.isEmpty() && !m_assistantOpen) {
-            appendConversation(QStringLiteral("Assistant"), content);
+        if (!content.isEmpty() && !m_assistantHasContent) {
+            appendAssistantDelta(content);
         }
         m_assistantOpen = false;
+        m_assistantHasContent = false;
         setBusy(false);
         return;
     }
@@ -130,6 +136,7 @@ void ChatController::handleStreamEvent(const QJsonObject &event)
         const QJsonObject error = event.value(QStringLiteral("error")).toObject();
         setError(error.value(QStringLiteral("message")).toString(QStringLiteral("Chat stream failed")));
         m_assistantOpen = false;
+        m_assistantHasContent = false;
         setBusy(false);
     }
 }

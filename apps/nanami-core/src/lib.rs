@@ -2,19 +2,25 @@ use axum::{
     Json, Router,
     extract::State,
     http::StatusCode,
-    response::IntoResponse,
+    response::{
+        IntoResponse, Response,
+        sse::{Event as SseEvent, KeepAlive, Sse},
+    },
     routing::{get, post},
 };
-use nanami_openclaw::{OpenClawChatRequest, OpenClawClient, OpenClawConfig, OpenClawError};
+use nanami_openclaw::{
+    OpenClawChatRequest, OpenClawChatStream, OpenClawClient, OpenClawConfig, OpenClawError,
+};
 use nanami_protocol::{
     ChatRequest, ChatResponse, ChatStreamEvent, ChatStreamEventKind, ErrorPayload, ErrorSeverity,
     OpenClawConnectionStatus, OpenClawStatusPayload,
 };
 use serde::Serialize;
+use std::convert::Infallible;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
-use tokio_stream::StreamExt;
+use tokio_stream::{StreamExt, once};
 
 const DEFAULT_OPENCLAW_TIMEOUT_MS: u64 = 3000;
 
@@ -50,7 +56,7 @@ trait OpenClawService: Send + Sync {
     fn stream_chat_message(
         &self,
         request: ChatRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<ChatStreamEvent>, ErrorPayload>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = Result<OpenClawChatStream, ErrorPayload>> + Send + '_>>;
 }
 
 #[derive(Clone)]
@@ -93,10 +99,7 @@ async fn chat(
     }
 }
 
-async fn chat_stream(
-    State(state): State<AppState>,
-    Json(request): Json<ChatRequest>,
-) -> impl IntoResponse {
+async fn chat_stream(State(state): State<AppState>, Json(request): Json<ChatRequest>) -> Response {
     if request.message.trim().is_empty() {
         return (
             StatusCode::BAD_REQUEST,
@@ -107,30 +110,39 @@ async fn chat_stream(
                 Some("Enter a message before sending"),
             ))
             .unwrap(),
-        );
+        )
+            .into_response();
     }
 
-    let events = match state.openclaw.stream_chat_message(request).await {
-        Ok(events) => events,
-        Err(error) => vec![ChatStreamEvent {
+    let stream = match state.openclaw.stream_chat_message(request).await {
+        Ok(stream) => stream,
+        Err(error) => Box::pin(once(Ok(ChatStreamEvent {
             kind: ChatStreamEventKind::Error,
             session_id: None,
             message_id: None,
             delta: None,
             content: None,
             error: Some(error),
-        }],
+        }))) as OpenClawChatStream,
     };
-    let body = events
-        .into_iter()
-        .map(|event| format!("data: {}\n\n", serde_json::to_string(&event).unwrap()))
-        .collect::<String>();
 
-    (
-        StatusCode::OK,
-        [("content-type", "text/event-stream")],
-        body,
-    )
+    Sse::new(stream.map(|result| {
+        let event = match result {
+            Ok(event) => event,
+            Err(error) => ChatStreamEvent {
+                kind: ChatStreamEventKind::Error,
+                session_id: None,
+                message_id: None,
+                delta: None,
+                content: None,
+                error: Some(map_openclaw_chat_error(error)),
+            },
+        };
+
+        Ok::<_, Infallible>(SseEvent::default().data(serde_json::to_string(&event).unwrap()))
+    }))
+    .keep_alive(KeepAlive::default())
+    .into_response()
 }
 
 #[derive(Debug, Serialize)]
@@ -204,7 +216,7 @@ impl OpenClawService for EnvOpenClawService {
     fn stream_chat_message(
         &self,
         request: ChatRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<ChatStreamEvent>, ErrorPayload>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = Result<OpenClawChatStream, ErrorPayload>> + Send + '_>> {
         Box::pin(async move {
             let gateway_url = std::env::var("NANAMI_OPENCLAW_GATEWAY_URL").unwrap_or_default();
             if gateway_url.trim().is_empty() {
@@ -223,12 +235,7 @@ impl OpenClawService for EnvOpenClawService {
                 })
                 .await
                 .map_err(map_openclaw_chat_error)?;
-            stream
-                .collect::<Vec<_>>()
-                .await
-                .into_iter()
-                .collect::<Result<Vec<_>, _>>()
-                .map_err(map_openclaw_chat_error)
+            Ok(stream)
         })
     }
 }
@@ -281,6 +288,7 @@ mod tests {
     use crate::OpenClawService;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
+    use nanami_openclaw::OpenClawChatStream;
     use nanami_protocol::{
         ChatRequest, ChatResponse, ChatStreamEvent, ChatStreamEventKind, ErrorPayload,
         OpenClawConnectionStatus,
@@ -385,9 +393,13 @@ mod tests {
         fn stream_chat_message(
             &self,
             _request: ChatRequest,
-        ) -> Pin<Box<dyn Future<Output = Result<Vec<ChatStreamEvent>, ErrorPayload>> + Send + '_>>
+        ) -> Pin<Box<dyn Future<Output = Result<OpenClawChatStream, ErrorPayload>> + Send + '_>>
         {
-            Box::pin(async { self.stream_response.clone() })
+            Box::pin(async move {
+                self.stream_response.clone().map(|events| {
+                    Box::pin(tokio_stream::iter(events.into_iter().map(Ok))) as OpenClawChatStream
+                })
+            })
         }
     }
 
@@ -562,6 +574,35 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn chat_stream_endpoint_unconfigured_gateway_returns_error_event() {
+        let response = crate::router_with_openclaw(Arc::new(StubOpenClawService {
+            response: Err(crate::chat_error("unused", "unused", None)),
+            stream_response: Err(crate::chat_error(
+                "OPENCLAW_GATEWAY_UNCONFIGURED",
+                "NANAMI_OPENCLAW_GATEWAY_URL is not configured",
+                Some("Set NANAMI_OPENCLAW_GATEWAY_URL before sending chat messages"),
+            )),
+        }))
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/chat/stream")
+                .header("content-type", "application/json")
+                .body(Body::from(r#"{"message":"Hello"}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+
+        assert!(text.contains("\"kind\":\"error\""));
+        assert!(text.contains("OPENCLAW_GATEWAY_UNCONFIGURED"));
+    }
+
+    #[tokio::test]
     async fn chat_stream_endpoint_rejects_empty_message() {
         let response = crate::router_with_openclaw(Arc::new(StubOpenClawService {
             response: Err(crate::chat_error("unused", "unused", None)),
@@ -585,13 +626,16 @@ mod tests {
     async fn chat_stream_service_unconfigured_gateway_returns_structured_error() {
         let service = crate::EnvOpenClawService;
 
-        let error = service
+        let error = match service
             .stream_chat_message(ChatRequest {
                 session_id: None,
                 message: "Hello".into(),
             })
             .await
-            .unwrap_err();
+        {
+            Ok(_) => panic!("expected unconfigured gateway error"),
+            Err(error) => error,
+        };
 
         assert_eq!(error.code, "OPENCLAW_GATEWAY_UNCONFIGURED");
     }

@@ -38,4 +38,5 @@ private:
     QString m_error;
     bool m_busy = false;
     bool m_assistantOpen = false;
+    bool m_assistantHasContent = false;
 };

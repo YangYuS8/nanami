@@ -182,9 +182,9 @@ system
 }
 ```
 
-0.2b exposes `POST /chat` as a basic forwarding endpoint returning a complete `ChatResponse`. True token streaming is deferred.
+0.2b exposes `POST /chat` as a basic forwarding endpoint returning a complete `ChatResponse`. `POST /chat` remains the non-streaming fallback in 0.2c.
 
-0.2c exposes `POST /chat/stream` as a Server-Sent Events endpoint. Each frame contains one `ChatStreamEvent` JSON payload:
+0.2c exposes `POST /chat/stream` as a Server-Sent Events endpoint. `nanami-core` forwards upstream chunks incrementally as `ChatStreamEvent` frames instead of buffering the complete response first. Each frame contains one `ChatStreamEvent` JSON payload:
 
 ```text
 data: {"kind":"message_delta","session_id":"sess_001","message_id":"msg_001","delta":"你"}
