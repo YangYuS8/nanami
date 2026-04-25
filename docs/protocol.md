@@ -133,6 +133,28 @@ profile
 
 ### Message Events
 
+Basic chat request-response payloads:
+
+```json
+{
+  "session_id": "sess_001",
+  "message": "Hello Nanami"
+}
+{
+  "session_id": "sess_001",
+  "message_id": "msg_001",
+  "content": "Hello user"
+}
+```
+
+Valid chat roles:
+
+```text
+user
+assistant
+system
+```
+
 ```json
 {
   "type": "message.user",
@@ -159,6 +181,8 @@ profile
   "content": "我发现构建失败原因是缺少依赖。"
 }
 ```
+
+0.2b exposes `POST /chat` as a basic forwarding endpoint returning a complete `ChatResponse`. True token streaming is deferred.
 
 ### Task Events
 

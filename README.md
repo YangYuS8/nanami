@@ -142,6 +142,14 @@ Check the OpenClaw Gateway connection status through `nanami-core`:
 curl http://127.0.0.1:17878/openclaw/status
 ```
 
+Send a basic chat request through `nanami-core`:
+
+```bash
+curl -X POST http://127.0.0.1:17878/chat \
+  -H 'content-type: application/json' \
+  -d '{"message":"Hello Nanami"}'
+```
+
 Configure the OpenClaw Gateway URL before starting `nanami-core`:
 
 ```bash
@@ -150,13 +158,15 @@ NANAMI_OPENCLAW_GATEWAY_URL=http://127.0.0.1:18789 cargo run -p nanami-core
 
 `NANAMI_OPENCLAW_TOKEN` may be set when the gateway requires authentication. Do not commit real tokens.
 
+`NANAMI_OPENCLAW_CHAT_PATH` may override the 0.2b placeholder chat path. The default is `/chat` and is centralized in `crates/nanami-openclaw`; it may change when the OpenClaw Gateway chat API stabilizes.
+
 Run `nanami-ui` after building:
 
 ```bash
 ./build/apps/nanami-ui/nanami-ui
 ```
 
-The current UI displays `nanami-core` health and OpenClaw Gateway connection status through `nanami-core` only.
+The current UI displays `nanami-core` health, OpenClaw Gateway connection status, and a basic chat form through `nanami-core` only. Nanami 0.2b forwards a message and displays the complete response; token streaming and tool call visualization are not implemented yet.
 
 ## Verification
 

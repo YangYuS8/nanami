@@ -14,6 +14,7 @@ async fn check_status_maps_http_200_to_connected() {
         gateway_url: server.uri(),
         token: None,
         timeout_ms: 1000,
+        chat_path: "/chat".into(),
     });
 
     let status = client.check_status().await.unwrap();
@@ -33,6 +34,7 @@ async fn check_status_maps_unauthorized_to_auth_failed() {
         gateway_url: server.uri(),
         token: Some("token".into()),
         timeout_ms: 1000,
+        chat_path: "/chat".into(),
     });
 
     let status = client.check_status().await.unwrap();
@@ -51,6 +53,7 @@ async fn check_status_maps_pairing_required_body() {
         gateway_url: server.uri(),
         token: None,
         timeout_ms: 1000,
+        chat_path: "/chat".into(),
     });
 
     let status = client.check_status().await.unwrap();
@@ -69,6 +72,7 @@ async fn check_status_maps_scope_missing_body() {
         gateway_url: server.uri(),
         token: Some("token".into()),
         timeout_ms: 1000,
+        chat_path: "/chat".into(),
     });
 
     let status = client.check_status().await.unwrap();
@@ -82,6 +86,7 @@ async fn check_status_maps_connection_failure_to_disconnected() {
         gateway_url: "http://127.0.0.1:1".into(),
         token: None,
         timeout_ms: 100,
+        chat_path: "/chat".into(),
     });
 
     let status = client.check_status().await.unwrap();

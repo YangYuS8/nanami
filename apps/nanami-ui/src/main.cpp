@@ -1,3 +1,4 @@
+#include "ChatController.h"
 #include "StatusController.h"
 
 #include <QGuiApplication>
@@ -8,8 +9,10 @@ int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
 
+    ChatController chatController;
     StatusController statusController;
     QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty("chatController", &chatController);
     engine.rootContext()->setContextProperty("statusController", &statusController);
     QObject::connect(
         &engine,

@@ -36,6 +36,42 @@ pub struct OpenClawStatusPayload {
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+pub enum ChatRole {
+    User,
+    Assistant,
+    System,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ChatMessage {
+    pub role: ChatRole,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ChatRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ChatResponse {
+    pub session_id: String,
+    pub message_id: String,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ChatStreamEventKind {
+    MessageDelta,
+    MessageCompleted,
+    Error,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub enum ErrorSeverity {
     Info,
     Warning,
@@ -65,6 +101,20 @@ pub enum Event {
     },
     #[serde(rename = "openclaw.status")]
     OpenClawStatus(OpenClawStatusPayload),
+    #[serde(rename = "message.user")]
+    MessageUser {
+        session_id: String,
+        message_id: String,
+        content: String,
+    },
+    #[serde(rename = "message.delta")]
+    MessageDelta {
+        session_id: String,
+        message_id: String,
+        delta: String,
+    },
+    #[serde(rename = "message.completed")]
+    MessageCompleted(ChatResponse),
     #[serde(rename = "error.occurred")]
     ErrorOccurred(ErrorPayload),
 }
