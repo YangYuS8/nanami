@@ -4,6 +4,7 @@ members = [
     "crates/nanami-openclaw",
     "crates/nanami-permission",
     "crates/nanami-protocol",
+    "crates/nanami-sandbox",
 ]
 resolver = "2"
 

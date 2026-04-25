@@ -91,17 +91,16 @@ Agents working on Nanami MUST follow these rules:
 
 ## Current Priority
 
-The current goal is Nanami 0.4:
+The current goal is Nanami 0.5:
 
 - 0.4a completed: permission protocol + mock permission flow.
 - 0.4b completed: dangerous tool request interception visibility.
 - 0.4c completed: permission decision flow + in-memory audit log.
-- `nanami-core` provides mock permission request and resolve endpoints.
-- `nanami-core` now exposes in-memory permission decision and audit endpoints.
-- `nanami-ui` displays a mock permission dialog skeleton.
-- Decisions are recorded only; no dangerous action is executed.
-- `permission.requested` may now appear in `/tasks/openclaw/stream` when mapped tool events look dangerous.
-- Allow/deny decisions are still not returned to OpenClaw and do not execute anything.
+- 0.5a completed: sandbox protocol + mock sandbox stream + UI skeleton.
+- `nanami-core` provides mock permission request, decision, audit, and sandbox stream endpoints.
+- `nanami-ui` displays mock permission and sandbox visualization skeletons.
+- 0.5a is mock sandbox visualization only.
+- 0.5a does not call the real CubeSandbox API, does not execute commands, does not mount host directories, does not read or write artifact files, does not use network access, and does not consume real OpenClaw cube-sandbox events.
 
 ## Development
 
@@ -224,6 +223,14 @@ curl http://127.0.0.1:17878/permissions/audit
 ```
 
 The current audit log only exists in memory and is not persisted.
+
+Run the 0.5a mock sandbox stream through `nanami-core`:
+
+```bash
+curl -N http://127.0.0.1:17878/sandbox/mock/stream
+```
+
+Nanami 0.5a provides mock sandbox visualization only. It does not call real CubeSandbox, does not execute commands, does not mount host directories, does not read or write artifact files, and does not enable network access.
 
 ## Verification
 

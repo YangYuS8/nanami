@@ -420,6 +420,118 @@ tool.completed
 
 For 0.3c, UI state mapping should also remain structured. `TaskController` or equivalent UI-side controllers should build in-memory task/tool state from `EventEnvelope` values first, then derive display text or widgets from that state instead of appending raw strings directly.
 
+### Sandbox Events
+
+Sandbox events provide the structured 0.5a CubeSandbox visualization foundation. In 0.5a, these events are mock-only. They do not call the real CubeSandbox API, do not execute commands, do not mount host directories, do not read or write artifact files, do not use network access, and do not consume real OpenClaw cube-sandbox events.
+
+Valid sandbox statuses:
+
+```text
+starting
+running
+completed
+failed
+```
+
+Valid sandbox network policies:
+
+```text
+disabled
+limited
+enabled
+```
+
+Sandbox mount modes:
+
+```text
+read_only
+read_write
+```
+
+Sandbox output streams reuse the existing `tool.output` stream enum:
+
+```text
+stdout
+stderr
+log
+artifact
+```
+
+Examples:
+
+```json
+{
+  "type": "sandbox.started",
+  "id": "evt_sandbox_mock_started_001",
+  "timestamp": "2026-01-01T00:00:00Z",
+  "sandbox_id": "sandbox_mock_001",
+  "task_id": "task_sandbox_mock_001",
+  "template_id": "rust-workspace",
+  "status": "starting",
+  "network_policy": "disabled",
+  "mounts": [
+    {
+      "host_path": "/mock/host/project",
+      "sandbox_path": "/workspace/project",
+      "mode": "read_only"
+    }
+  ]
+}
+{
+  "type": "sandbox.updated",
+  "id": "evt_sandbox_mock_updated_001",
+  "timestamp": "2026-01-01T00:00:01Z",
+  "sandbox_id": "sandbox_mock_001",
+  "task_id": "task_sandbox_mock_001",
+  "status": "running",
+  "summary": "Mock sandbox running"
+}
+{
+  "type": "sandbox.output",
+  "id": "evt_sandbox_mock_stdout_001",
+  "timestamp": "2026-01-01T00:00:02Z",
+  "task_id": "task_sandbox_mock_001",
+  "tool_call_id": "sandbox_mock_001",
+  "stream": "stdout",
+  "content": "Checking workspace inside mock sandbox..."
+}
+{
+  "type": "sandbox.artifact",
+  "id": "evt_sandbox_mock_artifact_001",
+  "timestamp": "2026-01-01T00:00:04Z",
+  "sandbox_id": "sandbox_mock_001",
+  "task_id": "task_sandbox_mock_001",
+  "name": "mock-report.txt",
+  "path": "/workspace/output/mock-report.txt",
+  "media_type": "text/plain",
+  "size_bytes": 128
+}
+{
+  "type": "sandbox.completed",
+  "id": "evt_sandbox_mock_completed_001",
+  "timestamp": "2026-01-01T00:00:05Z",
+  "sandbox_id": "sandbox_mock_001",
+  "task_id": "task_sandbox_mock_001",
+  "status": "completed",
+  "exit_code": 0,
+  "summary": "Mock sandbox completed without real execution"
+}
+```
+
+0.5a mock SSE example:
+
+```text
+data: {"type":"sandbox.started","id":"evt_sandbox_mock_started_001",...}
+
+data: {"type":"sandbox.updated","id":"evt_sandbox_mock_updated_001",...}
+
+data: {"type":"sandbox.output","id":"evt_sandbox_mock_stdout_001",...}
+
+data: {"type":"sandbox.artifact","id":"evt_sandbox_mock_artifact_001",...}
+
+data: {"type":"sandbox.completed","id":"evt_sandbox_mock_completed_001",...}
+```
+
 ### Tool Events
 
 ```json

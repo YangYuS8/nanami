@@ -763,6 +763,7 @@ dependencies = [
  "nanami-openclaw",
  "nanami-permission",
  "nanami-protocol",
+ "nanami-sandbox",
  "serde",
  "serde_json",
  "tokio",
@@ -800,6 +801,15 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "nanami-sandbox"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "nanami-protocol",
  "serde_json",
 ]
 

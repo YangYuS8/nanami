@@ -240,6 +240,76 @@ ApplicationWindow {
                 text: permissionController.auditText
                 placeholderText: "Permission audit log summary will appear here"
             }
+
+            Button {
+                text: sandboxController.busy ? "Running mock sandbox" : "Run mock sandbox"
+                enabled: !sandboxController.busy
+                onClicked: sandboxController.startMockSandboxStream()
+            }
+
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 13
+                text: "Sandbox ID: " + (sandboxController.sandboxId.length > 0 ? sandboxController.sandboxId : "none")
+            }
+
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 13
+                text: "Sandbox Status: " + (sandboxController.sandboxStatus.length > 0 ? sandboxController.sandboxStatus : "none")
+            }
+
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 13
+                text: "Template: " + (sandboxController.templateId.length > 0 ? sandboxController.templateId : "none")
+            }
+
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 13
+                text: "Network: " + (sandboxController.networkPolicy.length > 0 ? sandboxController.networkPolicy : "none")
+            }
+
+            TextArea {
+                width: parent.width
+                height: 90
+                readOnly: true
+                wrapMode: TextArea.Wrap
+                text: sandboxController.mountText
+                placeholderText: "Sandbox mounts will appear here"
+            }
+
+            TextArea {
+                width: parent.width
+                height: 120
+                readOnly: true
+                wrapMode: TextArea.Wrap
+                text: sandboxController.outputText
+                placeholderText: "Sandbox output will appear here"
+            }
+
+            TextArea {
+                width: parent.width
+                height: 90
+                readOnly: true
+                wrapMode: TextArea.Wrap
+                text: sandboxController.artifactText
+                placeholderText: "Sandbox artifacts will appear here"
+            }
+
+            Text {
+                width: parent.width
+                color: "#ff9a9a"
+                font.pixelSize: 13
+                text: sandboxController.error
+                visible: sandboxController.error.length > 0
+                wrapMode: Text.Wrap
+            }
         }
     }
 }

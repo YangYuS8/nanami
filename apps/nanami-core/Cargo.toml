@@ -12,6 +12,7 @@ futures-util.workspace = true
 nanami-openclaw = { path = "../../crates/nanami-openclaw" }
 nanami-permission = { path = "../../crates/nanami-permission" }
 nanami-protocol = { path = "../../crates/nanami-protocol" }
+nanami-sandbox = { path = "../../crates/nanami-sandbox" }
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true

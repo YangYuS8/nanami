@@ -25,6 +25,8 @@ qt_add_executable(nanami-ui
     src/ChatController.h
     src/PermissionController.cpp
     src/PermissionController.h
+    src/SandboxController.cpp
+    src/SandboxController.h
     src/StatusController.cpp
     src/StatusController.h
     src/TaskController.cpp

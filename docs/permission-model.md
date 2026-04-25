@@ -12,6 +12,8 @@ Current 0.4b status: OpenClaw dangerous tool requests are classified and surface
 
 Current 0.4c status: decision flow + in-memory audit log. `allow_once` / `allow_for_task` / `deny` are stored only in process memory, and audit records are stored only in memory as well.
 
+Current 0.5a status: mock sandbox visualization only. Sandbox mounts, network policy, output, artifacts, and completion can be displayed from mock events, but Nanami still does not call real CubeSandbox, execute commands, mount host directories, read or write artifact files, or enable network access.
+
 Nanami MUST ask the user before performing risky actions.
 
 Permission decisions MUST be explicit, scoped, recorded, and revocable where possible.
@@ -107,6 +109,7 @@ Rules:
 - Must show host path and sandbox path.
 - Must show whether mount is readonly.
 - Must record mount in task log.
+- In 0.5a, mount information may be displayed from mock sandbox events only. No real host directory mount occurs.
 
 ### L6: Network Access
 
@@ -124,6 +127,7 @@ Rules:
 - Must show reason.
 - Should support allowlist or denylist.
 - Must record network policy.
+- In 0.5a, network policy is visualization-only mock state. No actual network access is enabled.
 
 ### L7: Destructive or System-Level Operations
 

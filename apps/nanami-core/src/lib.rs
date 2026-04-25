@@ -53,6 +53,7 @@ fn router_with_openclaw(openclaw: Arc<dyn OpenClawService>) -> Router {
         .route("/chat/stream", post(chat_stream))
         .route("/tasks/mock/stream", get(tasks_mock_stream))
         .route("/tasks/openclaw/stream", post(tasks_openclaw_stream))
+        .route("/sandbox/mock/stream", get(sandbox_mock_stream))
         .route("/permissions/mock/stream", get(permissions_mock_stream))
         .route("/permissions/resolve", post(permissions_resolve))
         .route(
@@ -302,6 +303,20 @@ async fn tasks_openclaw_stream(
             Ok::<_, Infallible>(SseEvent::default().data(serde_json::to_string(&event).unwrap()))
         }))
     }))
+    .keep_alive(KeepAlive::default())
+    .into_response()
+}
+
+async fn sandbox_mock_stream() -> Response {
+    Sse::new(tokio_stream::iter(
+        nanami_sandbox::mock_sandbox_events()
+            .into_iter()
+            .map(|event| {
+                Ok::<_, Infallible>(
+                    SseEvent::default().data(serde_json::to_string(&event).unwrap()),
+                )
+            }),
+    ))
     .keep_alive(KeepAlive::default())
     .into_response()
 }
@@ -998,6 +1013,48 @@ mod tests {
         assert!(text.contains("tool.output"));
         assert!(text.contains("tool.completed"));
         assert!(text.contains("task.completed"));
+    }
+
+    #[tokio::test]
+    async fn sandbox_mock_stream_returns_sse_content_type() {
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .uri("/sandbox/mock/stream")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers().get("content-type").unwrap(),
+            "text/event-stream"
+        );
+    }
+
+    #[tokio::test]
+    async fn sandbox_mock_stream_contains_sandbox_event_sequence() {
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .uri("/sandbox/mock/stream")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+
+        assert!(text.contains("sandbox.started"));
+        assert!(text.contains("sandbox.updated"));
+        assert!(text.contains("sandbox.output"));
+        assert!(text.contains("sandbox.artifact"));
+        assert!(text.contains("sandbox.completed"));
     }
 
     #[tokio::test]

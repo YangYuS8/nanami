@@ -127,6 +127,8 @@ CubeSandbox remains part of 0.5. Real tool execution is still out of scope.
 
 Goal: visualize isolated execution.
 
+Current 0.5a phase: sandbox protocol + mock sandbox stream + UI skeleton. This phase adds structured sandbox events, a mock-only sandbox SSE endpoint, and a basic Sandbox View. It does not call the real CubeSandbox API, execute commands, mount host directories, read or write artifact files, use network access, or consume real OpenClaw cube-sandbox events.
+
 Required:
 
 - CubeSandbox/E2B adapter boundary.
@@ -140,8 +142,8 @@ Required:
 Expected demo:
 
 ```text
-OpenClaw uses cube-sandbox skill.
-Nanami shows sandbox ID, command, output, and result.
+User runs a mock sandbox stream.
+Nanami shows sandbox ID, template, network policy, mounts, output, artifacts, and completion state without performing any real sandbox operation.
 ```
 
 ## Version 0.6: Desktop Companion Experience
