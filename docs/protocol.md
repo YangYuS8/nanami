@@ -609,35 +609,6 @@ allow_for_task
 deny
 ```
 
-### Sandbox Events
-
-```json
-{
-  "type": "sandbox.started",
-  "id": "evt_050",
-  "timestamp": "2026-01-01T00:00:06Z",
-  "task_id": "task_001",
-  "sandbox_id": "sbx_001",
-  "template_id": "tpl_001",
-  "network": "disabled",
-  "mounts": [
-    {
-      "host_path": "/home/user/Code/nanami",
-      "sandbox_path": "/workspace/nanami",
-      "readonly": true
-    }
-  ]
-}
-{
-  "type": "sandbox.completed",
-  "id": "evt_051",
-  "timestamp": "2026-01-01T00:00:12Z",
-  "task_id": "task_001",
-  "sandbox_id": "sbx_001",
-  "status": "destroyed"
-}
-```
-
 ### Persona Events
 
 ```json
