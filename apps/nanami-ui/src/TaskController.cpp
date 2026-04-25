@@ -16,6 +16,26 @@ QString TaskController::taskTimelineText() const
     return m_taskTimelineText;
 }
 
+QString TaskController::currentTaskId() const
+{
+    return m_currentTask.taskId;
+}
+
+QString TaskController::currentTaskStatus() const
+{
+    return m_currentTask.status;
+}
+
+QString TaskController::currentTaskTitle() const
+{
+    return m_currentTask.title;
+}
+
+int TaskController::toolCount() const
+{
+    return m_currentTask.tools.size();
+}
+
 QString TaskController::error() const
 {
     return m_error;
@@ -32,9 +52,8 @@ void TaskController::startMockTaskStream()
         return;
     }
 
+    resetState();
     m_streamBuffer.clear();
-    m_taskTimelineText.clear();
-    emit taskTimelineTextChanged();
     setError(QString());
     setBusy(true);
 
@@ -63,9 +82,8 @@ void TaskController::startOpenClawTaskStream(const QString &message)
         return;
     }
 
+    resetState();
     m_streamBuffer.clear();
-    m_taskTimelineText.clear();
-    emit taskTimelineTextChanged();
     setError(QString());
     setBusy(true);
 
@@ -91,13 +109,49 @@ void TaskController::startOpenClawTaskStream(const QString &message)
     });
 }
 
-void TaskController::appendTimeline(const QString &line)
+void TaskController::resetState()
 {
-    if (!m_taskTimelineText.isEmpty()) {
-        m_taskTimelineText.append(QStringLiteral("\n"));
+    m_currentTask = TaskViewState {};
+    m_taskTimelineText.clear();
+    emit currentTaskChanged();
+    emit taskTimelineTextChanged();
+}
+
+void TaskController::rebuildTimeline()
+{
+    QStringList lines;
+
+    if (!m_currentTask.taskId.isEmpty()) {
+        lines.append(QStringLiteral("Task %1 started: %2")
+                         .arg(m_currentTask.taskId, m_currentTask.title));
     }
 
-    m_taskTimelineText.append(line);
+    for (const QString &toolId : m_currentTask.toolOrder) {
+        const ToolViewState tool = m_currentTask.tools.value(toolId);
+        lines.append(QStringLiteral("Tool %1 started: %2")
+                         .arg(tool.toolCallId, tool.tool));
+
+        for (const ToolOutputView &output : tool.outputs) {
+            lines.append(QStringLiteral("%1: %2").arg(output.stream, output.content));
+        }
+
+        if (!tool.status.isEmpty()) {
+            QString completion = QStringLiteral("Tool %1 completed: status=%2")
+                                     .arg(tool.toolCallId, tool.status);
+            if (!tool.exitCode.isEmpty()) {
+                completion.append(QStringLiteral(", exit_code=%1").arg(tool.exitCode));
+            }
+            lines.append(completion);
+        }
+    }
+
+    if (!m_currentTask.taskId.isEmpty() && !m_currentTask.status.isEmpty()) {
+        lines.append(QStringLiteral("Task %1 completed: %2")
+                         .arg(m_currentTask.taskId,
+                              m_currentTask.summary.isEmpty() ? m_currentTask.status : m_currentTask.summary));
+    }
+
+    m_taskTimelineText = lines.join(QStringLiteral("\n"));
     emit taskTimelineTextChanged();
 }
 
@@ -130,37 +184,66 @@ void TaskController::handleEvent(const QJsonObject &event)
     const QString type = event.value(QStringLiteral("type")).toString();
 
     if (type == QStringLiteral("task.started")) {
-        appendTimeline(QStringLiteral("Task %1 started: %2")
-                           .arg(event.value(QStringLiteral("task_id")).toString(),
-                                event.value(QStringLiteral("title")).toString()));
+        m_currentTask.taskId = event.value(QStringLiteral("task_id")).toString();
+        m_currentTask.title = event.value(QStringLiteral("title")).toString();
+        m_currentTask.status = event.value(QStringLiteral("status")).toString();
+        rebuildTimeline();
+        emit currentTaskChanged();
+        return;
+    }
+
+    if (type == QStringLiteral("task.updated")) {
+        m_currentTask.status = event.value(QStringLiteral("status")).toString();
+        m_currentTask.summary = event.value(QStringLiteral("summary")).toString();
+        rebuildTimeline();
+        emit currentTaskChanged();
         return;
     }
 
     if (type == QStringLiteral("tool.started")) {
-        appendTimeline(QStringLiteral("Tool %1 started: %2")
-                           .arg(event.value(QStringLiteral("tool_call_id")).toString(),
-                                event.value(QStringLiteral("tool")).toString()));
+        ToolViewState tool;
+        const QString toolCallId = event.value(QStringLiteral("tool_call_id")).toString();
+        tool.toolCallId = toolCallId;
+        tool.tool = event.value(QStringLiteral("tool")).toString();
+        m_currentTask.tools.insert(toolCallId, tool);
+        if (!m_currentTask.toolOrder.contains(toolCallId)) {
+            m_currentTask.toolOrder.append(toolCallId);
+        }
+        rebuildTimeline();
+        emit currentTaskChanged();
         return;
     }
 
     if (type == QStringLiteral("tool.output")) {
-        appendTimeline(QStringLiteral("%1: %2")
-                           .arg(event.value(QStringLiteral("stream")).toString(),
-                                event.value(QStringLiteral("content")).toString()));
+        const QString toolCallId = event.value(QStringLiteral("tool_call_id")).toString();
+        ToolViewState tool = m_currentTask.tools.value(toolCallId);
+        tool.outputs.append(ToolOutputView {
+            event.value(QStringLiteral("stream")).toString(),
+            event.value(QStringLiteral("content")).toString(),
+        });
+        m_currentTask.tools.insert(toolCallId, tool);
+        if (!m_currentTask.toolOrder.contains(toolCallId)) {
+            m_currentTask.toolOrder.append(toolCallId);
+        }
+        rebuildTimeline();
         return;
     }
 
     if (type == QStringLiteral("tool.completed")) {
-        appendTimeline(QStringLiteral("Tool %1 completed: status=%2")
-                           .arg(event.value(QStringLiteral("tool_call_id")).toString(),
-                                event.value(QStringLiteral("status")).toString()));
+        const QString toolCallId = event.value(QStringLiteral("tool_call_id")).toString();
+        ToolViewState tool = m_currentTask.tools.value(toolCallId);
+        tool.status = event.value(QStringLiteral("status")).toString();
+        tool.exitCode = event.value(QStringLiteral("exit_code")).toVariant().toString();
+        m_currentTask.tools.insert(toolCallId, tool);
+        rebuildTimeline();
         return;
     }
 
     if (type == QStringLiteral("task.completed")) {
-        appendTimeline(QStringLiteral("Task %1 completed: %2")
-                           .arg(event.value(QStringLiteral("task_id")).toString(),
-                                event.value(QStringLiteral("summary")).toString()));
+        m_currentTask.status = event.value(QStringLiteral("status")).toString();
+        m_currentTask.summary = event.value(QStringLiteral("summary")).toString();
+        rebuildTimeline();
+        emit currentTaskChanged();
         return;
     }
 

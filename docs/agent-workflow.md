@@ -66,6 +66,8 @@ For Nanami 0.3a, agents MUST keep task/tool state structured in protocol types a
 
 For Nanami 0.3b, agents MUST map OpenClaw tool-call related JSON into Nanami `EventEnvelope` values inside `crates/nanami-openclaw` or `nanami-core`. UI must only render structured events from `nanami-core`, and tool arguments may only be displayed as text/log output, never executed.
 
+For Nanami 0.3c, agents SHOULD keep Task Panel state structured inside UI controllers. Even if the current QML still renders a text timeline, that timeline should be derived from structured task/tool state rather than from append-only free text updates.
+
 ### CubeSandbox integration
 
 Use:

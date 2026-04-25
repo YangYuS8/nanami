@@ -138,7 +138,35 @@ ApplicationWindow {
                 readOnly: true
                 wrapMode: TextArea.Wrap
                 text: taskController.taskTimelineText
-                placeholderText: "Mock task timeline will appear here"
+                placeholderText: "Task timeline will appear here"
+            }
+
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 13
+                text: "Current Task ID: " + (taskController.currentTaskId.length > 0 ? taskController.currentTaskId : "none")
+            }
+
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 13
+                text: "Current Task Title: " + (taskController.currentTaskTitle.length > 0 ? taskController.currentTaskTitle : "none")
+            }
+
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 13
+                text: "Current Task Status: " + (taskController.currentTaskStatus.length > 0 ? taskController.currentTaskStatus : "none")
+            }
+
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 13
+                text: "Tool Count: " + taskController.toolCount
             }
 
             Text {

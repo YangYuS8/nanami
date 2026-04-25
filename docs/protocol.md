@@ -315,6 +315,8 @@ Simple tool event JSON -> tool.started/tool.output/tool.completed based on struc
 
 Preferred internal format is always Nanami `EventEnvelope`. OpenClaw-specific frames should be mapped into this structure inside `crates/nanami-openclaw`, not in UI.
 
+For 0.3c, UI state mapping should also remain structured. `TaskController` or equivalent UI-side controllers should build in-memory task/tool state from `EventEnvelope` values first, then derive display text or widgets from that state instead of appending raw strings directly.
+
 ### Tool Events
 
 ```json
