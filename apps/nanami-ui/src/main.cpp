@@ -1,4 +1,4 @@
-#include "HealthController.h"
+#include "StatusController.h"
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -8,9 +8,9 @@ int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
 
-    HealthController healthController;
+    StatusController statusController;
     QQmlApplicationEngine engine;
-    engine.rootContext()->setContextProperty("healthController", &healthController);
+    engine.rootContext()->setContextProperty("statusController", &statusController);
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreationFailed,
@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
         []() { QCoreApplication::exit(-1); },
         Qt::QueuedConnection);
     engine.loadFromModule("Nanami", "Main");
-    healthController.refresh();
+    statusController.refresh();
 
     return app.exec();
 }

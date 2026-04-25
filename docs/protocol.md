@@ -94,6 +94,43 @@ Events related to a permission request SHOULD include:
 }
 ```
 
+### OpenClaw Events
+
+`openclaw.status` reports Nanami's view of the OpenClaw Gateway connection. The UI consumes this structured state from `nanami-core`; it must not call OpenClaw directly.
+
+```json
+{
+  "type": "openclaw.status",
+  "id": "evt_openclaw_001",
+  "timestamp": "2026-01-01T00:00:00Z",
+  "status": "connected",
+  "gateway_url": "http://127.0.0.1:18789",
+  "message": "OpenClaw Gateway reachable",
+  "agent": "default-agent",
+  "profile": "desktop"
+}
+```
+
+Valid OpenClaw connection statuses:
+
+```text
+disconnected
+connecting
+connected
+pairing_required
+auth_failed
+scope_missing
+error
+```
+
+Optional fields:
+
+```text
+message
+agent
+profile
+```
+
 ### Message Events
 
 ```json

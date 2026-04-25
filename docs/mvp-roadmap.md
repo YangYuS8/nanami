@@ -40,6 +40,8 @@ UI shows core connection status.
 
 Goal: connect Nanami to OpenClaw.
 
+Current first phase: OpenClaw Gateway connection status only. This phase establishes configuration, reachability checks, auth/pairing/scope status mapping, and UI status display. It is not the full chat or streaming implementation.
+
 Required:
 
 - OpenClaw Gateway configuration.
@@ -49,6 +51,12 @@ Required:
 - Basic chat request forwarding.
 - Streaming message display.
 - Structured error events.
+
+Deferred within 0.2:
+
+- Full chat request forwarding.
+- Streaming message display.
+- OpenClaw tool call visualization, which belongs to 0.3.
 
 Expected demo:
 

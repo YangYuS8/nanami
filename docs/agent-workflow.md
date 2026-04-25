@@ -58,6 +58,8 @@ nanami-protocol
 nanami-permission-review
 ```
 
+For Nanami 0.2, agents MUST keep OpenClaw integration inside `nanami-core` and `crates/nanami-openclaw`. The UI may only call `nanami-core` endpoints such as `/openclaw/status`; it must not call OpenClaw Gateway directly. Do not implement CubeSandbox or tool-call visualization as part of OpenClaw connection status work.
+
 ### CubeSandbox integration
 
 Use:

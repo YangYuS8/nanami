@@ -21,8 +21,8 @@ qt_policy(SET QTP0004 NEW)
 qt_standard_project_setup(REQUIRES 6.5)
 
 qt_add_executable(nanami-ui
-    src/HealthController.cpp
-    src/HealthController.h
+    src/StatusController.cpp
+    src/StatusController.h
     src/main.cpp
 )
 

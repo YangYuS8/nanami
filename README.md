@@ -136,13 +136,27 @@ Check the health endpoint:
 curl http://127.0.0.1:17878/health
 ```
 
+Check the OpenClaw Gateway connection status through `nanami-core`:
+
+```bash
+curl http://127.0.0.1:17878/openclaw/status
+```
+
+Configure the OpenClaw Gateway URL before starting `nanami-core`:
+
+```bash
+NANAMI_OPENCLAW_GATEWAY_URL=http://127.0.0.1:18789 cargo run -p nanami-core
+```
+
+`NANAMI_OPENCLAW_TOKEN` may be set when the gateway requires authentication. Do not commit real tokens.
+
 Run `nanami-ui` after building:
 
 ```bash
 ./build/apps/nanami-ui/nanami-ui
 ```
 
-The 0.1 UI only displays the `/health` connection status for `nanami-core`.
+The current UI displays `nanami-core` health and OpenClaw Gateway connection status through `nanami-core` only.
 
 ## Verification
 
