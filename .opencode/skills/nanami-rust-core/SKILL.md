@@ -24,3 +24,14 @@ cargo check
 cargo test
 cargo clippy
 ```
+
+## 建议模块
+
+- protocol：事件和请求响应类型
+- task：任务状态机
+- permission：权限策略和授权记录
+- openclaw：OpenClaw Gateway adapter
+- sandbox：CubeSandbox/E2B adapter
+- desktop：桌面能力桥接
+- api：本地 HTTP/WebSocket API
+- storage：SQLite/JSON 配置和任务记录

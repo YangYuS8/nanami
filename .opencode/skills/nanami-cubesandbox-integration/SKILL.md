@@ -15,6 +15,7 @@ CubeSandbox 是安全执行层，Nanami 不直接信任 LLM 生成的代码。
 5. stdout、stderr、exit code、artifacts 必须完整记录。
 6. 沙箱执行失败时，不要自动改用宿主机执行。
 7. 沙箱销毁、暂停、恢复都必须进入任务日志。
+8. CubeSandbox 调用应优先由 OpenClaw skill 触发；Nanami 只负责可视化、权限和任务状态同步。除非明确设计为 core adapter，否则不要让 UI 直接连接 CubeSandbox。
 
 ## UI 必须展示
 
