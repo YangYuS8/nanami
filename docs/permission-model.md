@@ -16,6 +16,8 @@ Current 0.5a status: mock sandbox visualization only. Sandbox mounts, network po
 
 Current 0.5b status: OpenClaw sandbox event mapping only. Structured sandbox events from OpenClaw may be displayed in Nanami task streams, but Nanami still does not call real CubeSandbox, execute commands, mount host directories, read or write artifact files, or enable network access.
 
+Current 0.5c status: structured sandbox view + permission/audit link. Sandbox mount and network information can be displayed in a clearer structured UI state, and related audit information can be shown alongside the view, but real mount/network capability still must go through `PermissionManager` in a future phase. Permission decisions still do not trigger sandbox execution.
+
 Nanami MUST ask the user before performing risky actions.
 
 Permission decisions MUST be explicit, scoped, recorded, and revocable where possible.
@@ -112,6 +114,7 @@ Rules:
 - Must show whether mount is readonly.
 - Must record mount in task log.
 - In 0.5a, mount information may be displayed from mock sandbox events only. No real host directory mount occurs.
+- In 0.5c, UI may display mount information in a structured Sandbox View, but this remains visualization only until a future PermissionManager-gated execution phase.
 
 ### L6: Network Access
 
@@ -130,6 +133,7 @@ Rules:
 - Should support allowlist or denylist.
 - Must record network policy.
 - In 0.5a, network policy is visualization-only mock state. No actual network access is enabled.
+- In 0.5c, network policy may be shown alongside related audit guidance, but no permission decision enables real network access yet.
 
 ### L7: Destructive or System-Level Operations
 

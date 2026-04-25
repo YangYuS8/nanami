@@ -422,7 +422,7 @@ For 0.3c, UI state mapping should also remain structured. `TaskController` or eq
 
 ### Sandbox Events
 
-Sandbox events provide the structured 0.5 CubeSandbox visualization foundation. In 0.5a, these events are mock-only. In 0.5b, `nanami-openclaw` may also map structured OpenClaw sandbox JSON into the same Nanami sandbox events. This remains event mapping only: Nanami does not call the real CubeSandbox API, does not execute commands, does not mount host directories, does not read or write artifact files, and does not use network access.
+Sandbox events provide the structured 0.5 CubeSandbox visualization foundation. In 0.5a, these events are mock-only. In 0.5b, `nanami-openclaw` may also map structured OpenClaw sandbox JSON into the same Nanami sandbox events. In 0.5c, `nanami-ui` maintains structured Sandbox View state derived from these events instead of appending raw event text directly. This remains event mapping and visualization only: Nanami does not call the real CubeSandbox API, does not execute commands, does not mount host directories, does not read or write artifact files, and does not use network access.
 
 Valid sandbox statuses:
 

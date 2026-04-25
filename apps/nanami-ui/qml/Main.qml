@@ -275,6 +275,14 @@ ApplicationWindow {
                 text: "Network: " + (sandboxController.networkPolicy.length > 0 ? sandboxController.networkPolicy : "none")
             }
 
+            Text {
+                width: parent.width
+                color: "#7f8799"
+                font.pixelSize: 12
+                wrapMode: Text.Wrap
+                text: "Sandbox view is visualization-only in 0.5c. Real mount/network capability must still go through PermissionManager in future phases, and permission decisions here do not trigger sandbox execution."
+            }
+
             TextArea {
                 width: parent.width
                 height: 90
@@ -300,6 +308,15 @@ ApplicationWindow {
                 wrapMode: TextArea.Wrap
                 text: sandboxController.artifactText
                 placeholderText: "Sandbox artifacts will appear here"
+            }
+
+            TextArea {
+                width: parent.width
+                height: 90
+                readOnly: true
+                wrapMode: TextArea.Wrap
+                text: permissionController.auditText
+                placeholderText: "Related permission audit records will appear here"
             }
 
             Text {

@@ -3,6 +3,7 @@
 #include <QNetworkAccessManager>
 #include <QObject>
 #include <QString>
+#include <QVector>
 
 class SandboxController final : public QObject
 {
@@ -38,21 +39,55 @@ signals:
     void busyChanged();
 
 private:
+    struct SandboxMountView {
+        QString hostPath;
+        QString sandboxPath;
+        QString mode;
+    };
+
+    struct SandboxOutputView {
+        QString stream;
+        QString content;
+    };
+
+    struct SandboxArtifactView {
+        QString name;
+        QString path;
+        QString mediaType;
+        QString sizeBytes;
+    };
+
+    struct SandboxViewState {
+        QString sandboxId;
+        QString taskId;
+        QString templateId;
+        QString status;
+        QString networkPolicy;
+        QVector<SandboxMountView> mounts;
+        QVector<SandboxOutputView> outputs;
+        QVector<SandboxArtifactView> artifacts;
+        QString exitCode;
+        QString summary;
+    };
+
     void resetState();
     void handleStreamData(const QByteArray &data);
     void handleEvent(const QJsonObject &event);
+    void handleSandboxStarted(const QJsonObject &event);
+    void handleSandboxUpdated(const QJsonObject &event);
+    void handleSandboxOutput(const QJsonObject &event);
+    void handleSandboxArtifact(const QJsonObject &event);
+    void handleSandboxCompleted(const QJsonObject &event);
+    void rebuildDerivedText();
     void setError(const QString &error);
     void setBusy(bool busy);
 
     QNetworkAccessManager m_network;
     QString m_streamBuffer;
-    QString m_sandboxId;
-    QString m_sandboxStatus;
-    QString m_templateId;
-    QString m_networkPolicy;
     QString m_mountText;
     QString m_outputText;
     QString m_artifactText;
     QString m_error;
+    SandboxViewState m_state;
     bool m_busy = false;
 };

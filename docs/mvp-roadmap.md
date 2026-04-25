@@ -131,6 +131,8 @@ Current 0.5a phase: sandbox protocol + mock sandbox stream + UI skeleton. This p
 
 Current 0.5b phase: OpenClaw sandbox event mapping. This phase maps structured OpenClaw sandbox events into Nanami `sandbox.started` / `sandbox.updated` / `sandbox.output` / `sandbox.artifact` / `sandbox.completed` events on `/tasks/openclaw/stream`. It does not call the real CubeSandbox API, execute commands, mount host directories, read or write artifact files, or use network access.
 
+Current 0.5c phase: structured Sandbox View + permission/audit link. This phase upgrades `nanami-ui` to maintain structured sandbox view state and derive display text from that state, while clarifying that any future real mount/network capability must go through `PermissionManager`. It does not call the real CubeSandbox API, execute commands, mount host directories, read or write artifact files, or use network access.
+
 Required:
 
 - CubeSandbox/E2B adapter boundary.
@@ -145,7 +147,7 @@ Expected demo:
 
 ```text
 User runs a mock sandbox stream or receives mapped OpenClaw sandbox events.
-Nanami shows sandbox ID, template, network policy, mounts, output, artifacts, and completion state without performing any real sandbox operation.
+Nanami shows sandbox ID, template, network policy, mounts, output, artifacts, completion state, and related permission/audit guidance without performing any real sandbox operation.
 ```
 
 ## Version 0.6: Desktop Companion Experience
