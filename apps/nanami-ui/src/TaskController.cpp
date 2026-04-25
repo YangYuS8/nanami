@@ -145,7 +145,10 @@ void TaskController::rebuildTimeline()
         }
     }
 
-    if (!m_currentTask.taskId.isEmpty() && !m_currentTask.status.isEmpty()) {
+    if (!m_currentTask.taskId.isEmpty()
+        && (m_currentTask.status == QStringLiteral("completed")
+            || m_currentTask.status == QStringLiteral("failed")
+            || m_currentTask.status == QStringLiteral("cancelled"))) {
         lines.append(QStringLiteral("Task %1 completed: %2")
                          .arg(m_currentTask.taskId,
                               m_currentTask.summary.isEmpty() ? m_currentTask.status : m_currentTask.summary));

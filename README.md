@@ -96,7 +96,7 @@ The current goal is Nanami 0.3:
 - 0.3a completed: mock Task/Tool visualization foundation.
 - 0.3b completed: OpenClaw tool event mapping into Nanami task/tool events.
 - 0.3b now forwards `/tasks/openclaw/stream` as a true event stream instead of buffering all events first.
-- 0.3c in progress: Task Panel structured state is now maintained inside `TaskController`.
+- 0.3c completed: Task Panel structured state is now maintained inside `TaskController`.
 - UI continues to call only `nanami-core` and only displays structured task/tool events.
 - 0.3c still uses a text timeline as a transitional view, but its contents are rebuilt from structured in-memory task/tool state.
 - Real tool execution, CubeSandbox, and PermissionManager business logic remain out of scope.

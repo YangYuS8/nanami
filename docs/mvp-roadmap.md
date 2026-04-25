@@ -76,7 +76,7 @@ Current 0.3a phase: Task/Tool visualization foundation only. This phase adds pro
 
 Current 0.3b phase: OpenClaw tool event mapping. This phase maps OpenClaw streaming tool call JSON into Nanami task/tool events for visualization only. 0.3c will upgrade the Task Panel from simple text timeline to a structured data model.
 
-Current 0.3c phase: structured Task Panel state. `TaskController` now maintains structured in-memory task/tool state and regenerates the timeline from it. A richer structured Task Panel view can build on this without changing the transport protocol.
+Current 0.3c phase completed: structured Task Panel state. `TaskController` now maintains structured in-memory task/tool state and regenerates the timeline from it. A richer structured Task Panel view can build on this without changing the transport protocol.
 
 Required:
 
