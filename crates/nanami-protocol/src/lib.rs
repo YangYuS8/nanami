@@ -151,9 +151,10 @@ pub enum SandboxNetworkPolicy {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
 pub enum SandboxMountMode {
+    #[serde(rename = "readonly")]
     ReadOnly,
+    #[serde(rename = "readwrite")]
     ReadWrite,
 }
 
@@ -191,6 +192,14 @@ pub struct SandboxArtifactPayload {
     pub path: String,
     pub media_type: String,
     pub size_bytes: u64,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct SandboxOutputPayload {
+    pub task_id: String,
+    pub sandbox_id: String,
+    pub stream: ToolOutputStream,
+    pub content: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -383,7 +392,7 @@ pub enum Event {
     #[serde(rename = "sandbox.updated")]
     SandboxUpdated(SandboxUpdatedPayload),
     #[serde(rename = "sandbox.output")]
-    SandboxOutput(ToolOutputPayload),
+    SandboxOutput(SandboxOutputPayload),
     #[serde(rename = "sandbox.artifact")]
     SandboxArtifact(SandboxArtifactPayload),
     #[serde(rename = "sandbox.completed")]

@@ -1,7 +1,7 @@
 use nanami_protocol::{
     Event, EventEnvelope, SandboxArtifactPayload, SandboxCompletedPayload, SandboxMountMode,
-    SandboxMountPayload, SandboxNetworkPolicy, SandboxStartedPayload, SandboxStatus,
-    SandboxUpdatedPayload, ToolOutputPayload, ToolOutputStream,
+    SandboxMountPayload, SandboxNetworkPolicy, SandboxOutputPayload, SandboxStartedPayload,
+    SandboxStatus, SandboxUpdatedPayload, ToolOutputStream,
 };
 
 pub fn mock_sandbox_events() -> Vec<EventEnvelope> {
@@ -35,9 +35,9 @@ pub fn mock_sandbox_events() -> Vec<EventEnvelope> {
         EventEnvelope::new(
             "evt_sandbox_mock_stdout_001",
             chrono::Utc::now(),
-            Event::SandboxOutput(ToolOutputPayload {
+            Event::SandboxOutput(SandboxOutputPayload {
                 task_id: "task_sandbox_mock_001".into(),
-                tool_call_id: "sandbox_mock_001".into(),
+                sandbox_id: "sandbox_mock_001".into(),
                 stream: ToolOutputStream::Stdout,
                 content: "Checking workspace inside mock sandbox...".into(),
             }),
@@ -45,9 +45,9 @@ pub fn mock_sandbox_events() -> Vec<EventEnvelope> {
         EventEnvelope::new(
             "evt_sandbox_mock_stderr_001",
             chrono::Utc::now(),
-            Event::SandboxOutput(ToolOutputPayload {
+            Event::SandboxOutput(SandboxOutputPayload {
                 task_id: "task_sandbox_mock_001".into(),
-                tool_call_id: "sandbox_mock_001".into(),
+                sandbox_id: "sandbox_mock_001".into(),
                 stream: ToolOutputStream::Stderr,
                 content: "warning: mock sandbox stderr stream".into(),
             }),

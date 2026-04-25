@@ -1,8 +1,8 @@
 use chrono::DateTime;
 use nanami_protocol::{
     Event, EventEnvelope, SandboxArtifactPayload, SandboxCompletedPayload, SandboxMountMode,
-    SandboxMountPayload, SandboxNetworkPolicy, SandboxStartedPayload, SandboxStatus,
-    SandboxUpdatedPayload, ToolOutputPayload, ToolOutputStream,
+    SandboxMountPayload, SandboxNetworkPolicy, SandboxOutputPayload, SandboxStartedPayload,
+    SandboxStatus, SandboxUpdatedPayload, ToolOutputStream,
 };
 
 fn timestamp() -> chrono::DateTime<chrono::Utc> {
@@ -44,7 +44,7 @@ fn sandbox_started_serializes_json_shape() {
     assert_eq!(json["network_policy"], "disabled");
     assert_eq!(json["mounts"][0]["host_path"], "/mock/host/project");
     assert_eq!(json["mounts"][0]["sandbox_path"], "/workspace/project");
-    assert_eq!(json["mounts"][0]["mode"], "read_only");
+    assert_eq!(json["mounts"][0]["mode"], "readonly");
 }
 
 #[test]
@@ -73,9 +73,9 @@ fn sandbox_output_serializes_json_shape() {
     let event = EventEnvelope::new(
         "evt_sandbox_output_001",
         timestamp(),
-        Event::SandboxOutput(ToolOutputPayload {
+        Event::SandboxOutput(SandboxOutputPayload {
             task_id: "task_mock_001".into(),
-            tool_call_id: "sandbox_mock_001".into(),
+            sandbox_id: "sandbox_mock_001".into(),
             stream: ToolOutputStream::Stdout,
             content: "Checking sandbox...".into(),
         }),
@@ -85,7 +85,7 @@ fn sandbox_output_serializes_json_shape() {
 
     assert_eq!(json["type"], "sandbox.output");
     assert_eq!(json["task_id"], "task_mock_001");
-    assert_eq!(json["tool_call_id"], "sandbox_mock_001");
+    assert_eq!(json["sandbox_id"], "sandbox_mock_001");
     assert_eq!(json["stream"], "stdout");
     assert_eq!(json["content"], "Checking sandbox...");
 }

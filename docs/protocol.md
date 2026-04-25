@@ -444,8 +444,8 @@ enabled
 Sandbox mount modes:
 
 ```text
-read_only
-read_write
+readonly
+readwrite
 ```
 
 Sandbox output streams reuse the existing `tool.output` stream enum:
@@ -473,7 +473,7 @@ Examples:
     {
       "host_path": "/mock/host/project",
       "sandbox_path": "/workspace/project",
-      "mode": "read_only"
+      "mode": "readonly"
     }
   ]
 }
@@ -491,7 +491,7 @@ Examples:
   "id": "evt_sandbox_mock_stdout_001",
   "timestamp": "2026-01-01T00:00:02Z",
   "task_id": "task_sandbox_mock_001",
-  "tool_call_id": "sandbox_mock_001",
+  "sandbox_id": "sandbox_mock_001",
   "stream": "stdout",
   "content": "Checking workspace inside mock sandbox..."
 }

@@ -161,6 +161,7 @@ void SandboxController::handleEvent(const QJsonObject &event)
     }
 
     if (type == QStringLiteral("sandbox.output")) {
+        m_sandboxId = event.value(QStringLiteral("sandbox_id")).toString(m_sandboxId);
         const QString line = QStringLiteral("%1: %2")
                                  .arg(event.value(QStringLiteral("stream")).toString(),
                                       event.value(QStringLiteral("content")).toString());
