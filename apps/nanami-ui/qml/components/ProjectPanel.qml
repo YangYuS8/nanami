@@ -6,25 +6,25 @@ Column {
     spacing: 8
 
     Button {
-        text: projectController.busy ? "Loading mock project" : "Load mock project"
+        text: projectController.busy ? qsTr("Loading mock project") : qsTr("Load mock project")
         enabled: !projectController.busy
         onClicked: projectController.loadMockProject()
     }
 
     Button {
-        text: projectController.busy ? "Selecting project folder" : "Select project folder"
+        text: projectController.busy ? qsTr("Selecting project folder") : qsTr("Select project folder")
         enabled: !projectController.busy
         onClicked: projectController.selectProjectFolder()
     }
 
     Button {
-        text: projectController.busy ? "Trusting selected project" : "Trust selected project"
+        text: projectController.busy ? qsTr("Trusting selected project") : qsTr("Trust selected project")
         enabled: !projectController.busy && projectController.trustStatus === "selected_untrusted"
         onClicked: projectController.trustSelectedProject()
     }
 
     Button {
-        text: projectController.busy ? "Loading project structure" : "Load project structure"
+        text: projectController.busy ? qsTr("Loading project structure") : qsTr("Load project structure")
         enabled: !projectController.busy && projectController.trustStatus === "selected_trusted"
         onClicked: projectController.loadProjectStructure()
     }
@@ -33,21 +33,21 @@ Column {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 13
-        text: "Project ID: " + (projectController.projectId.length > 0 ? projectController.projectId : "none")
+        text: qsTr("Project ID: ") + (projectController.projectId.length > 0 ? projectController.projectId : qsTr("none"))
     }
 
     Text {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 13
-        text: "Display Name: " + (projectController.displayName.length > 0 ? projectController.displayName : "none")
+        text: qsTr("Display Name: ") + (projectController.displayName.length > 0 ? projectController.displayName : qsTr("none"))
     }
 
     Text {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 13
-        text: "Project Path: " + (projectController.projectPath.length > 0 ? projectController.projectPath : "none")
+        text: qsTr("Project Path: ") + (projectController.projectPath.length > 0 ? projectController.projectPath : qsTr("none"))
         wrapMode: Text.Wrap
     }
 
@@ -55,14 +55,14 @@ Column {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 13
-        text: "Project Kind: " + (projectController.projectKind.length > 0 ? projectController.projectKind : "none")
+        text: qsTr("Project Kind: ") + (projectController.projectKind.length > 0 ? projectController.projectKind : qsTr("none"))
     }
 
     Text {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 13
-        text: "Trust Status: " + (projectController.trustStatus.length > 0 ? projectController.trustStatus : "none")
+        text: qsTr("Trust Status: ") + (projectController.trustStatus.length > 0 ? projectController.trustStatus : qsTr("none"))
     }
 
     Text {
@@ -80,23 +80,23 @@ Column {
         readOnly: true
         wrapMode: TextArea.Wrap
         text: projectController.projectStructureText
-        placeholderText: "Shallow project structure summary will appear here"
+        placeholderText: qsTr("Shallow project structure summary will appear here")
     }
 
     Button {
-        text: projectController.busy ? "Requesting manifest preview permission" : "Request manifest preview permission"
+        text: projectController.busy ? qsTr("Requesting manifest preview permission") : qsTr("Request manifest preview permission")
         enabled: !projectController.busy && projectController.trustStatus === "selected_trusted"
         onClicked: projectController.requestManifestPreviewPermission()
     }
 
     Button {
-        text: projectController.busy ? "Loading manifest preview" : "Load manifest preview"
+        text: projectController.busy ? qsTr("Loading manifest preview") : qsTr("Load manifest preview")
         enabled: !projectController.busy && projectController.trustStatus === "selected_trusted"
         onClicked: projectController.loadManifestPreview()
     }
 
     Button {
-        text: projectController.busy ? "Loading manifest summary" : "Load manifest summary"
+        text: projectController.busy ? qsTr("Loading manifest summary") : qsTr("Load manifest summary")
         enabled: !projectController.busy && projectController.trustStatus === "selected_trusted"
         onClicked: projectController.loadManifestSummary()
     }
@@ -107,7 +107,7 @@ Column {
         readOnly: true
         wrapMode: TextArea.Wrap
         text: projectController.manifestPreviewText
-        placeholderText: "Manifest preview will appear here after explicit permission approval"
+        placeholderText: qsTr("Manifest preview will appear here after explicit permission approval")
     }
 
     TextArea {
@@ -116,6 +116,6 @@ Column {
         readOnly: true
         wrapMode: TextArea.Wrap
         text: projectController.manifestSummaryText
-        placeholderText: "Manifest summary will appear here after explicit permission approval"
+        placeholderText: qsTr("Manifest summary will appear here after explicit permission approval")
     }
 }

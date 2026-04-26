@@ -6,7 +6,7 @@ Column {
     spacing: 8
 
     Button {
-        text: taskController.busy ? "Running mock task" : "Run mock task"
+        text: taskController.busy ? qsTr("Running mock task") : qsTr("Run mock task")
         enabled: !taskController.busy
         onClicked: taskController.startMockTaskStream()
     }
@@ -19,13 +19,13 @@ Column {
             id: taskInput
             width: parent.width - runTaskButton.width - parent.spacing
             enabled: !taskController.busy
-            placeholderText: "OpenClaw task prompt"
+            placeholderText: qsTr("OpenClaw task prompt")
             onAccepted: runTaskButton.clicked()
         }
 
         Button {
             id: runTaskButton
-            text: taskController.busy ? "Running OpenClaw task" : "Run OpenClaw task"
+            text: taskController.busy ? qsTr("Running OpenClaw task") : qsTr("Run OpenClaw task")
             enabled: !taskController.busy && taskInput.text.trim().length > 0
             onClicked: {
                 taskController.startOpenClawTaskStream(taskInput.text)
@@ -40,35 +40,35 @@ Column {
         readOnly: true
         wrapMode: TextArea.Wrap
         text: taskController.taskTimelineText
-        placeholderText: "Task timeline will appear here"
+        placeholderText: qsTr("Task timeline will appear here")
     }
 
     Text {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 13
-        text: "Current Task ID: " + (taskController.currentTaskId.length > 0 ? taskController.currentTaskId : "none")
+        text: qsTr("Current Task ID: ") + (taskController.currentTaskId.length > 0 ? taskController.currentTaskId : qsTr("none"))
     }
 
     Text {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 13
-        text: "Current Task Title: " + (taskController.currentTaskTitle.length > 0 ? taskController.currentTaskTitle : "none")
+        text: qsTr("Current Task Title: ") + (taskController.currentTaskTitle.length > 0 ? taskController.currentTaskTitle : qsTr("none"))
     }
 
     Text {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 13
-        text: "Current Task Status: " + (taskController.currentTaskStatus.length > 0 ? taskController.currentTaskStatus : "none")
+        text: qsTr("Current Task Status: ") + (taskController.currentTaskStatus.length > 0 ? taskController.currentTaskStatus : qsTr("none"))
     }
 
     Text {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 13
-        text: "Tool Count: " + taskController.toolCount
+        text: qsTr("Tool Count: ") + taskController.toolCount
     }
 
     Text {

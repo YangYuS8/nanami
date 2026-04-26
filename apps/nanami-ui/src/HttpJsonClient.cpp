@@ -1,5 +1,6 @@
 #include "HttpJsonClient.h"
 
+#include <QCoreApplication>
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QUrl>
@@ -34,7 +35,7 @@ bool HttpJsonClient::parseObject(QNetworkReply *reply, QJsonObject *object, QStr
     const auto document = QJsonDocument::fromJson(reply->readAll());
     if (!document.isObject()) {
         if (error != nullptr) {
-            *error = QStringLiteral("Invalid JSON object response");
+            *error = QCoreApplication::translate("HttpJsonClient", "Invalid JSON object response");
         }
         return false;
     }

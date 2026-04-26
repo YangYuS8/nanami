@@ -88,7 +88,7 @@ void WorkflowController::startMockWorkflowStream()
 
         if (reply->error() != QNetworkReply::NoError) {
             setError(HttpJsonClient::networkErrorString(
-                reply, QStringLiteral("nanami-core mock workflow stream is unavailable")));
+                reply, tr("nanami-core mock workflow stream is unavailable")));
         }
     });
 }
@@ -119,7 +119,7 @@ void WorkflowController::startCurrentProjectMockWorkflowStream()
 
         if (reply->error() != QNetworkReply::NoError) {
             setError(HttpJsonClient::networkErrorString(
-                reply, QStringLiteral("nanami-core current-project workflow stream is unavailable")));
+                reply, tr("nanami-core current-project workflow stream is unavailable")));
         }
     });
 }
@@ -146,18 +146,18 @@ void WorkflowController::requestMockApplyPatch()
 
         if (reply->error() != QNetworkReply::NoError) {
             setError(HttpJsonClient::networkErrorString(
-                reply, QStringLiteral("Failed to request mock apply patch")));
+                reply, tr("Failed to request mock apply patch")));
             return;
         }
 
         QJsonObject object;
         QString parseError;
         if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
-            setError(QStringLiteral("Invalid mock apply patch response"));
+            setError(tr("Invalid mock apply patch response"));
             return;
         }
         m_applyPatchStatus = object.value(QStringLiteral("status")).toString();
-        m_applyPatchText = QStringLiteral("%1 (permission_id=%2)")
+        m_applyPatchText = tr("%1 (permission_id=%2)")
                                .arg(object.value(QStringLiteral("message")).toString(),
                                     object.value(QStringLiteral("permission_id")).toString());
         emit workflowChanged();
@@ -266,7 +266,7 @@ void WorkflowController::handleEvent(const QJsonObject &event)
         m_state.workflowId = event.value(QStringLiteral("workflow_id")).toString(m_state.workflowId);
         m_state.workflowStatus = event.value(QStringLiteral("status")).toString(m_state.workflowStatus);
         m_state.steps.append(WorkflowStepView {
-            QStringLiteral("completed"),
+            tr("completed"),
             event.value(QStringLiteral("status")).toString(),
             event.value(QStringLiteral("summary")).toString(),
         });
@@ -276,7 +276,7 @@ void WorkflowController::handleEvent(const QJsonObject &event)
     }
 
     if (type == QStringLiteral("error.occurred")) {
-        setError(event.value(QStringLiteral("message")).toString(QStringLiteral("Mock workflow stream failed")));
+        setError(event.value(QStringLiteral("message")).toString(tr("Mock workflow stream failed")));
     }
 }
 
@@ -291,14 +291,14 @@ void WorkflowController::rebuildDerivedText()
     if (!m_state.testResult.summary.isEmpty()) {
         QStringList resultLines;
         resultLines.append(m_state.testResult.summary);
-        resultLines.append(QStringLiteral("command: %1").arg(m_state.testResult.commandPreview));
-        resultLines.append(QStringLiteral("duration_ms: %1").arg(m_state.testResult.durationMs));
+        resultLines.append(tr("command: %1").arg(m_state.testResult.commandPreview));
+        resultLines.append(tr("duration_ms: %1").arg(m_state.testResult.durationMs));
         resultLines.append(
-            QStringLiteral("passed=%1, failed=%2")
+            tr("passed=%1, failed=%2")
                 .arg(m_state.testResult.passed)
                 .arg(m_state.testResult.failed));
         for (const auto &failedTest : m_state.testResult.failedTestNames) {
-            resultLines.append(QStringLiteral("failed test: %1").arg(failedTest));
+            resultLines.append(tr("failed test: %1").arg(failedTest));
         }
         m_testResultText = resultLines.join(QStringLiteral("\n"));
     } else {
@@ -309,7 +309,7 @@ void WorkflowController::rebuildDerivedText()
     if (!m_state.patch.summary.isEmpty()) {
         patchLines.append(m_state.patch.summary);
         patchLines.append(m_state.patch.diffSummary);
-        patchLines.append(QStringLiteral("risk: %1").arg(m_state.patch.riskLevel));
+        patchLines.append(tr("risk: %1").arg(m_state.patch.riskLevel));
         for (const auto &file : m_state.patch.files) {
             patchLines.append(QStringLiteral("%1 [%2]").arg(file.path, file.changeType));
             patchLines.append(file.diffPreview);

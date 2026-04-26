@@ -11,6 +11,7 @@
 PermissionController::PermissionController(QObject *parent)
     : QObject(parent)
 {
+    m_lastDecision = tr("none");
 }
 
 bool PermissionController::hasPermissionRequest() const
@@ -98,7 +99,7 @@ void PermissionController::startMockPermissionStream()
 
         if (reply->error() != QNetworkReply::NoError) {
             setError(HttpJsonClient::networkErrorString(
-                reply, QStringLiteral("nanami-core permission stream is unavailable")));
+                reply, tr("nanami-core permission stream is unavailable")));
         }
     });
 }
@@ -121,14 +122,14 @@ void PermissionController::refreshAuditLog()
         reply->deleteLater();
         if (reply->error() != QNetworkReply::NoError) {
             setError(HttpJsonClient::networkErrorString(
-                reply, QStringLiteral("Failed to fetch permission audit log")));
+                reply, tr("Failed to fetch permission audit log")));
             return;
         }
 
         QJsonObject object;
         QString parseError;
         if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
-            setError(QStringLiteral("Invalid permission audit response"));
+            setError(tr("Invalid permission audit response"));
             return;
         }
 
@@ -147,7 +148,7 @@ void PermissionController::refreshAuditLog()
                 line += QStringLiteral(" ") + record.value(QStringLiteral("permission_action")).toString();
             }
             if (record.contains(QStringLiteral("target"))) {
-                line += QStringLiteral(" target=") + record.value(QStringLiteral("target")).toString();
+                line += tr(" target=") + record.value(QStringLiteral("target")).toString();
             }
             if (record.contains(QStringLiteral("decision"))) {
                 line += QStringLiteral(" ") + record.value(QStringLiteral("decision")).toString();
@@ -186,7 +187,7 @@ void PermissionController::acceptPermissionRequest(const QJsonObject &object)
     m_permissionScope = object.value(QStringLiteral("scope")).toString();
     m_permissionExpires = object.value(QStringLiteral("expires")).toString();
     m_hasPermissionRequest = !m_permissionId.isEmpty();
-    m_lastDecision = QStringLiteral("none");
+    m_lastDecision = tr("none");
     emit permissionChanged();
     emit decisionChanged();
     refreshAuditLog();
@@ -241,17 +242,17 @@ void PermissionController::resolve(const QString &decision)
 
         if (reply->error() != QNetworkReply::NoError) {
             setError(HttpJsonClient::networkErrorString(
-                reply, QStringLiteral("Failed to resolve permission")));
+                reply, tr("Failed to resolve permission")));
             return;
         }
 
         QJsonObject object;
         QString parseError;
         if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
-            setError(QStringLiteral("Invalid permission resolve response"));
+            setError(tr("Invalid permission resolve response"));
             return;
         }
-        m_lastDecision = object.value(QStringLiteral("decision")).toString(QStringLiteral("none"));
+        m_lastDecision = object.value(QStringLiteral("decision")).toString(tr("none"));
         emit decisionChanged();
         fetchDecision(resolvedPermissionId);
         refreshAuditLog();
@@ -281,19 +282,19 @@ void PermissionController::fetchDecision(const QString &permissionId)
         reply->deleteLater();
         if (reply->error() != QNetworkReply::NoError) {
             setError(HttpJsonClient::networkErrorString(
-                reply, QStringLiteral("Failed to fetch permission decision")));
+                reply, tr("Failed to fetch permission decision")));
             return;
         }
 
         QJsonObject object;
         QString parseError;
         if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
-            setError(QStringLiteral("Invalid permission decision response"));
+            setError(tr("Invalid permission decision response"));
             return;
         }
 
         const auto value = object.value(QStringLiteral("decision"));
-        m_lastDecision = value.isNull() ? QStringLiteral("none") : value.toString(QStringLiteral("none"));
+        m_lastDecision = value.isNull() ? tr("none") : value.toString(tr("none"));
         emit decisionChanged();
     });
 }

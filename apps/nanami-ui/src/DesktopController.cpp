@@ -88,13 +88,13 @@ void DesktopController::setupTray()
         painter.drawText(trayPixmap.rect(), Qt::AlignCenter, QStringLiteral("N"));
     }
 
-    m_trayIcon.setToolTip(QStringLiteral("Nanami"));
+    m_trayIcon.setToolTip(tr("Nanami"));
     m_trayIcon.setIcon(QIcon(trayPixmap));
 
-    auto *toggleAction = m_trayMenu.addAction(QStringLiteral("Show/Hide Nanami"));
+    auto *toggleAction = m_trayMenu.addAction(tr("Show/Hide Nanami"));
     connect(toggleAction, &QAction::triggered, this, &DesktopController::toggleMainWindow);
 
-    auto *mockPersonaAction = m_trayMenu.addAction(QStringLiteral("Run mock persona stream"));
+    auto *mockPersonaAction = m_trayMenu.addAction(tr("Run mock persona stream"));
     connect(mockPersonaAction, &QAction::triggered, this, [this]() {
         if (m_personaController) {
             m_personaController->startMockPersonaStream();
@@ -103,7 +103,7 @@ void DesktopController::setupTray()
 
     m_trayMenu.addSeparator();
 
-    auto *quitAction = m_trayMenu.addAction(QStringLiteral("Quit"));
+    auto *quitAction = m_trayMenu.addAction(tr("Quit"));
     connect(quitAction, &QAction::triggered, qApp, &QGuiApplication::quit);
 
     m_trayIcon.setContextMenu(&m_trayMenu);

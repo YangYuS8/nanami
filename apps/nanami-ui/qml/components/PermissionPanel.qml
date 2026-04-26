@@ -6,7 +6,7 @@ Column {
     spacing: 8
 
     Button {
-        text: permissionController.busy ? "Running mock permission request" : "Run mock permission request"
+        text: permissionController.busy ? qsTr("Running mock permission request") : qsTr("Run mock permission request")
         enabled: !permissionController.busy
         onClicked: permissionController.startMockPermissionStream()
     }
@@ -26,19 +26,19 @@ Column {
             anchors.margins: 12
             spacing: 8
 
-            Text { color: "#f4f1ff"; text: "Permission Request" }
-            Text { color: "#aeb4c6"; text: "Level: " + permissionController.permissionLevel }
-            Text { color: "#aeb4c6"; text: "Action: " + permissionController.permissionAction }
-            Text { color: "#aeb4c6"; text: "Target: " + permissionController.permissionTarget; wrapMode: Text.Wrap }
-            Text { color: "#aeb4c6"; text: "Reason: " + permissionController.permissionReason; wrapMode: Text.Wrap }
-            Text { color: "#aeb4c6"; text: "Scope: " + permissionController.permissionScope }
-            Text { color: "#aeb4c6"; text: "Expires: " + permissionController.permissionExpires }
+            Text { color: "#f4f1ff"; text: qsTr("Permission Request") }
+            Text { color: "#aeb4c6"; text: qsTr("Level: ") + permissionController.permissionLevel }
+            Text { color: "#aeb4c6"; text: qsTr("Action: ") + permissionController.permissionAction }
+            Text { color: "#aeb4c6"; text: qsTr("Target: ") + permissionController.permissionTarget; wrapMode: Text.Wrap }
+            Text { color: "#aeb4c6"; text: qsTr("Reason: ") + permissionController.permissionReason; wrapMode: Text.Wrap }
+            Text { color: "#aeb4c6"; text: qsTr("Scope: ") + permissionController.permissionScope }
+            Text { color: "#aeb4c6"; text: qsTr("Expires: ") + permissionController.permissionExpires }
 
             Row {
                 spacing: 8
-                Button { text: "Allow once"; onClicked: permissionController.resolveAllowOnce() }
-                Button { text: "Allow for task"; onClicked: permissionController.resolveAllowForTask() }
-                Button { text: "Deny"; onClicked: permissionController.resolveDeny() }
+                Button { text: qsTr("Allow once"); onClicked: permissionController.resolveAllowOnce() }
+                Button { text: qsTr("Allow for task"); onClicked: permissionController.resolveAllowForTask() }
+                Button { text: qsTr("Deny"); onClicked: permissionController.resolveDeny() }
             }
         }
     }
@@ -56,7 +56,7 @@ Column {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 13
-        text: "Last decision: " + permissionController.lastDecision
+        text: qsTr("Last decision: ") + permissionController.lastDecision
     }
 
     TextArea {
@@ -65,6 +65,6 @@ Column {
         readOnly: true
         wrapMode: TextArea.Wrap
         text: permissionController.auditText
-        placeholderText: "Permission audit log summary will appear here"
+        placeholderText: qsTr("Permission audit log summary will appear here")
     }
 }

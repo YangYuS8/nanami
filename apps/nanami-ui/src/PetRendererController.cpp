@@ -3,6 +3,8 @@
 PetRendererController::PetRendererController(QObject *parent)
     : QObject(parent)
 {
+    m_rendererName = tr("Placeholder Renderer");
+    m_rendererStatus = tr("ready");
 }
 
 QString PetRendererController::rendererName() const
@@ -27,9 +29,9 @@ QString PetRendererController::currentEmotion() const
 
 void PetRendererController::setPersonaState(const QString &state, const QString &emotion)
 {
-    QString nextStatus = QStringLiteral("placeholder_active");
+    QString nextStatus = tr("placeholder_active");
     if (state.isEmpty() && emotion.isEmpty()) {
-        nextStatus = QStringLiteral("ready");
+        nextStatus = tr("ready");
     }
 
     if (m_currentState == state && m_currentEmotion == emotion && m_rendererStatus == nextStatus) {
@@ -45,12 +47,12 @@ void PetRendererController::setPersonaState(const QString &state, const QString 
 void PetRendererController::resetRenderer()
 {
     if (m_currentState.isEmpty() && m_currentEmotion.isEmpty()
-        && m_rendererStatus == QStringLiteral("ready")) {
+        && m_rendererStatus == tr("ready")) {
         return;
     }
 
     m_currentState.clear();
     m_currentEmotion.clear();
-    m_rendererStatus = QStringLiteral("ready");
+    m_rendererStatus = tr("ready");
     emit rendererChanged();
 }

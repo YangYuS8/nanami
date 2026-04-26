@@ -38,8 +38,8 @@ private:
 
     QNetworkAccessManager m_network;
     QTimer m_refreshTimer;
-    QString m_coreStatus = QStringLiteral("disconnected");
-    QString m_openClawStatus = QStringLiteral("disconnected");
+    QString m_coreStatus;
+    QString m_openClawStatus;
     QString m_openClawGatewayUrl;
     QString m_openClawMessage;
 };

@@ -8,7 +8,7 @@ ApplicationWindow {
     width: 720
     height: 760
     visible: true
-    title: "Nanami"
+    title: qsTr("Nanami")
 
     Rectangle {
         anchors.fill: parent
@@ -24,19 +24,19 @@ ApplicationWindow {
                 Layout.fillWidth: true
 
                 TabButton {
-                    text: "Companion"
+                    text: qsTr("Companion")
                 }
 
                 TabButton {
-                    text: "Activity"
+                    text: qsTr("Activity")
                 }
 
                 TabButton {
-                    text: "Safety"
+                    text: qsTr("Safety")
                 }
 
                 TabButton {
-                    text: "Project"
+                    text: qsTr("Project")
                 }
             }
 

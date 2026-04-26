@@ -17,7 +17,7 @@ Rectangle {
 
         Text {
             color: "#f4f1ff"
-            text: "Placeholder Pet View"
+            text: qsTr("Placeholder Pet View")
             font.pixelSize: 16
             font.bold: true
         }
@@ -41,20 +41,20 @@ Rectangle {
             }
         }
 
-        Text { color: "#aeb4c6"; text: "Renderer: " + petRendererController.rendererName }
-        Text { color: "#aeb4c6"; text: "Renderer Status: " + petRendererController.rendererStatus }
-        Text { color: "#aeb4c6"; text: "State: " + (petRendererController.currentState.length > 0 ? petRendererController.currentState : "none") }
-        Text { color: "#aeb4c6"; text: "Emotion: " + (petRendererController.currentEmotion.length > 0 ? petRendererController.currentEmotion : "none") }
-        Text { color: "#aeb4c6"; text: "Source: " + (personaController.source.length > 0 ? personaController.source : "none") }
+        Text { color: "#aeb4c6"; text: qsTr("Renderer: ") + petRendererController.rendererName }
+        Text { color: "#aeb4c6"; text: qsTr("Renderer Status: ") + petRendererController.rendererStatus }
+        Text { color: "#aeb4c6"; text: qsTr("State: ") + (petRendererController.currentState.length > 0 ? petRendererController.currentState : qsTr("none")) }
+        Text { color: "#aeb4c6"; text: qsTr("Emotion: ") + (petRendererController.currentEmotion.length > 0 ? petRendererController.currentEmotion : qsTr("none")) }
+        Text { color: "#aeb4c6"; text: qsTr("Source: ") + (personaController.source.length > 0 ? personaController.source : qsTr("none")) }
 
         Text {
             color: "#aeb4c6"
-            text: personaController.text.length > 0 ? personaController.text : "Persona text will appear here"
+            text: personaController.text.length > 0 ? personaController.text : qsTr("Persona text will appear here")
             wrapMode: Text.Wrap
         }
 
         Button {
-            text: personaController.busy ? "Running mock persona" : "Run mock persona stream"
+            text: personaController.busy ? qsTr("Running mock persona") : qsTr("Run mock persona stream")
             enabled: !personaController.busy
             onClicked: personaController.startMockPersonaStream()
         }
@@ -63,13 +63,13 @@ Rectangle {
             spacing: 8
 
             Button {
-                text: "Toggle window"
+                text: qsTr("Toggle window")
                 onClicked: desktopController.toggleMainWindow()
             }
 
             Button {
-                text: "Test notification"
-                onClicked: desktopController.showNotification("Nanami", "Mock desktop notification")
+                text: qsTr("Test notification")
+                onClicked: desktopController.showNotification(qsTr("Nanami"), qsTr("Mock desktop notification"))
             }
         }
 

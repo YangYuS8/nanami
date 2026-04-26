@@ -10,13 +10,20 @@
 #include "WorkflowController.h"
 
 #include <QApplication>
+#include <QLocale>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickWindow>
+#include <QTranslator>
 
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+
+    QTranslator translator;
+    if (translator.load(QLocale::system(), QStringLiteral("nanami"), QStringLiteral("_"), QStringLiteral(":/i18n"))) {
+        app.installTranslator(&translator);
+    }
 
     ChatController chatController;
     PersonaController personaController;

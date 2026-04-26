@@ -82,14 +82,14 @@ void ProjectController::loadMockProject()
 
         if (reply->error() != QNetworkReply::NoError) {
             setError(HttpJsonClient::networkErrorString(
-                reply, QStringLiteral("nanami-core mock project endpoint is unavailable")));
+                reply, tr("nanami-core mock project endpoint is unavailable")));
             return;
         }
 
         QJsonObject object;
         QString parseError;
         if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
-            setError(QStringLiteral("Invalid mock project response"));
+            setError(tr("Invalid mock project response"));
             return;
         }
         m_projectId = object.value(QStringLiteral("project_id")).toString();
@@ -112,7 +112,7 @@ void ProjectController::selectProjectFolder()
 
     const QString selectedPath = QFileDialog::getExistingDirectory(
         nullptr,
-        QStringLiteral("Select Project Folder"),
+        tr("Select Project Folder"),
         m_projectPath.isEmpty() ? QString() : m_projectPath);
     if (selectedPath.isEmpty()) {
         return;
@@ -133,14 +133,14 @@ void ProjectController::selectProjectFolder()
 
         if (reply->error() != QNetworkReply::NoError) {
             setError(HttpJsonClient::networkErrorString(
-                reply, QStringLiteral("Failed to select project folder")));
+                reply, tr("Failed to select project folder")));
             return;
         }
 
         QJsonObject object;
         QString parseError;
         if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
-            setError(QStringLiteral("Invalid selected project response"));
+            setError(tr("Invalid selected project response"));
             return;
         }
         m_projectId = object.value(QStringLiteral("project_id")).toString();
@@ -176,14 +176,14 @@ void ProjectController::trustSelectedProject()
 
         if (reply->error() != QNetworkReply::NoError) {
             setError(HttpJsonClient::networkErrorString(
-                reply, QStringLiteral("Failed to trust selected project")));
+                reply, tr("Failed to trust selected project")));
             return;
         }
 
         QJsonObject object;
         QString parseError;
         if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
-            setError(QStringLiteral("Invalid trusted project response"));
+            setError(tr("Invalid trusted project response"));
             return;
         }
         m_projectId = object.value(QStringLiteral("project_id")).toString();
@@ -213,14 +213,14 @@ void ProjectController::loadProjectStructure()
 
         if (reply->error() != QNetworkReply::NoError) {
             setError(HttpJsonClient::networkErrorString(
-                reply, QStringLiteral("Failed to load project structure")));
+                reply, tr("Failed to load project structure")));
             return;
         }
 
         QJsonObject object;
         QString parseError;
         if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
-            setError(QStringLiteral("Invalid project structure response"));
+            setError(tr("Invalid project structure response"));
             return;
         }
 
@@ -257,22 +257,22 @@ void ProjectController::requestManifestPreviewPermission()
 
         if (reply->error() != QNetworkReply::NoError) {
             setError(HttpJsonClient::networkErrorString(
-                reply, QStringLiteral("Failed to request manifest preview permission")));
+                reply, tr("Failed to request manifest preview permission")));
             return;
         }
 
         QJsonObject object;
         QString parseError;
         if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
-            setError(QStringLiteral("Invalid manifest preview permission response"));
+            setError(tr("Invalid manifest preview permission response"));
             return;
         }
         if (m_permissionController != nullptr) {
             m_permissionController->acceptPermissionRequest(object);
         }
-        m_manifestPreviewText = QStringLiteral(
+        m_manifestPreviewText = tr(
                                    "Manifest preview permission requested.\nPermission ID: %1\nApprove or deny it in the Permission Request panel before loading the preview.")
-                                   .arg(object.value(QStringLiteral("permission_id")).toString());
+                                    .arg(object.value(QStringLiteral("permission_id")).toString());
         emit projectChanged();
     });
 }
@@ -296,22 +296,22 @@ void ProjectController::loadManifestPreview()
 
         if (reply->error() != QNetworkReply::NoError) {
             setError(HttpJsonClient::networkErrorString(
-                reply, QStringLiteral("Failed to load manifest preview")));
+                reply, tr("Failed to load manifest preview")));
             return;
         }
 
         QJsonObject object;
         QString parseError;
         if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
-            setError(QStringLiteral("Invalid manifest preview response"));
+            setError(tr("Invalid manifest preview response"));
             return;
         }
-        const QString header = QStringLiteral("Manifest: %1\nKind: %2\nSize: %3 bytes%4\n")
+        const QString header = tr("Manifest: %1\nKind: %2\nSize: %3 bytes%4\n")
                                    .arg(object.value(QStringLiteral("manifest_path")).toString(),
                                         object.value(QStringLiteral("kind")).toString(),
                                         QString::number(object.value(QStringLiteral("size_bytes")).toInteger()),
                                         object.value(QStringLiteral("truncated")).toBool()
-                                            ? QStringLiteral(" (truncated)")
+                                            ? tr(" (truncated)")
                                             : QString());
         m_manifestPreviewText = header + QStringLiteral("\n")
             + object.value(QStringLiteral("content_preview")).toString();
@@ -338,38 +338,37 @@ void ProjectController::loadManifestSummary()
 
         if (reply->error() != QNetworkReply::NoError) {
             setError(HttpJsonClient::networkErrorString(
-                reply, QStringLiteral("Failed to load manifest summary")));
+                reply, tr("Failed to load manifest summary")));
             return;
         }
 
         QJsonObject object;
         QString parseError;
         if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
-            setError(QStringLiteral("Invalid manifest summary response"));
+            setError(tr("Invalid manifest summary response"));
             return;
         }
         QStringList lines;
-        lines.append(QStringLiteral("Manifest: %1")
+        lines.append(tr("Manifest: %1")
                          .arg(object.value(QStringLiteral("manifest_path")).toString()));
-        lines.append(
-            QStringLiteral("Kind: %1").arg(object.value(QStringLiteral("kind")).toString()));
-        lines.append(QStringLiteral("Package: %1")
+        lines.append(tr("Kind: %1").arg(object.value(QStringLiteral("kind")).toString()));
+        lines.append(tr("Package: %1")
                          .arg(object.value(QStringLiteral("package_name")).toString(
-                             QStringLiteral("unknown"))));
-        lines.append(QStringLiteral("Version: %1")
+                             tr("unknown"))));
+        lines.append(tr("Version: %1")
                          .arg(object.value(QStringLiteral("package_version")).toString(
-                             QStringLiteral("unknown"))));
-        lines.append(QStringLiteral("Dependencies: %1")
+                             tr("unknown"))));
+        lines.append(tr("Dependencies: %1")
                          .arg(object.value(QStringLiteral("dependency_count")).isNull()
-                                  ? QStringLiteral("unknown")
+                                  ? tr("unknown")
                                   : QString::number(
                                         object.value(QStringLiteral("dependency_count")).toInteger())));
-        lines.append(QStringLiteral("Scripts: %1")
+        lines.append(tr("Scripts: %1")
                          .arg(object.value(QStringLiteral("script_count")).isNull()
-                                  ? QStringLiteral("unknown")
+                                  ? tr("unknown")
                                   : QString::number(
                                         object.value(QStringLiteral("script_count")).toInteger())));
-        lines.append(QStringLiteral("Summary: %1")
+        lines.append(tr("Summary: %1")
                          .arg(object.value(QStringLiteral("summary_text")).toString()));
         m_manifestSummaryText = lines.join(QStringLiteral("\n"));
         emit projectChanged();

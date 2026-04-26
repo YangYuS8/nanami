@@ -6,11 +6,11 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(Qt6 QUIET COMPONENTS Network Quick Widgets)
+find_package(Qt6 QUIET COMPONENTS LinguistTools Network Quick Widgets)
 
 if(NOT Qt6_FOUND)
     if(NANAMI_REQUIRE_QT)
-        find_package(Qt6 REQUIRED COMPONENTS Network Quick Widgets)
+        find_package(Qt6 REQUIRED COMPONENTS LinguistTools Network Quick Widgets)
     endif()
 
     message(WARNING "Qt6 Quick was not found; skipping nanami-ui target")
@@ -62,6 +62,12 @@ qt_add_qml_module(nanami-ui
         qml/components/SandboxPanel.qml
         qml/components/ProjectPanel.qml
         qml/components/WorkflowPanel.qml
+)
+
+qt_add_translations(nanami-ui
+    TS_FILES
+        i18n/nanami_zh_CN.ts
+    RESOURCE_PREFIX "/i18n"
 )
 
 target_link_libraries(nanami-ui

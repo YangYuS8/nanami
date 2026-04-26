@@ -36,8 +36,8 @@ void ChatController::sendMessage(const QString &text)
 
     setError(QString());
     setBusy(true);
-    appendConversation(QStringLiteral("User"), trimmed);
-    appendConversation(QStringLiteral("Assistant"), QString());
+    appendConversation(tr("User"), trimmed);
+    appendConversation(tr("Assistant"), QString());
     m_assistantOpen = true;
     m_assistantHasContent = false;
     m_streamBuffer.clear();
@@ -80,7 +80,7 @@ void ChatController::appendConversation(const QString &speaker, const QString &m
 void ChatController::appendAssistantDelta(const QString &delta)
 {
     if (!m_assistantOpen) {
-        appendConversation(QStringLiteral("Assistant"), QString());
+        appendConversation(tr("Assistant"), QString());
         m_assistantOpen = true;
         m_assistantHasContent = false;
     }
@@ -126,7 +126,7 @@ void ChatController::handleStreamEvent(const QJsonObject &event)
 
     if (kind == QStringLiteral("error")) {
         const QJsonObject error = event.value(QStringLiteral("error")).toObject();
-        setError(error.value(QStringLiteral("message")).toString(QStringLiteral("Chat stream failed")));
+        setError(error.value(QStringLiteral("message")).toString(tr("Chat stream failed")));
         m_assistantOpen = false;
         m_assistantHasContent = false;
         setBusy(false);

@@ -26,8 +26,8 @@ signals:
     void rendererChanged();
 
 private:
-    QString m_rendererName = QStringLiteral("Placeholder Renderer");
-    QString m_rendererStatus = QStringLiteral("ready");
+    QString m_rendererName;
+    QString m_rendererStatus;
     QString m_currentState;
     QString m_currentEmotion;
 };

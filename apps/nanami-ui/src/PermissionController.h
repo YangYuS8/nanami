@@ -69,7 +69,7 @@ private:
     QString m_permissionReason;
     QString m_permissionScope;
     QString m_permissionExpires;
-    QString m_lastDecision = QStringLiteral("none");
+    QString m_lastDecision;
     QString m_auditText;
     QString m_error;
     bool m_hasPermissionRequest = false;

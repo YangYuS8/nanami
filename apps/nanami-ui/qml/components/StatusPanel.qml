@@ -9,28 +9,28 @@ Column {
         color: "#f4f1ff"
         font.pixelSize: 28
         font.bold: true
-        text: "Nanami"
+        text: qsTr("Nanami")
     }
 
     Text {
         anchors.horizontalCenter: parent.horizontalCenter
         color: "#aeb4c6"
         font.pixelSize: 15
-        text: "Core connection: " + statusController.coreStatus
+        text: qsTr("Core connection: ") + statusController.coreStatus
     }
 
     Text {
         anchors.horizontalCenter: parent.horizontalCenter
         color: "#aeb4c6"
         font.pixelSize: 15
-        text: "OpenClaw: " + statusController.openClawStatus
+        text: qsTr("OpenClaw: ") + statusController.openClawStatus
     }
 
     Text {
         anchors.horizontalCenter: parent.horizontalCenter
         color: "#7f8799"
         font.pixelSize: 13
-        text: "Gateway URL: " + (statusController.openClawGatewayUrl.length > 0 ? statusController.openClawGatewayUrl : "not configured")
+        text: qsTr("Gateway URL: ") + (statusController.openClawGatewayUrl.length > 0 ? statusController.openClawGatewayUrl : qsTr("not configured"))
     }
 
     Text {
@@ -45,6 +45,6 @@ Column {
         anchors.horizontalCenter: parent.horizontalCenter
         color: "#7f8799"
         font.pixelSize: 13
-        text: "OpenClaw status skeleton only"
+        text: qsTr("OpenClaw status skeleton only")
     }
 }

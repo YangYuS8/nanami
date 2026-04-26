@@ -12,7 +12,7 @@ Column {
         readOnly: true
         wrapMode: TextArea.Wrap
         text: chatController.conversationText
-        placeholderText: "Conversation will appear here"
+        placeholderText: qsTr("Conversation will appear here")
     }
 
     Text {
@@ -32,13 +32,13 @@ Column {
             id: chatInput
             width: parent.width - sendButton.width - parent.spacing
             enabled: !chatController.busy
-            placeholderText: "Message OpenClaw through nanami-core"
+            placeholderText: qsTr("Message OpenClaw through nanami-core")
             onAccepted: sendButton.clicked()
         }
 
         Button {
             id: sendButton
-            text: chatController.busy ? "Sending" : "Send"
+            text: chatController.busy ? qsTr("Sending") : qsTr("Send")
             enabled: !chatController.busy && chatInput.text.trim().length > 0
             onClicked: {
                 chatController.sendMessage(chatInput.text)

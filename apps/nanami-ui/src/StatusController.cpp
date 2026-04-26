@@ -9,6 +9,8 @@
 StatusController::StatusController(QObject *parent)
     : QObject(parent)
 {
+    m_coreStatus = tr("disconnected");
+    m_openClawStatus = tr("disconnected");
     m_refreshTimer.setInterval(3000);
     connect(&m_refreshTimer, &QTimer::timeout, this, &StatusController::refresh);
     m_refreshTimer.start();
@@ -49,20 +51,20 @@ void StatusController::refreshCoreStatus()
         reply->deleteLater();
 
         if (reply->error() != QNetworkReply::NoError) {
-            setCoreStatus(QStringLiteral("disconnected"));
+            setCoreStatus(tr("disconnected"));
             return;
         }
 
         QJsonObject object;
         QString parseError;
         if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
-            setCoreStatus(QStringLiteral("error"));
+            setCoreStatus(tr("error"));
             return;
         }
 
         setCoreStatus(object.value(QStringLiteral("status")).toString() == QStringLiteral("ok")
-                          ? QStringLiteral("connected")
-                          : QStringLiteral("error"));
+                          ? tr("connected")
+                          : tr("error"));
     });
 }
 
@@ -75,16 +77,16 @@ void StatusController::refreshOpenClawStatus()
         reply->deleteLater();
 
         if (reply->error() != QNetworkReply::NoError) {
-            setOpenClawStatus(QStringLiteral("disconnected"));
-            setOpenClawMessage(QStringLiteral("nanami-core is unavailable"));
+            setOpenClawStatus(tr("disconnected"));
+            setOpenClawMessage(tr("nanami-core is unavailable"));
             return;
         }
 
         QJsonObject object;
         QString parseError;
         if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
-            setOpenClawStatus(QStringLiteral("error"));
-            setOpenClawMessage(QStringLiteral("Invalid nanami-core OpenClaw status response"));
+            setOpenClawStatus(tr("error"));
+            setOpenClawMessage(tr("Invalid nanami-core OpenClaw status response"));
             return;
         }
 

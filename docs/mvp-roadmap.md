@@ -260,6 +260,8 @@ Current 0.10b phase: companion-first UI navigation cleanup. This phase reorganiz
 
 Current 0.10c phase: companion home polish. This phase adds a lightweight `CompanionHome` composition for the default `Companion` tab so the pet view is foregrounded, chat remains the main interaction surface, and status information reads as supporting context. It does not change panel behavior, controller public slots, endpoint usage, JSON shapes, permission flow, or runtime capability boundaries.
 
+Current 0.10d phase: UI i18n foundation + Simplified Chinese baseline. This phase introduces `qsTr(...)` coverage for QML user-facing text, `tr(...)` coverage for key C++ UI strings, minimal `QTranslator` loading based on system locale, and a baseline `nanami_zh_CN.ts` translation source. It does not change protocol fields, event type strings, endpoint paths, permission actions, controller public slots, or runtime capability boundaries.
+
 Direction for 0.10 and later client-facing iterations:
 
 - Improve local client experience and clarity.
@@ -282,6 +284,7 @@ Nanami is presented as OpenClaw's local visual desktop client.
 The product narrative emphasizes companion UX, chat entry, event visualization, permission interaction, and CubeSandbox result presentation without changing runtime ownership.
 The default UI now foregrounds the companion and chat experience instead of stacking every panel onto one debug-style screen.
 The companion home further presents pet, chat, and status as a cohesive landing view rather than a raw panel stack.
+The UI also has a working Qt/QML i18n foundation with Simplified Chinese as a first-class baseline locale.
 ```
 
 ## Out of Scope for MVP

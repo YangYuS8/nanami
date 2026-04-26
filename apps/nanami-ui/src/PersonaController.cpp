@@ -67,7 +67,7 @@ void PersonaController::startMockPersonaStream()
 
         if (reply->error() != QNetworkReply::NoError) {
             setError(HttpJsonClient::networkErrorString(
-                reply, QStringLiteral("nanami-core mock persona stream is unavailable")));
+                reply, tr("nanami-core mock persona stream is unavailable")));
         }
     });
 }
@@ -110,7 +110,7 @@ void PersonaController::handleEvent(const QJsonObject &event)
     }
 
     if (event.value(QStringLiteral("type")).toString() == QStringLiteral("error.occurred")) {
-        setError(event.value(QStringLiteral("message")).toString(QStringLiteral("Mock persona stream failed")));
+        setError(event.value(QStringLiteral("message")).toString(tr("Mock persona stream failed")));
     }
 }
 

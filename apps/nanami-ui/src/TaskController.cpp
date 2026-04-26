@@ -72,7 +72,7 @@ void TaskController::startMockTaskStream()
 
         if (reply->error() != QNetworkReply::NoError) {
             setError(HttpJsonClient::networkErrorString(
-                reply, QStringLiteral("nanami-core mock task stream is unavailable")));
+                reply, tr("nanami-core mock task stream is unavailable")));
         }
     });
 }
@@ -107,7 +107,7 @@ void TaskController::startOpenClawTaskStream(const QString &message)
 
         if (reply->error() != QNetworkReply::NoError) {
             setError(HttpJsonClient::networkErrorString(
-                reply, QStringLiteral("nanami-core OpenClaw task stream is unavailable")));
+                reply, tr("nanami-core OpenClaw task stream is unavailable")));
         }
     });
 }
@@ -127,13 +127,13 @@ void TaskController::rebuildTimeline()
     QStringList lines;
 
     if (!m_currentTask.taskId.isEmpty()) {
-        lines.append(QStringLiteral("Task %1 started: %2")
+        lines.append(tr("Task %1 started: %2")
                          .arg(m_currentTask.taskId, m_currentTask.title));
     }
 
     for (const QString &toolId : m_currentTask.toolOrder) {
         const ToolViewState tool = m_currentTask.tools.value(toolId);
-        lines.append(QStringLiteral("Tool %1 started: %2")
+        lines.append(tr("Tool %1 started: %2")
                          .arg(tool.toolCallId, tool.tool));
 
         for (const ToolOutputView &output : tool.outputs) {
@@ -141,10 +141,10 @@ void TaskController::rebuildTimeline()
         }
 
         if (!tool.status.isEmpty()) {
-            QString completion = QStringLiteral("Tool %1 completed: status=%2")
+            QString completion = tr("Tool %1 completed: status=%2")
                                      .arg(tool.toolCallId, tool.status);
             if (!tool.exitCode.isEmpty()) {
-                completion.append(QStringLiteral(", exit_code=%1").arg(tool.exitCode));
+                completion.append(tr(", exit_code=%1").arg(tool.exitCode));
             }
             lines.append(completion);
         }
@@ -154,7 +154,7 @@ void TaskController::rebuildTimeline()
         && (m_currentTask.status == QStringLiteral("completed")
             || m_currentTask.status == QStringLiteral("failed")
             || m_currentTask.status == QStringLiteral("cancelled"))) {
-        lines.append(QStringLiteral("Task %1 completed: %2")
+        lines.append(tr("Task %1 completed: %2")
                          .arg(m_currentTask.taskId,
                               m_currentTask.summary.isEmpty() ? m_currentTask.status : m_currentTask.summary));
     }
@@ -250,7 +250,7 @@ void TaskController::handleEvent(const QJsonObject &event)
     }
 
     if (type == QStringLiteral("permission.requested")) {
-        m_permissionLines.append(QStringLiteral("Permission requested: %1 %2 target=%3")
+        m_permissionLines.append(tr("Permission requested: %1 %2 target=%3")
                                      .arg(event.value(QStringLiteral("level")).toString(),
                                           event.value(QStringLiteral("action")).toString(),
                                           event.value(QStringLiteral("target")).toString()));
@@ -259,21 +259,21 @@ void TaskController::handleEvent(const QJsonObject &event)
     }
 
     if (type == QStringLiteral("sandbox.started")) {
-        m_activityLines.append(QStringLiteral("Sandbox %1 started: template=%2 network=%3")
-                                  .arg(event.value(QStringLiteral("sandbox_id")).toString(),
-                                       event.value(QStringLiteral("template_id")).toString(),
-                                       event.value(QStringLiteral("network_policy")).toString()));
+        m_activityLines.append(tr("Sandbox %1 started: template=%2 network=%3")
+                                   .arg(event.value(QStringLiteral("sandbox_id")).toString(),
+                                        event.value(QStringLiteral("template_id")).toString(),
+                                        event.value(QStringLiteral("network_policy")).toString()));
         rebuildTimeline();
         return;
     }
 
     if (type == QStringLiteral("sandbox.updated")) {
-        QString line = QStringLiteral("Sandbox %1 updated: status=%2")
+        QString line = tr("Sandbox %1 updated: status=%2")
                            .arg(event.value(QStringLiteral("sandbox_id")).toString(),
                                 event.value(QStringLiteral("status")).toString());
         const QString summary = event.value(QStringLiteral("summary")).toString();
         if (!summary.isEmpty()) {
-            line.append(QStringLiteral(", summary=%1").arg(summary));
+            line.append(tr(", summary=%1").arg(summary));
         }
         m_activityLines.append(line);
         rebuildTimeline();
@@ -281,34 +281,34 @@ void TaskController::handleEvent(const QJsonObject &event)
     }
 
     if (type == QStringLiteral("sandbox.output")) {
-        m_activityLines.append(QStringLiteral("Sandbox %1 %2: %3")
-                                  .arg(event.value(QStringLiteral("sandbox_id")).toString(),
-                                       event.value(QStringLiteral("stream")).toString(),
-                                       event.value(QStringLiteral("content")).toString()));
+        m_activityLines.append(tr("Sandbox %1 %2: %3")
+                                   .arg(event.value(QStringLiteral("sandbox_id")).toString(),
+                                        event.value(QStringLiteral("stream")).toString(),
+                                        event.value(QStringLiteral("content")).toString()));
         rebuildTimeline();
         return;
     }
 
     if (type == QStringLiteral("sandbox.artifact")) {
-        m_activityLines.append(QStringLiteral("Sandbox %1 artifact: %2 @ %3")
-                                  .arg(event.value(QStringLiteral("sandbox_id")).toString(),
-                                       event.value(QStringLiteral("name")).toString(),
-                                       event.value(QStringLiteral("path")).toString()));
+        m_activityLines.append(tr("Sandbox %1 artifact: %2 @ %3")
+                                   .arg(event.value(QStringLiteral("sandbox_id")).toString(),
+                                        event.value(QStringLiteral("name")).toString(),
+                                        event.value(QStringLiteral("path")).toString()));
         rebuildTimeline();
         return;
     }
 
     if (type == QStringLiteral("sandbox.completed")) {
-        QString line = QStringLiteral("Sandbox %1 completed: status=%2")
+        QString line = tr("Sandbox %1 completed: status=%2")
                            .arg(event.value(QStringLiteral("sandbox_id")).toString(),
                                 event.value(QStringLiteral("status")).toString());
         if (event.contains(QStringLiteral("exit_code"))) {
             line.append(
-                QStringLiteral(", exit_code=%1").arg(event.value(QStringLiteral("exit_code")).toVariant().toString()));
+                tr(", exit_code=%1").arg(event.value(QStringLiteral("exit_code")).toVariant().toString()));
         }
         const QString summary = event.value(QStringLiteral("summary")).toString();
         if (!summary.isEmpty()) {
-            line.append(QStringLiteral(", summary=%1").arg(summary));
+            line.append(tr(", summary=%1").arg(summary));
         }
         m_activityLines.append(line);
         rebuildTimeline();
@@ -317,7 +317,7 @@ void TaskController::handleEvent(const QJsonObject &event)
 
     if (type == QStringLiteral("workflow.started")) {
         m_activityLines.append(
-            QStringLiteral("Workflow started: workflow_id=%1, project=%2, status=%3")
+            tr("Workflow started: workflow_id=%1, project=%2, status=%3")
                 .arg(event.value(QStringLiteral("workflow_id")).toString(),
                      event.value(QStringLiteral("project_path")).toString(),
                      event.value(QStringLiteral("status")).toString()));
@@ -327,7 +327,7 @@ void TaskController::handleEvent(const QJsonObject &event)
 
     if (type == QStringLiteral("workflow.step")) {
         m_activityLines.append(
-            QStringLiteral("Workflow step: %1 %2 (%3)")
+            tr("Workflow step: %1 %2 (%3)")
                 .arg(event.value(QStringLiteral("step_kind")).toString(),
                      event.value(QStringLiteral("summary")).toString(),
                      event.value(QStringLiteral("status")).toString()));
@@ -337,7 +337,7 @@ void TaskController::handleEvent(const QJsonObject &event)
 
     if (type == QStringLiteral("workflow.test_result")) {
         m_activityLines.append(
-            QStringLiteral("Workflow test result: %1, passed=%2, failed=%3, command=%4")
+            tr("Workflow test result: %1, passed=%2, failed=%3, command=%4")
                 .arg(event.value(QStringLiteral("summary")).toString(),
                      event.value(QStringLiteral("passed")).toVariant().toString(),
                      event.value(QStringLiteral("failed")).toVariant().toString(),
@@ -348,7 +348,7 @@ void TaskController::handleEvent(const QJsonObject &event)
 
     if (type == QStringLiteral("workflow.patch_proposed")) {
         m_activityLines.append(
-            QStringLiteral("Workflow patch proposed: patch_id=%1, %2, risk=%3")
+            tr("Workflow patch proposed: patch_id=%1, %2, risk=%3")
                 .arg(event.value(QStringLiteral("patch_id")).toString(),
                      event.value(QStringLiteral("diff_summary")).toString(),
                      event.value(QStringLiteral("risk_level")).toString()));
@@ -358,7 +358,7 @@ void TaskController::handleEvent(const QJsonObject &event)
 
     if (type == QStringLiteral("workflow.completed")) {
         m_activityLines.append(
-            QStringLiteral("Workflow completed: %1 (%2)")
+            tr("Workflow completed: %1 (%2)")
                 .arg(event.value(QStringLiteral("summary")).toString(),
                      event.value(QStringLiteral("status")).toString()));
         rebuildTimeline();
@@ -366,7 +366,7 @@ void TaskController::handleEvent(const QJsonObject &event)
     }
 
     if (type == QStringLiteral("error.occurred")) {
-        setError(event.value(QStringLiteral("message")).toString(QStringLiteral("OpenClaw task stream failed")));
+        setError(event.value(QStringLiteral("message")).toString(tr("OpenClaw task stream failed")));
     }
 }
 

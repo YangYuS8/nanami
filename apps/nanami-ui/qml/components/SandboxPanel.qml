@@ -6,7 +6,7 @@ Column {
     spacing: 8
 
     Button {
-        text: sandboxController.busy ? "Running mock sandbox" : "Run mock sandbox"
+        text: sandboxController.busy ? qsTr("Running mock sandbox") : qsTr("Run mock sandbox")
         enabled: !sandboxController.busy
         onClicked: sandboxController.startMockSandboxStream()
     }
@@ -15,28 +15,28 @@ Column {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 13
-        text: "Sandbox ID: " + (sandboxController.sandboxId.length > 0 ? sandboxController.sandboxId : "none")
+        text: qsTr("Sandbox ID: ") + (sandboxController.sandboxId.length > 0 ? sandboxController.sandboxId : qsTr("none"))
     }
 
     Text {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 13
-        text: "Sandbox Status: " + (sandboxController.sandboxStatus.length > 0 ? sandboxController.sandboxStatus : "none")
+        text: qsTr("Sandbox Status: ") + (sandboxController.sandboxStatus.length > 0 ? sandboxController.sandboxStatus : qsTr("none"))
     }
 
     Text {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 13
-        text: "Template: " + (sandboxController.templateId.length > 0 ? sandboxController.templateId : "none")
+        text: qsTr("Template: ") + (sandboxController.templateId.length > 0 ? sandboxController.templateId : qsTr("none"))
     }
 
     Text {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 13
-        text: "Network: " + (sandboxController.networkPolicy.length > 0 ? sandboxController.networkPolicy : "none")
+        text: qsTr("Network: ") + (sandboxController.networkPolicy.length > 0 ? sandboxController.networkPolicy : qsTr("none"))
     }
 
     Text {
@@ -44,7 +44,7 @@ Column {
         color: "#7f8799"
         font.pixelSize: 12
         wrapMode: Text.Wrap
-        text: "Sandbox view is visualization-only in 0.5c. Real mount/network capability must still go through PermissionManager in future phases, and permission decisions here do not trigger sandbox execution."
+        text: qsTr("Sandbox view is visualization-only in 0.5c. Real mount/network capability must still go through PermissionManager in future phases, and permission decisions here do not trigger sandbox execution.")
     }
 
     TextArea {
@@ -53,7 +53,7 @@ Column {
         readOnly: true
         wrapMode: TextArea.Wrap
         text: sandboxController.mountText
-        placeholderText: "Sandbox mounts will appear here"
+        placeholderText: qsTr("Sandbox mounts will appear here")
     }
 
     TextArea {
@@ -62,7 +62,7 @@ Column {
         readOnly: true
         wrapMode: TextArea.Wrap
         text: sandboxController.outputText
-        placeholderText: "Sandbox output will appear here"
+        placeholderText: qsTr("Sandbox output will appear here")
     }
 
     TextArea {
@@ -71,7 +71,7 @@ Column {
         readOnly: true
         wrapMode: TextArea.Wrap
         text: sandboxController.artifactText
-        placeholderText: "Sandbox artifacts will appear here"
+        placeholderText: qsTr("Sandbox artifacts will appear here")
     }
 
     TextArea {
@@ -80,7 +80,7 @@ Column {
         readOnly: true
         wrapMode: TextArea.Wrap
         text: permissionController.auditText
-        placeholderText: "Related permission audit records will appear here"
+        placeholderText: qsTr("Related permission audit records will appear here")
     }
 
     Text {

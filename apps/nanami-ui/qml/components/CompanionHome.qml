@@ -23,7 +23,7 @@ Column {
                 color: "#f4f1ff"
                 font.pixelSize: 22
                 font.bold: true
-                text: "Companion Home"
+                text: qsTr("Companion Home")
             }
 
             Text {
@@ -31,7 +31,7 @@ Column {
                 color: "#c7cbe0"
                 font.pixelSize: 14
                 wrapMode: Text.Wrap
-                text: "Nanami is your local companion client for OpenClaw. Start a chat, check the companion state, and keep core runtime status visible without leaving the desktop view."
+                text: qsTr("Nanami is your local companion client for OpenClaw. Start a chat, check the companion state, and keep core runtime status visible without leaving the desktop view.")
             }
         }
     }
@@ -57,7 +57,7 @@ Column {
                 color: "#d7dcf0"
                 font.pixelSize: 14
                 font.bold: true
-                text: "Connection Status"
+                text: qsTr("Connection Status")
             }
 
             StatusPanel {

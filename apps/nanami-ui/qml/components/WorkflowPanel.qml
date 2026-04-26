@@ -6,13 +6,13 @@ Column {
     spacing: 8
 
     Button {
-        text: workflowController.busy ? "Running mock workflow" : "Run mock workflow"
+        text: workflowController.busy ? qsTr("Running mock workflow") : qsTr("Run mock workflow")
         enabled: !workflowController.busy
         onClicked: workflowController.startMockWorkflowStream()
     }
 
     Button {
-        text: workflowController.busy ? "Running current project mock workflow" : "Run current project mock workflow"
+        text: workflowController.busy ? qsTr("Running current project mock workflow") : qsTr("Run current project mock workflow")
         enabled: !workflowController.busy && projectController.trustStatus === "selected_trusted"
         onClicked: workflowController.startCurrentProjectMockWorkflowStream()
     }
@@ -21,21 +21,21 @@ Column {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 13
-        text: "Workflow ID: " + (workflowController.workflowId.length > 0 ? workflowController.workflowId : "none")
+        text: qsTr("Workflow ID: ") + (workflowController.workflowId.length > 0 ? workflowController.workflowId : qsTr("none"))
     }
 
     Text {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 13
-        text: "Workflow Status: " + (workflowController.workflowStatus.length > 0 ? workflowController.workflowStatus : "none")
+        text: qsTr("Workflow Status: ") + (workflowController.workflowStatus.length > 0 ? workflowController.workflowStatus : qsTr("none"))
     }
 
     Text {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 13
-        text: "Project Path: " + (workflowController.projectPath.length > 0 ? workflowController.projectPath : "none")
+        text: qsTr("Project Path: ") + (workflowController.projectPath.length > 0 ? workflowController.projectPath : qsTr("none"))
         wrapMode: Text.Wrap
     }
 
@@ -45,14 +45,14 @@ Column {
         readOnly: true
         wrapMode: TextArea.Wrap
         text: workflowController.stepText
-        placeholderText: "Steps will appear here"
+        placeholderText: qsTr("Steps will appear here")
     }
 
     Text {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 12
-        text: "Test Result"
+        text: qsTr("Test Result")
     }
 
     TextArea {
@@ -61,14 +61,14 @@ Column {
         readOnly: true
         wrapMode: TextArea.Wrap
         text: workflowController.testResultText
-        placeholderText: "Test Result will appear here"
+        placeholderText: qsTr("Test Result will appear here")
     }
 
     Text {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 12
-        text: "Patch Proposal"
+        text: qsTr("Patch Proposal")
     }
 
     TextArea {
@@ -77,11 +77,11 @@ Column {
         readOnly: true
         wrapMode: TextArea.Wrap
         text: workflowController.patchText
-        placeholderText: "Patch Proposal will appear here"
+        placeholderText: qsTr("Patch Proposal will appear here")
     }
 
     Button {
-        text: workflowController.busy ? "Requesting mock apply patch" : "Request mock apply patch"
+        text: workflowController.busy ? qsTr("Requesting mock apply patch") : qsTr("Request mock apply patch")
         enabled: !workflowController.busy
         onClicked: workflowController.requestMockApplyPatch()
     }
@@ -90,7 +90,7 @@ Column {
         width: parent.width
         color: "#aeb4c6"
         font.pixelSize: 13
-        text: "Apply Patch Status: " + (workflowController.applyPatchStatus.length > 0 ? workflowController.applyPatchStatus : "none")
+        text: qsTr("Apply Patch Status: ") + (workflowController.applyPatchStatus.length > 0 ? workflowController.applyPatchStatus : qsTr("none"))
     }
 
     TextArea {
@@ -99,7 +99,7 @@ Column {
         readOnly: true
         wrapMode: TextArea.Wrap
         text: workflowController.applyPatchText
-        placeholderText: "Mock apply patch result will appear here"
+        placeholderText: qsTr("Mock apply patch result will appear here")
     }
 
     Text {

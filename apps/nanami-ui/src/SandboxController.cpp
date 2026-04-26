@@ -83,7 +83,7 @@ void SandboxController::startMockSandboxStream()
 
         if (reply->error() != QNetworkReply::NoError) {
             setError(HttpJsonClient::networkErrorString(
-                reply, QStringLiteral("nanami-core mock sandbox stream is unavailable")));
+                reply, tr("nanami-core mock sandbox stream is unavailable")));
         }
     });
 }
@@ -147,7 +147,7 @@ void SandboxController::handleEvent(const QJsonObject &event)
     }
 
     if (type == QStringLiteral("error.occurred")) {
-        setError(event.value(QStringLiteral("message")).toString(QStringLiteral("Mock sandbox stream failed")));
+        setError(event.value(QStringLiteral("message")).toString(tr("Mock sandbox stream failed")));
     }
 }
 
@@ -242,7 +242,7 @@ void SandboxController::rebuildDerivedText()
         outputs.append(QStringLiteral("%1: %2").arg(output.stream, output.content));
     }
     if (!m_state.summary.isEmpty()) {
-        outputs.append(QStringLiteral("summary: %1").arg(m_state.summary));
+        outputs.append(tr("summary: %1").arg(m_state.summary));
     }
     m_outputText = outputs.join(QStringLiteral("\n"));
 
