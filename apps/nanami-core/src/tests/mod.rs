@@ -1,0 +1,11 @@
+mod chat;
+mod health;
+mod manifest;
+mod openclaw;
+mod permissions;
+mod persona;
+mod projects;
+mod sandbox;
+mod support;
+mod tasks;
+mod workflow;

@@ -115,6 +115,7 @@ The current goal is Nanami 0.9:
 - 0.9b completed: permission-gated manifest summary extraction.
 - 0.9c completed: core module split cleanup.
 - 0.9d completed: QML panel split cleanup.
+- 0.9e completed: core test module split cleanup.
 - `nanami-core` provides mock permission request, decision, audit, and sandbox stream endpoints.
 - `nanami-core` also provides a mock persona state stream endpoint.
 - `nanami-ui` displays mock permission and sandbox visualization skeletons with structured sandbox view state, plus a placeholder pet view.
@@ -158,6 +159,8 @@ The current goal is Nanami 0.9:
 - It reorganizes `nanami-core` implementation into smaller route/service/state modules without changing API paths, protocol shapes, UI behavior, permission semantics, manifest read limits, or runtime capability boundaries.
 - 0.9d is a QML panel split cleanup only.
 - It reorganizes `Main.qml` into smaller panel components under `qml/components/` while keeping the same context properties, controller behavior, endpoint usage, permission flow, and runtime capability boundaries.
+- 0.9e is a core test module split cleanup only.
+- It reorganizes `nanami-core` crate tests into focused modules and shared support helpers without changing API behavior, protocol shapes, permission semantics, runtime capabilities, or test assertion intent.
 
 ## Development
 
@@ -336,6 +339,8 @@ Nanami 0.9b adds permission-gated manifest summary extraction only. After the sa
 Nanami 0.9c is a pure internal cleanup phase for `nanami-core`. It splits the oversized `apps/nanami-core/src/lib.rs` into focused route, service, state, error, and mock modules for maintainability only. It does not change endpoint paths, protocol fields, permission behavior, manifest preview/summary limits, source read scope, command execution, CubeSandbox usage, or file writes.
 
 Nanami 0.9d is a pure internal cleanup phase for `nanami-ui`. It splits the oversized `apps/nanami-ui/qml/Main.qml` into panel components such as status, pet, chat, task, permission, sandbox, project, and workflow panels under `qml/components/`. It does not change controller interfaces, endpoint usage, permission behavior, source read scope, command execution, CubeSandbox usage, or file writes.
+
+Nanami 0.9e is a pure internal cleanup phase for `nanami-core` tests. It splits the oversized `apps/nanami-core/src/tests.rs` into focused test modules and shared support helpers for maintainability only. It does not change endpoint paths, protocol fields, permission behavior, runtime capabilities, or the semantics of the existing test assertions.
 
 ## Verification
 
