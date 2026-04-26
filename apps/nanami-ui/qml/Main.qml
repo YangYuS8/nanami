@@ -417,6 +417,12 @@ ApplicationWindow {
                 onClicked: projectController.trustSelectedProject()
             }
 
+            Button {
+                text: projectController.busy ? "Loading project structure" : "Load project structure"
+                enabled: !projectController.busy && projectController.trustStatus === "selected_trusted"
+                onClicked: projectController.loadProjectStructure()
+            }
+
             Text {
                 width: parent.width
                 color: "#aeb4c6"
@@ -460,6 +466,15 @@ ApplicationWindow {
                 text: projectController.error
                 visible: projectController.error.length > 0
                 wrapMode: Text.Wrap
+            }
+
+            TextArea {
+                width: parent.width
+                height: 100
+                readOnly: true
+                wrapMode: TextArea.Wrap
+                text: projectController.projectStructureText
+                placeholderText: "Shallow project structure summary will appear here"
             }
 
             Text {

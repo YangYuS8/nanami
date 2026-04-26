@@ -21,11 +21,13 @@ use nanami_protocol::{
     PermissionAuditLogResponse, PermissionDecision, PermissionDecisionStatus, PermissionLevel,
     PermissionRequestPayload, PermissionResolvedPayload, PermissionScope, PersonaEmotion,
     PersonaState, PersonaStatePayload, PersonaStateSource, ProjectKind, ProjectMetadata,
-    ProjectTrustStatus, TaskCompletedPayload, TaskStartedPayload, TaskStatus, ToolCallStatus,
-    ToolCompletedPayload, ToolOutputPayload, ToolOutputStream, ToolStartedPayload,
-    WorkflowChangeType, WorkflowCompletedPayload, WorkflowPatchFilePreviewPayload,
-    WorkflowPatchProposedPayload, WorkflowPatchRiskLevel, WorkflowStartedPayload, WorkflowStatus,
-    WorkflowStepKind, WorkflowStepPayload, WorkflowStepStatus, WorkflowTestResultPayload,
+    ProjectStructureEntry, ProjectStructureEntryType, ProjectStructureMarker,
+    ProjectStructureSummary, ProjectTrustStatus, TaskCompletedPayload, TaskStartedPayload,
+    TaskStatus, ToolCallStatus, ToolCompletedPayload, ToolOutputPayload, ToolOutputStream,
+    ToolStartedPayload, WorkflowChangeType, WorkflowCompletedPayload,
+    WorkflowPatchFilePreviewPayload, WorkflowPatchProposedPayload, WorkflowPatchRiskLevel,
+    WorkflowStartedPayload, WorkflowStatus, WorkflowStepKind, WorkflowStepPayload,
+    WorkflowStepStatus, WorkflowTestResultPayload,
 };
 use serde::Serialize;
 use std::convert::Infallible;
@@ -67,6 +69,10 @@ fn router_with_openclaw(openclaw: Arc<dyn OpenClawService>) -> Router {
         .route("/projects/select", post(projects_select))
         .route("/projects/trust", post(projects_trust))
         .route("/projects/mock/current", get(projects_mock_current))
+        .route(
+            "/projects/current/structure",
+            get(projects_current_structure),
+        )
         .route("/permissions/mock/stream", get(permissions_mock_stream))
         .route("/permissions/resolve", post(permissions_resolve))
         .route(
@@ -658,6 +664,94 @@ async fn projects_trust(
     project.trust_status = ProjectTrustStatus::SelectedTrusted;
 
     Json(project.clone()).into_response()
+}
+
+async fn projects_current_structure(State(state): State<AppState>) -> impl IntoResponse {
+    let selected_project = state.selected_project.lock().unwrap();
+    let Some(project) = selected_project.as_ref() else {
+        return (
+            StatusCode::BAD_REQUEST,
+            [("content-type", "application/json")],
+            serde_json::to_string(&chat_error(
+                "PROJECT_NOT_SELECTED",
+                "No project is currently selected",
+                Some("Select and trust a project before loading its structure"),
+            ))
+            .unwrap(),
+        )
+            .into_response();
+    };
+
+    if project.trust_status != ProjectTrustStatus::SelectedTrusted {
+        return (
+            StatusCode::BAD_REQUEST,
+            [("content-type", "application/json")],
+            serde_json::to_string(&chat_error(
+                "PROJECT_NOT_TRUSTED",
+                "Current selected project must be selected_trusted",
+                Some("Trust the selected project before loading its structure"),
+            ))
+            .unwrap(),
+        )
+            .into_response();
+    }
+
+    let root = std::path::PathBuf::from(&project.project_path);
+    let read_dir = match std::fs::read_dir(&root) {
+        Ok(read_dir) => read_dir,
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                [("content-type", "application/json")],
+                serde_json::to_string(&chat_error(
+                    "PROJECT_STRUCTURE_UNAVAILABLE",
+                    "Unable to read the selected project directory",
+                    Some("Select a valid project folder again"),
+                ))
+                .unwrap(),
+            )
+                .into_response();
+        }
+    };
+
+    let mut entries = Vec::new();
+    for entry in read_dir.flatten() {
+        let file_name = entry.file_name().to_string_lossy().to_string();
+        let file_type = match entry.file_type() {
+            Ok(file_type) => file_type,
+            Err(_) => continue,
+        };
+
+        let entry_type = if file_type.is_dir() {
+            ProjectStructureEntryType::Directory
+        } else {
+            ProjectStructureEntryType::File
+        };
+
+        let marker = match file_name.as_str() {
+            "Cargo.toml" | "package.json" | "pyproject.toml" => ProjectStructureMarker::Manifest,
+            "src" | "app" | "crates" | "packages" => ProjectStructureMarker::SourceDir,
+            ".gitignore" => ProjectStructureMarker::Config,
+            "README.md" | "LICENSE" => ProjectStructureMarker::Other,
+            _ => ProjectStructureMarker::Other,
+        };
+
+        entries.push(ProjectStructureEntry {
+            name: file_name.clone(),
+            relative_path: file_name,
+            entry_type,
+            marker,
+        });
+    }
+
+    entries.sort_by(|left, right| left.relative_path.cmp(&right.relative_path));
+
+    Json(ProjectStructureSummary {
+        project_id: project.project_id.clone(),
+        project_path: project.project_path.clone(),
+        entries,
+    })
+    .into_response()
 }
 
 async fn workflow_mock_apply_patch(
@@ -1692,6 +1786,136 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn projects_current_structure_requires_selected_trusted_project() {
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .uri("/projects/current/structure")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn projects_current_structure_returns_shallow_summary_for_selected_trusted_project() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "nanami_project_structure_{}_{}",
+            std::process::id(),
+            chrono::Utc::now().timestamp_nanos_opt().unwrap()
+        ));
+        std::fs::create_dir_all(temp_dir.join("src")).unwrap();
+        std::fs::write(temp_dir.join("Cargo.toml"), "").unwrap();
+        std::fs::write(temp_dir.join("README.md"), "").unwrap();
+        std::fs::write(temp_dir.join(".gitignore"), "").unwrap();
+        std::fs::write(temp_dir.join("src").join("nested.rs"), "").unwrap();
+
+        let app = crate::router();
+        let select_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/select")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(
+                        r#"{{"project_path":"{}"}}"#,
+                        temp_dir.display()
+                    )))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let select_body = axum::body::to_bytes(select_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let select_json: serde_json::Value = serde_json::from_slice(&select_body).unwrap();
+        let project_id = select_json["project_id"].as_str().unwrap().to_owned();
+
+        let trust_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/trust")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(r#"{{"project_id":"{}"}}"#, project_id)))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(trust_response.status(), StatusCode::OK);
+
+        let structure_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/projects/current/structure")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = structure_response.status();
+        let body = axum::body::to_bytes(structure_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        let _ = std::fs::remove_file(temp_dir.join("Cargo.toml"));
+        let _ = std::fs::remove_file(temp_dir.join("README.md"));
+        let _ = std::fs::remove_file(temp_dir.join(".gitignore"));
+        let _ = std::fs::remove_file(temp_dir.join("src").join("nested.rs"));
+        let _ = std::fs::remove_dir(temp_dir.join("src"));
+        let _ = std::fs::remove_dir(&temp_dir);
+
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(json["project_id"], project_id);
+        assert!(
+            json["entries"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|entry| entry["name"] == "Cargo.toml"
+                    && entry["entry_type"] == "file"
+                    && entry["marker"] == "manifest")
+        );
+        assert!(
+            json["entries"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|entry| entry["name"] == "src"
+                    && entry["entry_type"] == "directory"
+                    && entry["marker"] == "source_dir")
+        );
+        assert!(
+            json["entries"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|entry| entry["name"] == ".gitignore" && entry["marker"] == "config")
+        );
+        assert!(
+            json["entries"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|entry| entry["name"] == "README.md" && entry["marker"] == "other")
+        );
+        assert!(
+            !json["entries"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|entry| entry["relative_path"] == "src/nested.rs")
+        );
     }
 
     #[tokio::test]

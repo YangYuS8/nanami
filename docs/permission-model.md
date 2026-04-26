@@ -30,6 +30,8 @@ Current 0.8a status: explicit project selection + manifest-only metadata only. U
 
 Current 0.8b status: project trust confirmation + in-memory trust state only. User-confirmed trust for the selected project is stored only in memory and does not by itself permit automatic source reads, file writes, command execution, or CubeSandbox usage.
 
+Current 0.8c status: shallow read-only project structure summary only. Nanami may list first-level project entries for the currently selected trusted project, but still does not read source contents, manifest contents, execute commands, call CubeSandbox, write files, or apply patches.
+
 Nanami MUST ask the user before performing risky actions.
 
 Permission decisions MUST be explicit, scoped, recorded, and revocable where possible.

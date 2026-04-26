@@ -1,8 +1,9 @@
 #include "ProjectController.h"
 
+#include <QFileDialog>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QFileDialog>
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QUrl>
@@ -35,6 +36,11 @@ QString ProjectController::projectKind() const
 QString ProjectController::trustStatus() const
 {
     return m_trustStatus;
+}
+
+QString ProjectController::projectStructureText() const
+{
+    return m_projectStructureText;
 }
 
 bool ProjectController::busy() const
@@ -170,6 +176,47 @@ void ProjectController::trustSelectedProject()
         m_projectPath = object.value(QStringLiteral("project_path")).toString();
         m_projectKind = object.value(QStringLiteral("kind")).toString();
         m_trustStatus = object.value(QStringLiteral("trust_status")).toString();
+        emit projectChanged();
+    });
+}
+
+void ProjectController::loadProjectStructure()
+{
+    if (m_busy) {
+        return;
+    }
+
+    setError(QString());
+    setBusy(true);
+
+    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/projects/current/structure")));
+    auto *reply = m_network.get(request);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        reply->deleteLater();
+        setBusy(false);
+
+        if (reply->error() != QNetworkReply::NoError) {
+            setError(QStringLiteral("Failed to load project structure"));
+            return;
+        }
+
+        const auto document = QJsonDocument::fromJson(reply->readAll());
+        if (!document.isObject()) {
+            setError(QStringLiteral("Invalid project structure response"));
+            return;
+        }
+
+        QStringList lines;
+        const auto entries = document.object().value(QStringLiteral("entries")).toArray();
+        for (const auto &value : entries) {
+            const auto entry = value.toObject();
+            lines.append(QStringLiteral("%1 [%2, %3]")
+                             .arg(entry.value(QStringLiteral("relative_path")).toString(),
+                                  entry.value(QStringLiteral("entry_type")).toString(),
+                                  entry.value(QStringLiteral("marker")).toString()));
+        }
+        m_projectStructureText = lines.join(QStringLiteral("\n"));
         emit projectChanged();
     });
 }

@@ -217,11 +217,13 @@ Current 0.8a phase: explicit project selection + manifest-only project metadata.
 
 Current 0.8b phase: project trust confirmation + in-memory trust state. This phase lets the user explicitly confirm trust for the currently selected project, but stores that trust in memory only. It still does not read source content, manifest contents, recursively scan the project, execute commands, call CubeSandbox, write files, or apply patches.
 
+Current 0.8c phase: read-only project structure summary. This phase exposes a shallow first-level project structure summary for the currently selected trusted project. It does not read source content, manifest contents, recursively scan the project, execute commands, call CubeSandbox, write files, or apply patches.
+
 Expected demo:
 
 ```text
-User explicitly selects a project folder, sees manifest-only metadata, and then confirms trust for that selected project.
-Nanami updates trust state in memory only without reading source content or enabling any automatic execution.
+User explicitly selects a project folder, confirms trust, and loads a shallow project structure summary.
+Nanami lists first-level project entries without reading source content or enabling any automatic execution.
 ```
 
 ## Out of Scope for MVP

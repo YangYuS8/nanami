@@ -785,6 +785,49 @@ Trusted selected project example:
 }
 ```
 
+### Project Structure Summary
+
+Project structure summary provides the 0.8c shallow read-only project overview. It only lists first-level entries in the selected trusted project directory. It does not read file contents, manifest contents, recursively scan the project, execute commands, or call CubeSandbox.
+
+Valid entry types:
+
+```text
+file
+directory
+```
+
+Valid markers:
+
+```text
+manifest
+source_dir
+config
+other
+```
+
+Example:
+
+```json
+{
+  "project_id": "project_selected_my-project",
+  "project_path": "/home/user/Code/my-project",
+  "entries": [
+    {
+      "name": "Cargo.toml",
+      "relative_path": "Cargo.toml",
+      "entry_type": "file",
+      "marker": "manifest"
+    },
+    {
+      "name": "src",
+      "relative_path": "src",
+      "entry_type": "directory",
+      "marker": "source_dir"
+    }
+  ]
+}
+```
+
 ### Tool Events
 
 ```json

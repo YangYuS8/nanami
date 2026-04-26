@@ -12,6 +12,7 @@ class ProjectController final : public QObject
     Q_PROPERTY(QString projectPath READ projectPath NOTIFY projectChanged)
     Q_PROPERTY(QString projectKind READ projectKind NOTIFY projectChanged)
     Q_PROPERTY(QString trustStatus READ trustStatus NOTIFY projectChanged)
+    Q_PROPERTY(QString projectStructureText READ projectStructureText NOTIFY projectChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
     Q_PROPERTY(QString error READ error NOTIFY errorChanged)
 
@@ -23,12 +24,14 @@ public:
     QString projectPath() const;
     QString projectKind() const;
     QString trustStatus() const;
+    QString projectStructureText() const;
     bool busy() const;
     QString error() const;
 
     Q_INVOKABLE void loadMockProject();
     Q_INVOKABLE void selectProjectFolder();
     Q_INVOKABLE void trustSelectedProject();
+    Q_INVOKABLE void loadProjectStructure();
 
 signals:
     void projectChanged();
@@ -45,6 +48,7 @@ private:
     QString m_projectPath;
     QString m_projectKind;
     QString m_trustStatus;
+    QString m_projectStructureText;
     QString m_error;
     bool m_busy = false;
 };

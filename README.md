@@ -109,6 +109,7 @@ The current goal is Nanami 0.8:
 - 0.7e completed: OpenClaw workflow event mapping.
 - 0.8a completed: explicit project selection + manifest-only project metadata.
 - 0.8b completed: project trust confirmation + in-memory trust state.
+- 0.8c completed: read-only project structure summary.
 - `nanami-core` provides mock permission request, decision, audit, and sandbox stream endpoints.
 - `nanami-core` also provides a mock persona state stream endpoint.
 - `nanami-ui` displays mock permission and sandbox visualization skeletons with structured sandbox view state, plus a placeholder pet view.
@@ -138,6 +139,8 @@ The current goal is Nanami 0.8:
 - It does not read source content, does not read manifest contents, does not recursively scan the project, does not execute commands, and does not call CubeSandbox.
 - 0.8b adds user-confirmed in-memory trust state for the selected project only.
 - It does not allow automatic source reads, file writes, command execution, or CubeSandbox usage, and still does not read source content or manifest contents.
+- 0.8c adds a shallow read-only project structure summary only.
+- It does not read source content, does not read manifest contents, does not recursively scan the project, does not execute commands, and does not call CubeSandbox.
 
 ## Development
 
@@ -304,6 +307,8 @@ Nanami 0.7e adds OpenClaw structured workflow event mapping into Nanami workflow
 Nanami 0.8a adds explicit project selection and manifest-only project metadata detection. It only checks top-level manifest filenames and still does not read source content, manifest contents, execute commands, call CubeSandbox, write files, or apply patches.
 
 Nanami 0.8b adds a user-confirmed in-memory trust state for the currently selected project. This trust state does not by itself allow automatic reads, writes, command execution, or CubeSandbox usage.
+
+Nanami 0.8c adds a shallow read-only project structure summary for the currently selected trusted project. It lists only first-level entries and still does not read source content, manifest contents, execute commands, call CubeSandbox, write files, or apply patches.
 
 ## Verification
 

@@ -220,6 +220,37 @@ pub struct ProjectMetadata {
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+pub enum ProjectStructureEntryType {
+    File,
+    Directory,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ProjectStructureMarker {
+    Manifest,
+    SourceDir,
+    Config,
+    Other,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ProjectStructureEntry {
+    pub name: String,
+    pub relative_path: String,
+    pub entry_type: ProjectStructureEntryType,
+    pub marker: ProjectStructureMarker,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ProjectStructureSummary {
+    pub project_id: String,
+    pub project_path: String,
+    pub entries: Vec<ProjectStructureEntry>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub enum WorkflowStatus {
     Running,
     WaitingPermission,
