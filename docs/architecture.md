@@ -6,13 +6,15 @@ Agents MUST follow this document when modifying module boundaries, process commu
 
 ## Core Principle
 
-Nanami is a desktop control surface for OpenClaw.
+Nanami is the local visual desktop client for OpenClaw.
 
-Nanami provides desktop interaction, visualization, permission handling, and local workflow orchestration.
+Nanami provides desktop interaction, chat entry, event visualization, permission interaction, notification delivery, and companion presentation.
 
-OpenClaw provides agent intelligence.
+OpenClaw provides the agent runtime.
 
-CubeSandbox provides secure execution.
+CubeSandbox provides the safe execution environment.
+
+Nanami does not own agent reasoning, memory, skills, hooks, or planning. It visualizes and mediates those runtime capabilities for the user on the local desktop.
 
 ## High-Level Architecture
 
@@ -64,6 +66,73 @@ CubeSandbox provides secure execution.
 
 ## Module Boundaries
 
+## Responsibility Boundaries
+
+### Nanami
+
+Nanami is the local client and companion UI layer around OpenClaw.
+
+Nanami is responsible for:
+
+- Providing the local chat entry point.
+- Rendering the Live2D companion and desktop presence.
+- Visualizing chat, task, tool, workflow, and sandbox events.
+- Presenting permission requests, consent choices, and audit visibility.
+- Surfacing notifications, tray interactions, and user-facing status.
+
+Nanami is not responsible for:
+
+- Agent reasoning.
+- Planning.
+- Memory.
+- Skills.
+- Hooks.
+- Re-implementing OpenClaw runtime logic.
+
+### OpenClaw
+
+OpenClaw is the agent runtime.
+
+OpenClaw owns:
+
+- Agent reasoning.
+- Planning.
+- Skills.
+- Hooks.
+- Memory.
+- Tool calling.
+- Persona and runtime behavior.
+
+Nanami MUST NOT duplicate these systems.
+
+### CubeSandbox
+
+CubeSandbox is the safe execution environment for dangerous code and shell operations initiated through OpenClaw-approved flows.
+
+CubeSandbox is responsible for:
+
+- Isolated code execution.
+- Isolated shell execution.
+- File I/O inside the sandbox boundary.
+- Execution policy constraints such as network and mount controls.
+
+Nanami MUST NOT silently fall back to host execution when sandbox execution fails.
+
+### Permission UI
+
+The permission UI is the user-facing consent and visibility layer.
+
+It is responsible for:
+
+- Showing what action is being requested.
+- Showing the relevant scope and risk.
+- Collecting explicit allow or deny decisions.
+- Giving the user visibility into what happened afterward.
+
+It is not a separate policy engine. Policy enforcement still belongs to `nanami-core` and its `PermissionManager`.
+
+## Module Boundaries
+
 ### nanami-ui
 
 `nanami-ui` is responsible for presentation and user interaction.
@@ -90,12 +159,12 @@ It MUST NOT:
 
 ### nanami-core
 
-`nanami-core` is responsible for local control logic.
+`nanami-core` is responsible for local client orchestration and policy enforcement.
 
 It MAY:
 
 - Connect to OpenClaw Gateway.
-- Translate OpenClaw events into Nanami events.
+- Translate OpenClaw runtime events into Nanami client events.
 - Manage tasks and sessions.
 - Manage permissions.
 - Call CubeSandbox through approved adapters.
@@ -111,24 +180,9 @@ It MUST:
 - Apply timeouts to external calls.
 - Avoid leaking secrets in logs.
 
-### OpenClaw
+### OpenClaw and CubeSandbox Usage
 
-OpenClaw is responsible for agent intelligence.
-
-OpenClaw owns:
-
-- Agent reasoning.
-- Skills.
-- Hooks.
-- Memory.
-- Tool calling.
-- Persona logic.
-
-Nanami MUST NOT duplicate these systems.
-
-### CubeSandbox
-
-CubeSandbox is responsible for isolated execution.
+OpenClaw remains the system that decides what the agent is trying to do.
 
 CubeSandbox SHOULD be used for:
 
@@ -139,7 +193,7 @@ CubeSandbox SHOULD be used for:
 - Installing dependencies in isolation.
 - Running network-restricted experiments.
 
-Nanami MUST NOT silently fall back to host execution when sandbox execution fails.
+Nanami does not restrict OpenClaw capability by redefining runtime ownership, but it also does not bypass OpenClaw or CubeSandbox to perform dangerous operations on its own.
 
 ## Event Flow
 

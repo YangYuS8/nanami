@@ -1,12 +1,12 @@
 # Nanami
 
-Nanami is a desktop-native AI companion and development control surface for OpenClaw.
+Nanami is a desktop-native AI companion and local visual companion client for OpenClaw.
 
-Nanami is not a standalone AI agent runtime. Nanami is the desktop interaction layer for OpenClaw. It provides a Live2D companion UI, chat surface, task panel, permission control, desktop integration, and development workflow visualization.
+Nanami is not a standalone AI agent runtime. Nanami is the local visual desktop client for OpenClaw. It provides a Live2D companion UI, chat client surface, task and tool event visualization, sandbox event visualization, permission interaction, and desktop notifications.
 
 ## Project Goal
 
-Nanami turns OpenClaw into a desktop companion with real development capabilities.
+Nanami turns OpenClaw into a local visual desktop companion client without replacing the OpenClaw runtime.
 
 It should be able to:
 
@@ -15,13 +15,15 @@ It should be able to:
 - Visualize skills, tool calls, sandbox execution, task progress, and errors.
 - Ask for explicit permission before risky desktop operations.
 - Use CubeSandbox for isolated code and shell execution.
-- Help with real development workflows such as debugging, testing, patch generation, and project analysis.
+- Present OpenClaw task, tool, and sandbox activity through a local desktop companion experience.
 
 ## Non-Goals
 
 Nanami MUST NOT become a separate agent runtime.
 
 Nanami MUST NOT duplicate OpenClaw memory, skills, hooks, or long-term agent logic.
+
+Nanami MUST NOT replicate OpenClaw planning or other agent-runtime orchestration responsibilities.
 
 Nanami MUST NOT execute local commands directly from the UI.
 
@@ -92,6 +94,8 @@ Agents working on Nanami MUST follow these rules:
 ## Current Priority
 
 The current goal is Nanami 0.9:
+
+Product positioning note for 0.10a: Nanami is now described as the local visual companion client for OpenClaw, not as a development control surface. OpenClaw remains the agent runtime, and CubeSandbox remains the safe execution environment for dangerous development operations.
 
 - 0.4a completed: permission protocol + mock permission flow.
 - 0.4b completed: dangerous tool request interception visibility.

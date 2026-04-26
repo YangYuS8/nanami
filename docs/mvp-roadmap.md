@@ -179,7 +179,7 @@ Nanami displays a placeholder companion shell while exposing a clear renderer ad
 
 ## Version 0.7: Development Workflow
 
-Goal: support a real assisted development loop.
+Goal: visualize assisted development workflows from OpenClaw without turning Nanami into an IDE or separate runtime.
 
 Current 0.7a phase: development workflow protocol + mock workflow stream + UI skeleton. This phase adds structured workflow events, a mock-only workflow SSE endpoint, and a lightweight workflow panel in `nanami-ui`. It does not read real project files, execute commands, call real CubeSandbox, write files, or apply patches.
 
@@ -194,13 +194,11 @@ Current 0.7e phase: OpenClaw workflow event mapping. This phase maps structured 
 Required:
 
 - Open project.
-- Analyze project.
-- Run tests in sandbox.
-- Show result.
-- Generate patch.
-- Ask before writing.
-- Apply patch after approval.
-- Re-run verification.
+- Visualize workflow status.
+- Visualize sandbox-backed results.
+- Show patch proposals and approval state.
+- Ask before any future write-capable action.
+- Keep workflow visibility tied to OpenClaw events.
 
 Expected demo:
 
@@ -211,7 +209,7 @@ Nanami shows minimal project metadata and workflow visualization without reading
 
 ## Version 0.8: Real Project Selection and Trust
 
-Goal: let the user explicitly choose a real project boundary before later trust and workflow expansion.
+Goal: let the user explicitly choose a real project boundary before later client-side visibility expansion.
 
 Current 0.8a phase: explicit project selection + manifest-only project metadata. This phase allows the user to explicitly choose a project directory and lets `nanami-core` detect only top-level manifest filenames to produce minimal metadata. It does not read source content, manifest contents, recursively scan the project, execute commands, call CubeSandbox, write files, or apply patches.
 
@@ -250,6 +248,34 @@ Expected demo:
 ```text
 User explicitly selects a project folder, confirms trust, requests manifest preview permission, approves the L2 read, then loads both a top-level manifest preview and a structured manifest summary.
 Nanami derives summary fields only from the same capped top-level manifest content and does not read source files, execute commands, or use CubeSandbox.
+```
+
+## Version 0.10: Client Experience Alignment
+
+Goal: align Nanami's product direction around being OpenClaw's local visual desktop client and Live2D companion, rather than a control console or IDE-like surface.
+
+Current 0.10a phase: product positioning reset. This phase updates product language and architecture framing so Nanami is clearly described as the local visual companion client for OpenClaw. It preserves all existing runtime capability boundaries and does not add new protocol, core API, UI behavior, permission semantics, command execution, file write, patch apply, or CubeSandbox capabilities.
+
+Direction for 0.10 and later client-facing iterations:
+
+- Improve local client experience and clarity.
+- Strengthen the Live2D companion and desktop presence.
+- Expand OpenClaw event visualization quality.
+- Improve task, tool, and sandbox result presentation.
+- Improve permission visibility and consent UX.
+- Improve desktop notification and ambient status experience.
+
+Avoid reframing later phases around:
+
+- IDE replacement.
+- General-purpose project analysis ownership inside Nanami.
+- Console-first control-panel positioning.
+
+Expected demo:
+
+```text
+Nanami is presented as OpenClaw's local visual desktop client.
+The product narrative emphasizes companion UX, chat entry, event visualization, permission interaction, and CubeSandbox result presentation without changing runtime ownership.
 ```
 
 ## Out of Scope for MVP
