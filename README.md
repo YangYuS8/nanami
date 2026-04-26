@@ -93,7 +93,7 @@ Agents working on Nanami MUST follow these rules:
 
 ## Current Priority
 
-The current goal is Nanami 0.9:
+The current goal is Nanami 0.10:
 
 Product positioning note for 0.10a: Nanami is now described as the local visual companion client for OpenClaw, not as a development control surface. OpenClaw remains the agent runtime, and CubeSandbox remains the safe execution environment for dangerous development operations.
 
@@ -124,6 +124,7 @@ Product positioning note for 0.10a: Nanami is now described as the local visual 
 - 0.9g completed: OpenClaw adapter module split cleanup.
 - 0.9h completed: OpenClaw adapter test module split cleanup.
 - 0.9i completed: UI controller networking/SSE cleanup.
+- 0.10a completed: product positioning reset.
 - `nanami-core` provides mock permission request, decision, audit, and sandbox stream endpoints.
 - `nanami-core` also provides a mock persona state stream endpoint.
 - `nanami-ui` displays mock permission and sandbox visualization skeletons with structured sandbox view state, plus a placeholder pet view.

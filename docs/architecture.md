@@ -64,8 +64,6 @@ Nanami does not own agent reasoning, memory, skills, hooks, or planning. It visu
 └─────────────────────────┘   └─────────────────────────┘
 ```
 
-## Module Boundaries
-
 ## Responsibility Boundaries
 
 ### Nanami
