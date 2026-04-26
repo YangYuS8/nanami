@@ -112,6 +112,7 @@ The current goal is Nanami 0.9:
 - 0.8c completed: read-only project structure summary.
 - 0.8d completed: connect selected project context to mock workflow.
 - 0.9a completed: permission-gated manifest preview.
+- 0.9b completed: permission-gated manifest summary extraction.
 - `nanami-core` provides mock permission request, decision, audit, and sandbox stream endpoints.
 - `nanami-core` also provides a mock persona state stream endpoint.
 - `nanami-ui` displays mock permission and sandbox visualization skeletons with structured sandbox view state, plus a placeholder pet view.
@@ -148,6 +149,9 @@ The current goal is Nanami 0.9:
 - 0.9a adds explicit L2 permission-gated top-level manifest preview for the currently selected trusted project only.
 - It reads only one top-level manifest file (`Cargo.toml`, `package.json`, or `pyproject.toml`) after explicit approval, returns at most an 8 KB preview, and is not source analysis.
 - It does not read source content, does not recursively scan the project, does not execute commands, does not call CubeSandbox, and does not write files.
+- 0.9b adds structured manifest summary extraction from the same permission-gated top-level manifest read only.
+- It extracts package metadata and dependency/script counts from the top-level manifest content already allowed by the same L2 permission, still capped to 8 KB, and still does not perform source analysis.
+- It does not read source content, does not recursively scan the project, does not execute commands, does not call CubeSandbox, does not write files, and does not download dependencies.
 
 ## Development
 
@@ -320,6 +324,8 @@ Nanami 0.8c adds a shallow read-only project structure summary for the currently
 Nanami 0.8d connects selected project metadata and shallow structure summary to a mock current-project workflow stream. It still does not perform real project analysis, read source content, execute commands, call CubeSandbox, write files, or apply patches.
 
 Nanami 0.9a adds permission-gated manifest preview only. The user must first explicitly select and trust a project, then explicitly approve an L2 `filesystem.read` request before `nanami-core` reads a single top-level manifest file and returns a capped preview. This is not source analysis: Nanami does not read source files, does not recursively scan the project, does not execute commands, does not call CubeSandbox, and does not write files.
+
+Nanami 0.9b adds permission-gated manifest summary extraction only. After the same explicit L2 `filesystem.read` approval used for manifest preview, `nanami-core` may read the same top-level manifest content, still capped to 8 KB, and derive structured fields such as package name, version, dependency count, script count, and a short summary text. This still is not source analysis: Nanami does not read source files, does not recursively scan the project, does not execute commands, does not call CubeSandbox, does not write files, and does not download dependencies.
 
 ## Verification
 

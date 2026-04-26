@@ -50,6 +50,11 @@ QString ProjectController::manifestPreviewText() const
     return m_manifestPreviewText;
 }
 
+QString ProjectController::manifestSummaryText() const
+{
+    return m_manifestSummaryText;
+}
+
 bool ProjectController::busy() const
 {
     return m_busy;
@@ -95,6 +100,7 @@ void ProjectController::loadMockProject()
         m_trustStatus = object.value(QStringLiteral("trust_status")).toString();
         m_projectStructureText.clear();
         m_manifestPreviewText.clear();
+        m_manifestSummaryText.clear();
         emit projectChanged();
     });
 }
@@ -146,6 +152,7 @@ void ProjectController::selectProjectFolder()
         m_trustStatus = object.value(QStringLiteral("trust_status")).toString();
         m_projectStructureText.clear();
         m_manifestPreviewText.clear();
+        m_manifestSummaryText.clear();
         emit projectChanged();
     });
 }
@@ -309,6 +316,63 @@ void ProjectController::loadManifestPreview()
                                             : QString());
         m_manifestPreviewText = header + QStringLiteral("\n")
             + object.value(QStringLiteral("content_preview")).toString();
+        emit projectChanged();
+    });
+}
+
+void ProjectController::loadManifestSummary()
+{
+    if (m_busy) {
+        return;
+    }
+
+    setError(QString());
+    setBusy(true);
+
+    QNetworkRequest request(
+        QUrl(QStringLiteral("http://127.0.0.1:17878/projects/current/manifest/summary")));
+    auto *reply = m_network.get(request);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        reply->deleteLater();
+        setBusy(false);
+
+        if (reply->error() != QNetworkReply::NoError) {
+            setError(QStringLiteral("Failed to load manifest summary"));
+            return;
+        }
+
+        const auto document = QJsonDocument::fromJson(reply->readAll());
+        if (!document.isObject()) {
+            setError(QStringLiteral("Invalid manifest summary response"));
+            return;
+        }
+
+        const auto object = document.object();
+        QStringList lines;
+        lines.append(QStringLiteral("Manifest: %1")
+                         .arg(object.value(QStringLiteral("manifest_path")).toString()));
+        lines.append(
+            QStringLiteral("Kind: %1").arg(object.value(QStringLiteral("kind")).toString()));
+        lines.append(QStringLiteral("Package: %1")
+                         .arg(object.value(QStringLiteral("package_name")).toString(
+                             QStringLiteral("unknown"))));
+        lines.append(QStringLiteral("Version: %1")
+                         .arg(object.value(QStringLiteral("package_version")).toString(
+                             QStringLiteral("unknown"))));
+        lines.append(QStringLiteral("Dependencies: %1")
+                         .arg(object.value(QStringLiteral("dependency_count")).isNull()
+                                  ? QStringLiteral("unknown")
+                                  : QString::number(
+                                        object.value(QStringLiteral("dependency_count")).toInteger())));
+        lines.append(QStringLiteral("Scripts: %1")
+                         .arg(object.value(QStringLiteral("script_count")).isNull()
+                                  ? QStringLiteral("unknown")
+                                  : QString::number(
+                                        object.value(QStringLiteral("script_count")).toInteger())));
+        lines.append(QStringLiteral("Summary: %1")
+                         .arg(object.value(QStringLiteral("summary_text")).toString()));
+        m_manifestSummaryText = lines.join(QStringLiteral("\n"));
         emit projectChanged();
     });
 }

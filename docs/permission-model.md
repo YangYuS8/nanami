@@ -36,6 +36,8 @@ Current 0.8d status: selected project context + mock workflow only. Nanami may r
 
 Current 0.9a status: permission-gated manifest preview only. Nanami may request explicit L2 `filesystem.read` approval for the currently selected trusted project and, after `allow_once` or `allow_for_task`, read only one supported top-level manifest file preview capped to 8 KB. It still does not read source contents, recursively scan the project, execute commands, call CubeSandbox, or write files.
 
+Current 0.9b status: permission-gated manifest summary extraction only. After the same explicit L2 `filesystem.read` approval used for manifest preview, Nanami may read the same supported top-level manifest content capped to 8 KB and derive structured summary fields such as package name, version, dependency count, script count, and summary text. It still does not read source contents, recursively scan the project, execute commands, call CubeSandbox, write files, or download dependencies.
+
 Nanami MUST ask the user before performing risky actions.
 
 Permission decisions MUST be explicit, scoped, recorded, and revocable where possible.
@@ -82,7 +84,7 @@ Rules:
 - Must show reason.
 - Must limit scope to a selected directory.
 - Must not read home directory recursively without explicit approval.
-- In 0.9a manifest preview, this scope is narrower: only one supported top-level manifest file in the currently selected trusted project may be read, and only after explicit approval.
+- In 0.9a/0.9b manifest preview and manifest summary, this scope is narrower: only one supported top-level manifest file in the currently selected trusted project may be read, and only after explicit approval.
 
 ### L3: Write Project Files
 

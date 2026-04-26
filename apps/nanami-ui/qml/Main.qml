@@ -489,6 +489,12 @@ ApplicationWindow {
                 onClicked: projectController.loadManifestPreview()
             }
 
+            Button {
+                text: projectController.busy ? "Loading manifest summary" : "Load manifest summary"
+                enabled: !projectController.busy && projectController.trustStatus === "selected_trusted"
+                onClicked: projectController.loadManifestSummary()
+            }
+
             TextArea {
                 width: parent.width
                 height: 140
@@ -496,6 +502,15 @@ ApplicationWindow {
                 wrapMode: TextArea.Wrap
                 text: projectController.manifestPreviewText
                 placeholderText: "Manifest preview will appear here after explicit permission approval"
+            }
+
+            TextArea {
+                width: parent.width
+                height: 120
+                readOnly: true
+                wrapMode: TextArea.Wrap
+                text: projectController.manifestSummaryText
+                placeholderText: "Manifest summary will appear here after explicit permission approval"
             }
 
             Text {

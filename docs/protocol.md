@@ -849,6 +849,27 @@ Example:
 }
 ```
 
+### Manifest Summary
+
+Manifest summary provides the 0.9b permission-gated structured manifest summary response. It is available only for the currently selected trusted project after an explicit approved L2 `filesystem.read` permission decision for manifest preview. Nanami reads only the same supported top-level manifest file, still capped to 8 KB: `Cargo.toml`, `package.json`, or `pyproject.toml`.
+
+This is manifest summary only. It is not source analysis. Nanami does not read source files, does not recursively scan the project, does not execute commands, does not call CubeSandbox, does not write files, and does not download dependencies.
+
+Example:
+
+```json
+{
+  "project_id": "project_selected_my-project",
+  "manifest_path": "/home/user/Code/my-project/package.json",
+  "kind": "node",
+  "package_name": "my-project",
+  "package_version": "1.2.3",
+  "dependency_count": 5,
+  "script_count": 3,
+  "summary_text": "Node manifest my-project 1.2.3 with 5 dependencies and 3 scripts"
+}
+```
+
 ### Tool Events
 
 ```json
@@ -918,7 +939,7 @@ artifact
 }
 ```
 
-For 0.9a manifest preview, `nanami-core` creates a dedicated L2 `filesystem.read` permission request through `POST /projects/current/manifest/preview-request`. Approval with `allow_once` or `allow_for_task` is required before `GET /projects/current/manifest/preview` will read the selected top-level manifest preview.
+For 0.9a manifest preview and 0.9b manifest summary, `nanami-core` creates a dedicated L2 `filesystem.read` permission request through `POST /projects/current/manifest/preview-request`. Approval with `allow_once` or `allow_for_task` is required before `GET /projects/current/manifest/preview` or `GET /projects/current/manifest/summary` will read the selected top-level manifest content.
 
 Valid permission decisions:
 

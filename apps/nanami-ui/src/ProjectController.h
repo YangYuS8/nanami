@@ -16,6 +16,7 @@ class ProjectController final : public QObject
     Q_PROPERTY(QString trustStatus READ trustStatus NOTIFY projectChanged)
     Q_PROPERTY(QString projectStructureText READ projectStructureText NOTIFY projectChanged)
     Q_PROPERTY(QString manifestPreviewText READ manifestPreviewText NOTIFY projectChanged)
+    Q_PROPERTY(QString manifestSummaryText READ manifestSummaryText NOTIFY projectChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
     Q_PROPERTY(QString error READ error NOTIFY errorChanged)
 
@@ -29,6 +30,7 @@ public:
     QString trustStatus() const;
     QString projectStructureText() const;
     QString manifestPreviewText() const;
+    QString manifestSummaryText() const;
     bool busy() const;
     QString error() const;
 
@@ -38,6 +40,7 @@ public:
     Q_INVOKABLE void loadProjectStructure();
     Q_INVOKABLE void requestManifestPreviewPermission();
     Q_INVOKABLE void loadManifestPreview();
+    Q_INVOKABLE void loadManifestSummary();
     void setPermissionController(PermissionController *permissionController);
 
 signals:
@@ -58,6 +61,7 @@ private:
     QString m_trustStatus;
     QString m_projectStructureText;
     QString m_manifestPreviewText;
+    QString m_manifestSummaryText;
     QString m_error;
     bool m_busy = false;
 };

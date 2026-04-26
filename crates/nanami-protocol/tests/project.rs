@@ -1,5 +1,5 @@
 use nanami_protocol::{
-    ManifestPreview, ProjectKind, ProjectMetadata, ProjectStructureEntry,
+    ManifestPreview, ManifestSummary, ProjectKind, ProjectMetadata, ProjectStructureEntry,
     ProjectStructureEntryType, ProjectStructureMarker, ProjectStructureSummary, ProjectTrustStatus,
 };
 
@@ -158,4 +158,32 @@ fn manifest_preview_serializes_json_shape() {
     assert_eq!(json["content_preview"], "[package]\nname = \"demo\"\n");
     assert_eq!(json["truncated"], false);
     assert_eq!(json["size_bytes"], 26);
+}
+
+#[test]
+fn manifest_summary_serializes_json_shape() {
+    let summary = ManifestSummary {
+        project_id: "project_selected_demo".into(),
+        manifest_path: "/mock/project/Cargo.toml".into(),
+        kind: ProjectKind::Rust,
+        package_name: Some("demo".into()),
+        package_version: Some("0.1.0".into()),
+        dependency_count: Some(2),
+        script_count: None,
+        summary_text: "Rust package demo 0.1.0 with 2 dependencies".into(),
+    };
+
+    let json = serde_json::to_value(summary).unwrap();
+
+    assert_eq!(json["project_id"], "project_selected_demo");
+    assert_eq!(json["manifest_path"], "/mock/project/Cargo.toml");
+    assert_eq!(json["kind"], "rust");
+    assert_eq!(json["package_name"], "demo");
+    assert_eq!(json["package_version"], "0.1.0");
+    assert_eq!(json["dependency_count"], 2);
+    assert!(json["script_count"].is_null());
+    assert_eq!(
+        json["summary_text"],
+        "Rust package demo 0.1.0 with 2 dependencies"
+    );
 }

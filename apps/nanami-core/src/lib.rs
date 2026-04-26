@@ -17,14 +17,14 @@ use nanami_openclaw::{
 use nanami_permission::PermissionManager;
 use nanami_protocol::{
     ChatRequest, ChatResponse, ChatStreamEvent, ChatStreamEventKind, ErrorPayload, ErrorSeverity,
-    Event, EventEnvelope, ManifestPreview, OpenClawConnectionStatus, OpenClawStatusPayload,
-    PermissionAuditLogResponse, PermissionDecision, PermissionDecisionStatus, PermissionLevel,
-    PermissionRequestPayload, PermissionResolvedPayload, PermissionScope, PersonaEmotion,
-    PersonaState, PersonaStatePayload, PersonaStateSource, ProjectKind, ProjectMetadata,
-    ProjectStructureEntry, ProjectStructureEntryType, ProjectStructureMarker,
-    ProjectStructureSummary, ProjectTrustStatus, TaskCompletedPayload, TaskStartedPayload,
-    TaskStatus, ToolCallStatus, ToolCompletedPayload, ToolOutputPayload, ToolOutputStream,
-    ToolStartedPayload, WorkflowChangeType, WorkflowCompletedPayload,
+    Event, EventEnvelope, ManifestPreview, ManifestSummary, OpenClawConnectionStatus,
+    OpenClawStatusPayload, PermissionAuditLogResponse, PermissionDecision,
+    PermissionDecisionStatus, PermissionLevel, PermissionRequestPayload, PermissionResolvedPayload,
+    PermissionScope, PersonaEmotion, PersonaState, PersonaStatePayload, PersonaStateSource,
+    ProjectKind, ProjectMetadata, ProjectStructureEntry, ProjectStructureEntryType,
+    ProjectStructureMarker, ProjectStructureSummary, ProjectTrustStatus, TaskCompletedPayload,
+    TaskStartedPayload, TaskStatus, ToolCallStatus, ToolCompletedPayload, ToolOutputPayload,
+    ToolOutputStream, ToolStartedPayload, WorkflowChangeType, WorkflowCompletedPayload,
     WorkflowPatchFilePreviewPayload, WorkflowPatchProposedPayload, WorkflowPatchRiskLevel,
     WorkflowStartedPayload, WorkflowStatus, WorkflowStepKind, WorkflowStepPayload,
     WorkflowStepStatus, WorkflowTestResultPayload,
@@ -86,6 +86,10 @@ fn router_with_openclaw(openclaw: Arc<dyn OpenClawService>) -> Router {
         .route(
             "/projects/current/manifest/preview",
             get(projects_current_manifest_preview),
+        )
+        .route(
+            "/projects/current/manifest/summary",
+            get(projects_current_manifest_summary),
         )
         .route("/permissions/mock/stream", get(permissions_mock_stream))
         .route("/permissions/resolve", post(permissions_resolve))
@@ -954,31 +958,28 @@ async fn projects_current_manifest_preview(State(state): State<AppState>) -> imp
         Err(error) => return error.into_response(),
     };
 
-    let permission_id = manifest_preview_permission_id(&project);
-    let decision = {
-        let manager = state.permission_manager.lock().unwrap();
-        manager.decision_for(&permission_id)
-    };
-
-    if !matches!(
-        decision,
-        Some(PermissionDecision::AllowOnce | PermissionDecision::AllowForTask)
-    ) {
-        return (
-            StatusCode::FORBIDDEN,
-            [("content-type", "application/json")],
-            serde_json::to_string(&chat_error(
-                "MANIFEST_PREVIEW_PERMISSION_REQUIRED",
-                "Manifest preview requires an approved filesystem.read permission",
-                Some("Request manifest preview permission and approve allow_once or allow_for_task first"),
-            ))
-            .unwrap(),
-        )
-            .into_response();
+    if let Err(error) = ensure_manifest_preview_permission(&state, &project) {
+        return error.into_response();
     }
 
     match build_manifest_preview(&project) {
         Ok(preview) => Json(preview).into_response(),
+        Err(error) => error.into_response(),
+    }
+}
+
+async fn projects_current_manifest_summary(State(state): State<AppState>) -> impl IntoResponse {
+    let project = match selected_trusted_project(&state, "loading manifest summary") {
+        Ok(project) => project,
+        Err(error) => return error.into_response(),
+    };
+
+    if let Err(error) = ensure_manifest_preview_permission(&state, &project) {
+        return error.into_response();
+    }
+
+    match build_manifest_summary(&project) {
+        Ok(summary) => Json(summary).into_response(),
         Err(error) => error.into_response(),
     }
 }
@@ -1002,6 +1003,9 @@ fn selected_trusted_project(
                     "loading manifest preview" => {
                         "Select and trust a project before loading manifest preview"
                     }
+                    "loading manifest summary" => {
+                        "Select and trust a project before loading manifest summary"
+                    }
                     _ => "Select and trust a project before loading its structure",
                 }),
             ))
@@ -1022,6 +1026,9 @@ fn selected_trusted_project(
                     }
                     "loading manifest preview" => {
                         "Trust the selected project before loading manifest preview"
+                    }
+                    "loading manifest summary" => {
+                        "Trust the selected project before loading manifest summary"
                     }
                     _ => "Trust the selected project before loading its structure",
                 }),
@@ -1073,6 +1080,58 @@ fn top_level_manifest_path(
 }
 
 fn build_manifest_preview(project: &ProjectMetadata) -> Result<ManifestPreview, JsonErrorResponse> {
+    let manifest_file = read_manifest_file(project)?;
+
+    Ok(ManifestPreview {
+        project_id: project.project_id.clone(),
+        manifest_path: manifest_file.manifest_path.display().to_string(),
+        kind: project.kind.clone(),
+        content_preview: manifest_file.content.clone(),
+        truncated: manifest_file.truncated,
+        size_bytes: manifest_file.size_bytes,
+    })
+}
+
+#[derive(Debug, Clone)]
+struct ManifestFile {
+    manifest_path: std::path::PathBuf,
+    content: String,
+    truncated: bool,
+    size_bytes: u64,
+}
+
+fn ensure_manifest_preview_permission(
+    state: &AppState,
+    project: &ProjectMetadata,
+) -> Result<(), JsonErrorResponse> {
+    let permission_id = manifest_preview_permission_id(project);
+    let decision = {
+        let manager = state.permission_manager.lock().unwrap();
+        manager.decision_for(&permission_id)
+    };
+
+    if matches!(
+        decision,
+        Some(PermissionDecision::AllowOnce | PermissionDecision::AllowForTask)
+    ) {
+        return Ok(());
+    }
+
+    Err((
+        StatusCode::FORBIDDEN,
+        [("content-type", "application/json")],
+        serde_json::to_string(&chat_error(
+            "MANIFEST_PREVIEW_PERMISSION_REQUIRED",
+            "Manifest preview requires an approved filesystem.read permission",
+            Some(
+                "Request manifest preview permission and approve allow_once or allow_for_task first",
+            ),
+        ))
+        .unwrap(),
+    ))
+}
+
+fn read_manifest_file(project: &ProjectMetadata) -> Result<ManifestFile, JsonErrorResponse> {
     let manifest_path = top_level_manifest_path(project)?;
     let bytes = match std::fs::read(&manifest_path) {
         Ok(bytes) => bytes,
@@ -1097,14 +1156,210 @@ fn build_manifest_preview(project: &ProjectMetadata) -> Result<ManifestPreview, 
         &bytes[..]
     };
 
-    Ok(ManifestPreview {
-        project_id: project.project_id.clone(),
-        manifest_path: manifest_path.display().to_string(),
-        kind: project.kind.clone(),
-        content_preview: String::from_utf8_lossy(preview_bytes).into_owned(),
+    Ok(ManifestFile {
+        manifest_path,
+        content: String::from_utf8_lossy(preview_bytes).into_owned(),
         truncated: size_bytes > MANIFEST_PREVIEW_MAX_BYTES,
         size_bytes,
     })
+}
+
+fn build_manifest_summary(project: &ProjectMetadata) -> Result<ManifestSummary, JsonErrorResponse> {
+    let manifest_file = read_manifest_file(project)?;
+    Ok(match project.kind {
+        ProjectKind::Rust => build_rust_manifest_summary(project, &manifest_file),
+        ProjectKind::Node => build_node_manifest_summary(project, &manifest_file),
+        ProjectKind::Python => build_python_manifest_summary(project, &manifest_file),
+        ProjectKind::Unknown => build_unknown_manifest_summary(project, &manifest_file),
+    })
+}
+
+fn build_rust_manifest_summary(
+    project: &ProjectMetadata,
+    manifest_file: &ManifestFile,
+) -> ManifestSummary {
+    let parsed: Result<toml::Value, _> = toml::from_str(&manifest_file.content);
+    let (package_name, package_version, dependency_count) = if let Ok(value) = parsed {
+        let package = value.get("package").and_then(toml::Value::as_table);
+        let package_name = package
+            .and_then(|package| package.get("name"))
+            .and_then(toml::Value::as_str)
+            .map(str::to_owned);
+        let package_version = package
+            .and_then(|package| package.get("version"))
+            .and_then(toml::Value::as_str)
+            .map(str::to_owned);
+        let dependency_count = value
+            .get("dependencies")
+            .and_then(toml::Value::as_table)
+            .map(|deps| deps.len() as u64);
+        (package_name, package_version, dependency_count)
+    } else {
+        (None, None, None)
+    };
+
+    ManifestSummary {
+        project_id: project.project_id.clone(),
+        manifest_path: manifest_file.manifest_path.display().to_string(),
+        kind: project.kind.clone(),
+        package_name: package_name.clone(),
+        package_version: package_version.clone(),
+        dependency_count,
+        script_count: None,
+        summary_text: summary_text_for_manifest(
+            "Rust",
+            package_name.as_deref(),
+            package_version.as_deref(),
+            dependency_count,
+            None,
+        ),
+    }
+}
+
+fn build_node_manifest_summary(
+    project: &ProjectMetadata,
+    manifest_file: &ManifestFile,
+) -> ManifestSummary {
+    let parsed: Result<serde_json::Value, _> = serde_json::from_str(&manifest_file.content);
+    let (package_name, package_version, dependency_count, script_count) = if let Ok(value) = parsed
+    {
+        let package_name = value
+            .get("name")
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_owned);
+        let package_version = value
+            .get("version")
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_owned);
+        let dependencies = value
+            .get("dependencies")
+            .and_then(serde_json::Value::as_object)
+            .map(|deps| deps.len() as u64)
+            .unwrap_or(0);
+        let dev_dependencies = value
+            .get("devDependencies")
+            .and_then(serde_json::Value::as_object)
+            .map(|deps| deps.len() as u64)
+            .unwrap_or(0);
+        let scripts = value
+            .get("scripts")
+            .and_then(serde_json::Value::as_object)
+            .map(|scripts| scripts.len() as u64);
+        (
+            package_name,
+            package_version,
+            Some(dependencies + dev_dependencies),
+            scripts,
+        )
+    } else {
+        (None, None, None, None)
+    };
+
+    ManifestSummary {
+        project_id: project.project_id.clone(),
+        manifest_path: manifest_file.manifest_path.display().to_string(),
+        kind: project.kind.clone(),
+        package_name: package_name.clone(),
+        package_version: package_version.clone(),
+        dependency_count,
+        script_count,
+        summary_text: summary_text_for_manifest(
+            "Node",
+            package_name.as_deref(),
+            package_version.as_deref(),
+            dependency_count,
+            script_count,
+        ),
+    }
+}
+
+fn build_python_manifest_summary(
+    project: &ProjectMetadata,
+    manifest_file: &ManifestFile,
+) -> ManifestSummary {
+    let parsed: Result<toml::Value, _> = toml::from_str(&manifest_file.content);
+    let (package_name, package_version, dependency_count) = if let Ok(value) = parsed {
+        let project_table = value.get("project").and_then(toml::Value::as_table);
+        let package_name = project_table
+            .and_then(|project| project.get("name"))
+            .and_then(toml::Value::as_str)
+            .map(str::to_owned);
+        let package_version = project_table
+            .and_then(|project| project.get("version"))
+            .and_then(toml::Value::as_str)
+            .map(str::to_owned);
+        let dependency_count = project_table
+            .and_then(|project| project.get("dependencies"))
+            .and_then(toml::Value::as_array)
+            .map(|deps| deps.len() as u64);
+        (package_name, package_version, dependency_count)
+    } else {
+        (None, None, None)
+    };
+
+    ManifestSummary {
+        project_id: project.project_id.clone(),
+        manifest_path: manifest_file.manifest_path.display().to_string(),
+        kind: project.kind.clone(),
+        package_name: package_name.clone(),
+        package_version: package_version.clone(),
+        dependency_count,
+        script_count: None,
+        summary_text: summary_text_for_manifest(
+            "Python",
+            package_name.as_deref(),
+            package_version.as_deref(),
+            dependency_count,
+            None,
+        ),
+    }
+}
+
+fn build_unknown_manifest_summary(
+    project: &ProjectMetadata,
+    manifest_file: &ManifestFile,
+) -> ManifestSummary {
+    ManifestSummary {
+        project_id: project.project_id.clone(),
+        manifest_path: manifest_file.manifest_path.display().to_string(),
+        kind: project.kind.clone(),
+        package_name: None,
+        package_version: None,
+        dependency_count: None,
+        script_count: None,
+        summary_text: "Manifest summary unavailable".into(),
+    }
+}
+
+fn summary_text_for_manifest(
+    ecosystem: &str,
+    package_name: Option<&str>,
+    package_version: Option<&str>,
+    dependency_count: Option<u64>,
+    script_count: Option<u64>,
+) -> String {
+    if package_name.is_none()
+        && package_version.is_none()
+        && dependency_count.is_none()
+        && script_count.is_none()
+    {
+        return "Manifest summary unavailable".into();
+    }
+
+    let mut summary = format!("{} manifest", ecosystem);
+    if let Some(name) = package_name {
+        summary.push_str(&format!(" {}", name));
+    }
+    if let Some(version) = package_version {
+        summary.push_str(&format!(" {}", version));
+    }
+    if let Some(count) = dependency_count {
+        summary.push_str(&format!(" with {} dependencies", count));
+    }
+    if let Some(count) = script_count {
+        summary.push_str(&format!(" and {} scripts", count));
+    }
+    summary
 }
 
 fn manifest_preview_permission_id(project: &ProjectMetadata) -> String {
@@ -2651,6 +2906,419 @@ mod tests {
         assert_eq!(
             json["content_preview"].as_str().unwrap().len(),
             MANIFEST_PREVIEW_MAX_BYTES as usize
+        );
+    }
+
+    #[tokio::test]
+    async fn projects_current_manifest_summary_requires_permission_decision() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "nanami_manifest_summary_permission_{}_{}",
+            std::process::id(),
+            chrono::Utc::now().timestamp_nanos_opt().unwrap()
+        ));
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        std::fs::write(temp_dir.join("Cargo.toml"), "[package]\nname = \"demo\"\n").unwrap();
+
+        let app = crate::router();
+        let select_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/select")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(
+                        r#"{{"project_path":"{}"}}"#,
+                        temp_dir.display()
+                    )))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let select_body = axum::body::to_bytes(select_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let select_json: serde_json::Value = serde_json::from_slice(&select_body).unwrap();
+        let project_id = select_json["project_id"].as_str().unwrap().to_owned();
+
+        let trust_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/trust")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(r#"{{"project_id":"{}"}}"#, project_id)))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(trust_response.status(), StatusCode::OK);
+
+        let summary_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/projects/current/manifest/summary")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let _ = std::fs::remove_file(temp_dir.join("Cargo.toml"));
+        let _ = std::fs::remove_dir(&temp_dir);
+
+        assert_eq!(summary_response.status(), StatusCode::FORBIDDEN);
+    }
+
+    #[tokio::test]
+    async fn projects_current_manifest_summary_extracts_rust_fields_after_allow_once() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "nanami_manifest_summary_rust_{}_{}",
+            std::process::id(),
+            chrono::Utc::now().timestamp_nanos_opt().unwrap()
+        ));
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        std::fs::write(
+            temp_dir.join("Cargo.toml"),
+            "[package]\nname = \"demo\"\nversion = \"0.1.0\"\n\n[dependencies]\nserde = \"1\"\ntokio = \"1\"\n",
+        )
+        .unwrap();
+
+        let app = crate::router();
+        let select_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/select")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(
+                        r#"{{"project_path":"{}"}}"#,
+                        temp_dir.display()
+                    )))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let select_body = axum::body::to_bytes(select_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let select_json: serde_json::Value = serde_json::from_slice(&select_body).unwrap();
+        let project_id = select_json["project_id"].as_str().unwrap().to_owned();
+        let permission_id = format!("perm_manifest_preview_{}", project_id);
+
+        let trust_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/trust")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(r#"{{"project_id":"{}"}}"#, project_id)))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(trust_response.status(), StatusCode::OK);
+
+        let request_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/current/manifest/preview-request")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(request_response.status(), StatusCode::OK);
+
+        let resolve_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/permissions/resolve")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(
+                        r#"{{"permission_id":"{}","decision":"allow_once"}}"#,
+                        permission_id
+                    )))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resolve_response.status(), StatusCode::OK);
+
+        let summary_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/projects/current/manifest/summary")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = summary_response.status();
+        let body = axum::body::to_bytes(summary_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        let _ = std::fs::remove_file(temp_dir.join("Cargo.toml"));
+        let _ = std::fs::remove_dir(&temp_dir);
+
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(json["kind"], "rust");
+        assert_eq!(json["package_name"], "demo");
+        assert_eq!(json["package_version"], "0.1.0");
+        assert_eq!(json["dependency_count"], 2);
+        assert!(json["script_count"].is_null());
+    }
+
+    #[tokio::test]
+    async fn projects_current_manifest_summary_extracts_node_fields_with_scripts_and_dependencies()
+    {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "nanami_manifest_summary_node_{}_{}",
+            std::process::id(),
+            chrono::Utc::now().timestamp_nanos_opt().unwrap()
+        ));
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        std::fs::write(
+            temp_dir.join("package.json"),
+            r#"{"name":"demo-node","version":"1.2.3","dependencies":{"react":"18"},"devDependencies":{"vite":"5","typescript":"5"},"scripts":{"dev":"vite","build":"vite build"}}"#,
+        )
+        .unwrap();
+
+        let app = crate::router();
+        let select_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/select")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(
+                        r#"{{"project_path":"{}"}}"#,
+                        temp_dir.display()
+                    )))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let select_body = axum::body::to_bytes(select_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let select_json: serde_json::Value = serde_json::from_slice(&select_body).unwrap();
+        let project_id = select_json["project_id"].as_str().unwrap().to_owned();
+        let permission_id = format!("perm_manifest_preview_{}", project_id);
+
+        let trust_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/trust")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(r#"{{"project_id":"{}"}}"#, project_id)))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(trust_response.status(), StatusCode::OK);
+
+        let request_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/current/manifest/preview-request")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(request_response.status(), StatusCode::OK);
+
+        let resolve_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/permissions/resolve")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(
+                        r#"{{"permission_id":"{}","decision":"allow_for_task"}}"#,
+                        permission_id
+                    )))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resolve_response.status(), StatusCode::OK);
+
+        let summary_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/projects/current/manifest/summary")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(summary_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        let _ = std::fs::remove_file(temp_dir.join("package.json"));
+        let _ = std::fs::remove_dir(&temp_dir);
+
+        assert_eq!(json["kind"], "node");
+        assert_eq!(json["package_name"], "demo-node");
+        assert_eq!(json["package_version"], "1.2.3");
+        assert_eq!(json["dependency_count"], 3);
+        assert_eq!(json["script_count"], 2);
+    }
+
+    #[tokio::test]
+    async fn projects_current_manifest_summary_extracts_python_fields_and_tolerates_parse_failure()
+    {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "nanami_manifest_summary_python_{}_{}",
+            std::process::id(),
+            chrono::Utc::now().timestamp_nanos_opt().unwrap()
+        ));
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        std::fs::write(
+            temp_dir.join("pyproject.toml"),
+            "[project]\nname = \"demo-py\"\nversion = \"0.2.0\"\ndependencies = [\"fastapi\", \"uvicorn\"]\n",
+        )
+        .unwrap();
+
+        let app = crate::router();
+        let select_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/select")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(
+                        r#"{{"project_path":"{}"}}"#,
+                        temp_dir.display()
+                    )))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let select_body = axum::body::to_bytes(select_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let select_json: serde_json::Value = serde_json::from_slice(&select_body).unwrap();
+        let project_id = select_json["project_id"].as_str().unwrap().to_owned();
+        let permission_id = format!("perm_manifest_preview_{}", project_id);
+
+        let trust_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/trust")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(r#"{{"project_id":"{}"}}"#, project_id)))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(trust_response.status(), StatusCode::OK);
+
+        let request_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/current/manifest/preview-request")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(request_response.status(), StatusCode::OK);
+
+        let resolve_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/permissions/resolve")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(
+                        r#"{{"permission_id":"{}","decision":"allow_for_task"}}"#,
+                        permission_id
+                    )))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resolve_response.status(), StatusCode::OK);
+
+        let summary_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/projects/current/manifest/summary")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = summary_response.status();
+        let body = axum::body::to_bytes(summary_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        std::fs::write(temp_dir.join("pyproject.toml"), "not valid toml = [").unwrap();
+
+        let fallback_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/projects/current/manifest/summary")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let fallback_body = axum::body::to_bytes(fallback_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let fallback_json: serde_json::Value = serde_json::from_slice(&fallback_body).unwrap();
+
+        let _ = std::fs::remove_file(temp_dir.join("pyproject.toml"));
+        let _ = std::fs::remove_dir(&temp_dir);
+
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(json["kind"], "python");
+        assert_eq!(json["package_name"], "demo-py");
+        assert_eq!(json["package_version"], "0.2.0");
+        assert_eq!(json["dependency_count"], 2);
+        assert!(json["script_count"].is_null());
+
+        assert_eq!(fallback_json["kind"], "python");
+        assert!(fallback_json["package_name"].is_null());
+        assert!(fallback_json["package_version"].is_null());
+        assert!(fallback_json["dependency_count"].is_null());
+        assert_eq!(
+            fallback_json["summary_text"],
+            "Manifest summary unavailable"
         );
     }
 
