@@ -241,7 +241,9 @@ Current 0.9g phase: OpenClaw adapter module split cleanup only. This phase reorg
 
 Current 0.9h phase: OpenClaw adapter test module split cleanup only. This phase reorganizes `nanami-openclaw` agent event mapping tests into focused native, tool, sandbox, and workflow test modules with shared support helpers. It does not change public API paths, protocol fields, event mapping behavior, serde shapes, error semantics, runtime capability boundaries, or the intended meaning of the test assertions.
 
-0.9 runtime capability boundary remains unchanged across 0.9a through 0.9h: Nanami does not read source content, does not recursively scan the project, does not execute commands, does not call CubeSandbox, does not write files, and does not download dependencies.
+Current 0.9i phase: UI controller networking/SSE cleanup only. This phase reorganizes `nanami-ui` controller internals by introducing lightweight shared helpers for HTTP JSON requests, JSON object parsing, network error strings, and SSE frame extraction. It does not change public API paths, protocol fields, controller interfaces, permission semantics, or runtime capability boundaries.
+
+0.9 runtime capability boundary remains unchanged across 0.9a through 0.9i: Nanami does not read source content, does not recursively scan the project, does not execute commands, does not call CubeSandbox, does not write files, and does not download dependencies.
 
 Expected demo:
 

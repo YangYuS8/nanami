@@ -1,13 +1,14 @@
 #include "ProjectController.h"
 
+#include "HttpJsonClient.h"
 #include "PermissionController.h"
+
+#include "SseStreamParser.h"
 
 #include <QFileDialog>
 #include <QJsonArray>
-#include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkReply>
-#include <QNetworkRequest>
 #include <QUrl>
 
 ProjectController::ProjectController(QObject *parent)
@@ -74,25 +75,25 @@ void ProjectController::loadMockProject()
     setError(QString());
     setBusy(true);
 
-    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/projects/mock/current")));
-    auto *reply = m_network.get(request);
+    HttpJsonClient client(&m_network);
+    auto *reply = client.get(QUrl(QStringLiteral("http://127.0.0.1:17878/projects/mock/current")));
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
         setBusy(false);
 
         if (reply->error() != QNetworkReply::NoError) {
-            setError(QStringLiteral("nanami-core mock project endpoint is unavailable"));
+            setError(HttpJsonClient::networkErrorString(
+                reply, QStringLiteral("nanami-core mock project endpoint is unavailable")));
             return;
         }
 
-        const auto document = QJsonDocument::fromJson(reply->readAll());
-        if (!document.isObject()) {
+        QJsonObject object;
+        QString parseError;
+        if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
             setError(QStringLiteral("Invalid mock project response"));
             return;
         }
-
-        const auto object = document.object();
         m_projectId = object.value(QStringLiteral("project_id")).toString();
         m_displayName = object.value(QStringLiteral("display_name")).toString();
         m_projectPath = object.value(QStringLiteral("project_path")).toString();
@@ -125,26 +126,25 @@ void ProjectController::selectProjectFolder()
     QJsonObject body;
     body.insert(QStringLiteral("project_path"), selectedPath);
 
-    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/projects/select")));
-    request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
-    auto *reply = m_network.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
+    HttpJsonClient client(&m_network);
+    auto *reply = client.postJson(QUrl(QStringLiteral("http://127.0.0.1:17878/projects/select")), body);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
         setBusy(false);
 
         if (reply->error() != QNetworkReply::NoError) {
-            setError(QStringLiteral("Failed to select project folder"));
+            setError(HttpJsonClient::networkErrorString(
+                reply, QStringLiteral("Failed to select project folder")));
             return;
         }
 
-        const auto document = QJsonDocument::fromJson(reply->readAll());
-        if (!document.isObject()) {
+        QJsonObject object;
+        QString parseError;
+        if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
             setError(QStringLiteral("Invalid selected project response"));
             return;
         }
-
-        const auto object = document.object();
         m_projectId = object.value(QStringLiteral("project_id")).toString();
         m_displayName = object.value(QStringLiteral("display_name")).toString();
         m_projectPath = object.value(QStringLiteral("project_path")).toString();
@@ -169,26 +169,25 @@ void ProjectController::trustSelectedProject()
     QJsonObject body;
     body.insert(QStringLiteral("project_id"), m_projectId);
 
-    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/projects/trust")));
-    request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
-    auto *reply = m_network.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
+    HttpJsonClient client(&m_network);
+    auto *reply = client.postJson(QUrl(QStringLiteral("http://127.0.0.1:17878/projects/trust")), body);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
         setBusy(false);
 
         if (reply->error() != QNetworkReply::NoError) {
-            setError(QStringLiteral("Failed to trust selected project"));
+            setError(HttpJsonClient::networkErrorString(
+                reply, QStringLiteral("Failed to trust selected project")));
             return;
         }
 
-        const auto document = QJsonDocument::fromJson(reply->readAll());
-        if (!document.isObject()) {
+        QJsonObject object;
+        QString parseError;
+        if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
             setError(QStringLiteral("Invalid trusted project response"));
             return;
         }
-
-        const auto object = document.object();
         m_projectId = object.value(QStringLiteral("project_id")).toString();
         m_displayName = object.value(QStringLiteral("display_name")).toString();
         m_projectPath = object.value(QStringLiteral("project_path")).toString();
@@ -207,26 +206,28 @@ void ProjectController::loadProjectStructure()
     setError(QString());
     setBusy(true);
 
-    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/projects/current/structure")));
-    auto *reply = m_network.get(request);
+    HttpJsonClient client(&m_network);
+    auto *reply = client.get(QUrl(QStringLiteral("http://127.0.0.1:17878/projects/current/structure")));
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
         setBusy(false);
 
         if (reply->error() != QNetworkReply::NoError) {
-            setError(QStringLiteral("Failed to load project structure"));
+            setError(HttpJsonClient::networkErrorString(
+                reply, QStringLiteral("Failed to load project structure")));
             return;
         }
 
-        const auto document = QJsonDocument::fromJson(reply->readAll());
-        if (!document.isObject()) {
+        QJsonObject object;
+        QString parseError;
+        if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
             setError(QStringLiteral("Invalid project structure response"));
             return;
         }
 
         QStringList lines;
-        const auto entries = document.object().value(QStringLiteral("entries")).toArray();
+        const auto entries = object.value(QStringLiteral("entries")).toArray();
         for (const auto &value : entries) {
             const auto entry = value.toObject();
             lines.append(QStringLiteral("%1 [%2, %3]")
@@ -248,26 +249,26 @@ void ProjectController::requestManifestPreviewPermission()
     setError(QString());
     setBusy(true);
 
-    QNetworkRequest request(
+    HttpJsonClient client(&m_network);
+    auto *reply = client.postEmpty(
         QUrl(QStringLiteral("http://127.0.0.1:17878/projects/current/manifest/preview-request")));
-    auto *reply = m_network.post(request, QByteArray());
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
         setBusy(false);
 
         if (reply->error() != QNetworkReply::NoError) {
-            setError(QStringLiteral("Failed to request manifest preview permission"));
+            setError(HttpJsonClient::networkErrorString(
+                reply, QStringLiteral("Failed to request manifest preview permission")));
             return;
         }
 
-        const auto document = QJsonDocument::fromJson(reply->readAll());
-        if (!document.isObject()) {
+        QJsonObject object;
+        QString parseError;
+        if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
             setError(QStringLiteral("Invalid manifest preview permission response"));
             return;
         }
-
-        const auto object = document.object();
         if (m_permissionController != nullptr) {
             m_permissionController->acceptPermissionRequest(object);
         }
@@ -287,26 +288,26 @@ void ProjectController::loadManifestPreview()
     setError(QString());
     setBusy(true);
 
-    QNetworkRequest request(
+    HttpJsonClient client(&m_network);
+    auto *reply = client.get(
         QUrl(QStringLiteral("http://127.0.0.1:17878/projects/current/manifest/preview")));
-    auto *reply = m_network.get(request);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
         setBusy(false);
 
         if (reply->error() != QNetworkReply::NoError) {
-            setError(QStringLiteral("Failed to load manifest preview"));
+            setError(HttpJsonClient::networkErrorString(
+                reply, QStringLiteral("Failed to load manifest preview")));
             return;
         }
 
-        const auto document = QJsonDocument::fromJson(reply->readAll());
-        if (!document.isObject()) {
+        QJsonObject object;
+        QString parseError;
+        if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
             setError(QStringLiteral("Invalid manifest preview response"));
             return;
         }
-
-        const auto object = document.object();
         const QString header = QStringLiteral("Manifest: %1\nKind: %2\nSize: %3 bytes%4\n")
                                    .arg(object.value(QStringLiteral("manifest_path")).toString(),
                                         object.value(QStringLiteral("kind")).toString(),
@@ -329,26 +330,26 @@ void ProjectController::loadManifestSummary()
     setError(QString());
     setBusy(true);
 
-    QNetworkRequest request(
+    HttpJsonClient client(&m_network);
+    auto *reply = client.get(
         QUrl(QStringLiteral("http://127.0.0.1:17878/projects/current/manifest/summary")));
-    auto *reply = m_network.get(request);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
         setBusy(false);
 
         if (reply->error() != QNetworkReply::NoError) {
-            setError(QStringLiteral("Failed to load manifest summary"));
+            setError(HttpJsonClient::networkErrorString(
+                reply, QStringLiteral("Failed to load manifest summary")));
             return;
         }
 
-        const auto document = QJsonDocument::fromJson(reply->readAll());
-        if (!document.isObject()) {
+        QJsonObject object;
+        QString parseError;
+        if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
             setError(QStringLiteral("Invalid manifest summary response"));
             return;
         }
-
-        const auto object = document.object();
         QStringList lines;
         lines.append(QStringLiteral("Manifest: %1")
                          .arg(object.value(QStringLiteral("manifest_path")).toString()));

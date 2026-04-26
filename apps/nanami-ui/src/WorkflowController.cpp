@@ -1,10 +1,11 @@
 #include "WorkflowController.h"
 
+#include "HttpJsonClient.h"
+#include "SseStreamParser.h"
+
 #include <QJsonArray>
-#include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkReply>
-#include <QNetworkRequest>
 #include <QUrl>
 
 WorkflowController::WorkflowController(QObject *parent)
@@ -73,8 +74,8 @@ void WorkflowController::startMockWorkflowStream()
     setError(QString());
     setBusy(true);
 
-    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/workflow/mock/stream")));
-    auto *reply = m_network.get(request);
+    HttpJsonClient client(&m_network);
+    auto *reply = client.get(QUrl(QStringLiteral("http://127.0.0.1:17878/workflow/mock/stream")));
 
     connect(reply, &QNetworkReply::readyRead, this, [this, reply]() {
         handleStreamData(reply->readAll());
@@ -86,7 +87,8 @@ void WorkflowController::startMockWorkflowStream()
         setBusy(false);
 
         if (reply->error() != QNetworkReply::NoError) {
-            setError(QStringLiteral("nanami-core mock workflow stream is unavailable"));
+            setError(HttpJsonClient::networkErrorString(
+                reply, QStringLiteral("nanami-core mock workflow stream is unavailable")));
         }
     });
 }
@@ -102,9 +104,9 @@ void WorkflowController::startCurrentProjectMockWorkflowStream()
     setError(QString());
     setBusy(true);
 
-    QNetworkRequest request(
+    HttpJsonClient client(&m_network);
+    auto *reply = client.get(
         QUrl(QStringLiteral("http://127.0.0.1:17878/workflow/mock/current-project/stream")));
-    auto *reply = m_network.get(request);
 
     connect(reply, &QNetworkReply::readyRead, this, [this, reply]() {
         handleStreamData(reply->readAll());
@@ -116,7 +118,8 @@ void WorkflowController::startCurrentProjectMockWorkflowStream()
         setBusy(false);
 
         if (reply->error() != QNetworkReply::NoError) {
-            setError(QStringLiteral("nanami-core current-project workflow stream is unavailable"));
+            setError(HttpJsonClient::networkErrorString(
+                reply, QStringLiteral("nanami-core current-project workflow stream is unavailable")));
         }
     });
 }
@@ -133,26 +136,26 @@ void WorkflowController::requestMockApplyPatch()
     QJsonObject body;
     body.insert(QStringLiteral("patch_id"), m_state.patch.patchId);
 
-    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/workflow/mock/apply-patch")));
-    request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
-    auto *reply = m_network.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
+    HttpJsonClient client(&m_network);
+    auto *reply = client.postJson(
+        QUrl(QStringLiteral("http://127.0.0.1:17878/workflow/mock/apply-patch")), body);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
         setBusy(false);
 
         if (reply->error() != QNetworkReply::NoError) {
-            setError(QStringLiteral("Failed to request mock apply patch"));
+            setError(HttpJsonClient::networkErrorString(
+                reply, QStringLiteral("Failed to request mock apply patch")));
             return;
         }
 
-        const auto document = QJsonDocument::fromJson(reply->readAll());
-        if (!document.isObject()) {
+        QJsonObject object;
+        QString parseError;
+        if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
             setError(QStringLiteral("Invalid mock apply patch response"));
             return;
         }
-
-        const auto object = document.object();
         m_applyPatchStatus = object.value(QStringLiteral("status")).toString();
         m_applyPatchText = QStringLiteral("%1 (permission_id=%2)")
                                .arg(object.value(QStringLiteral("message")).toString(),
@@ -178,21 +181,12 @@ void WorkflowController::handleStreamData(const QByteArray &data)
         return;
     }
 
-    m_streamBuffer.append(QString::fromUtf8(data));
-    int separator = m_streamBuffer.indexOf(QStringLiteral("\n\n"));
-    while (separator >= 0) {
-        const QString frame = m_streamBuffer.left(separator).trimmed();
-        m_streamBuffer.remove(0, separator + 2);
-
-        if (frame.startsWith(QStringLiteral("data:"))) {
-            const QString payload = frame.mid(5).trimmed();
-            const auto document = QJsonDocument::fromJson(payload.toUtf8());
-            if (document.isObject()) {
-                handleEvent(document.object());
-            }
+    const QStringList payloads = SseStreamParser::extractDataFrames(&m_streamBuffer, data);
+    for (const QString &payload : payloads) {
+        const auto document = QJsonDocument::fromJson(payload.toUtf8());
+        if (document.isObject()) {
+            handleEvent(document.object());
         }
-
-        separator = m_streamBuffer.indexOf(QStringLiteral("\n\n"));
     }
 }
 

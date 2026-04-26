@@ -25,6 +25,8 @@ qt_add_executable(nanami-ui
     src/ChatController.h
     src/DesktopController.cpp
     src/DesktopController.h
+    src/HttpJsonClient.cpp
+    src/HttpJsonClient.h
     src/PersonaController.cpp
     src/PersonaController.h
     src/PetRendererController.cpp
@@ -37,6 +39,8 @@ qt_add_executable(nanami-ui
     src/SandboxController.h
     src/StatusController.cpp
     src/StatusController.h
+    src/SseStreamParser.cpp
+    src/SseStreamParser.h
     src/TaskController.cpp
     src/TaskController.h
     src/WorkflowController.cpp

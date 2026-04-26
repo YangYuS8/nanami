@@ -1,9 +1,10 @@
 #include "PersonaController.h"
 
-#include <QJsonDocument>
+#include "HttpJsonClient.h"
+#include "SseStreamParser.h"
+
 #include <QJsonObject>
 #include <QNetworkReply>
-#include <QNetworkRequest>
 #include <QUrl>
 
 PersonaController::PersonaController(QObject *parent)
@@ -52,8 +53,8 @@ void PersonaController::startMockPersonaStream()
     setError(QString());
     setBusy(true);
 
-    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/persona/mock/stream")));
-    auto *reply = m_network.get(request);
+    HttpJsonClient client(&m_network);
+    auto *reply = client.get(QUrl(QStringLiteral("http://127.0.0.1:17878/persona/mock/stream")));
 
     connect(reply, &QNetworkReply::readyRead, this, [this, reply]() {
         handleStreamData(reply->readAll());
@@ -65,7 +66,8 @@ void PersonaController::startMockPersonaStream()
         setBusy(false);
 
         if (reply->error() != QNetworkReply::NoError) {
-            setError(QStringLiteral("nanami-core mock persona stream is unavailable"));
+            setError(HttpJsonClient::networkErrorString(
+                reply, QStringLiteral("nanami-core mock persona stream is unavailable")));
         }
     });
 }
@@ -85,21 +87,14 @@ void PersonaController::handleStreamData(const QByteArray &data)
         return;
     }
 
-    m_streamBuffer.append(QString::fromUtf8(data));
-    int separator = m_streamBuffer.indexOf(QStringLiteral("\n\n"));
-    while (separator >= 0) {
-        const QString frame = m_streamBuffer.left(separator).trimmed();
-        m_streamBuffer.remove(0, separator + 2);
-
-        if (frame.startsWith(QStringLiteral("data:"))) {
-            const QString payload = frame.mid(5).trimmed();
-            const auto document = QJsonDocument::fromJson(payload.toUtf8());
-            if (document.isObject()) {
-                handleEvent(document.object());
-            }
+    const QStringList payloads = SseStreamParser::extractDataFrames(&m_streamBuffer, data);
+    for (const QString &payload : payloads) {
+        QJsonObject object;
+        const auto document = QJsonDocument::fromJson(payload.toUtf8());
+        if (document.isObject()) {
+            object = document.object();
+            handleEvent(object);
         }
-
-        separator = m_streamBuffer.indexOf(QStringLiteral("\n\n"));
     }
 }
 

@@ -1,10 +1,11 @@
 #include "PermissionController.h"
 
+#include "HttpJsonClient.h"
+#include "SseStreamParser.h"
+
 #include <QJsonArray>
-#include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkReply>
-#include <QNetworkRequest>
 #include <QUrl>
 
 PermissionController::PermissionController(QObject *parent)
@@ -83,8 +84,8 @@ void PermissionController::startMockPermissionStream()
     setError(QString());
     setBusy(true);
 
-    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/permissions/mock/stream")));
-    auto *reply = m_network.get(request);
+    HttpJsonClient client(&m_network);
+    auto *reply = client.get(QUrl(QStringLiteral("http://127.0.0.1:17878/permissions/mock/stream")));
 
     connect(reply, &QNetworkReply::readyRead, this, [this, reply]() {
         handleStreamData(reply->readAll());
@@ -96,7 +97,8 @@ void PermissionController::startMockPermissionStream()
         setBusy(false);
 
         if (reply->error() != QNetworkReply::NoError) {
-            setError(QStringLiteral("nanami-core permission stream is unavailable"));
+            setError(HttpJsonClient::networkErrorString(
+                reply, QStringLiteral("nanami-core permission stream is unavailable")));
         }
     });
 }
@@ -112,24 +114,26 @@ void PermissionController::refreshDecision()
 
 void PermissionController::refreshAuditLog()
 {
-    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/permissions/audit")));
-    auto *reply = m_network.get(request);
+    HttpJsonClient client(&m_network);
+    auto *reply = client.get(QUrl(QStringLiteral("http://127.0.0.1:17878/permissions/audit")));
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
         if (reply->error() != QNetworkReply::NoError) {
-            setError(QStringLiteral("Failed to fetch permission audit log"));
+            setError(HttpJsonClient::networkErrorString(
+                reply, QStringLiteral("Failed to fetch permission audit log")));
             return;
         }
 
-        const auto document = QJsonDocument::fromJson(reply->readAll());
-        if (!document.isObject()) {
+        QJsonObject object;
+        QString parseError;
+        if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
             setError(QStringLiteral("Invalid permission audit response"));
             return;
         }
 
         QStringList lines;
-        const auto records = document.object().value(QStringLiteral("records")).toArray();
+        const auto records = object.value(QStringLiteral("records")).toArray();
         for (const QJsonValue &recordValue : records) {
             const auto record = recordValue.toObject();
             QString line = record.value(QStringLiteral("action")).toString()
@@ -194,32 +198,23 @@ void PermissionController::handleStreamData(const QByteArray &data)
         return;
     }
 
-    m_streamBuffer.append(QString::fromUtf8(data));
-    int separator = m_streamBuffer.indexOf(QStringLiteral("\n\n"));
-    while (separator >= 0) {
-        const QString frame = m_streamBuffer.left(separator).trimmed();
-        m_streamBuffer.remove(0, separator + 2);
-
-        if (frame.startsWith(QStringLiteral("data:"))) {
-            const QString payload = frame.mid(5).trimmed();
-            const auto document = QJsonDocument::fromJson(payload.toUtf8());
-            if (document.isObject()) {
-                const QJsonObject object = document.object();
-                if (object.value(QStringLiteral("type")).toString() == QStringLiteral("permission.requested")) {
-                    m_permissionId = object.value(QStringLiteral("permission_id")).toString();
-                    m_permissionLevel = object.value(QStringLiteral("level")).toString();
-                    m_permissionAction = object.value(QStringLiteral("action")).toString();
-                    m_permissionTarget = object.value(QStringLiteral("target")).toString();
-                    m_permissionReason = object.value(QStringLiteral("reason")).toString();
-                    m_permissionScope = object.value(QStringLiteral("scope")).toString();
-                    m_permissionExpires = object.value(QStringLiteral("expires")).toString();
-                    m_hasPermissionRequest = true;
-                    emit permissionChanged();
-                }
+    const QStringList payloads = SseStreamParser::extractDataFrames(&m_streamBuffer, data);
+    for (const QString &payload : payloads) {
+        const auto document = QJsonDocument::fromJson(payload.toUtf8());
+        if (document.isObject()) {
+            const QJsonObject object = document.object();
+            if (object.value(QStringLiteral("type")).toString() == QStringLiteral("permission.requested")) {
+                m_permissionId = object.value(QStringLiteral("permission_id")).toString();
+                m_permissionLevel = object.value(QStringLiteral("level")).toString();
+                m_permissionAction = object.value(QStringLiteral("action")).toString();
+                m_permissionTarget = object.value(QStringLiteral("target")).toString();
+                m_permissionReason = object.value(QStringLiteral("reason")).toString();
+                m_permissionScope = object.value(QStringLiteral("scope")).toString();
+                m_permissionExpires = object.value(QStringLiteral("expires")).toString();
+                m_hasPermissionRequest = true;
+                emit permissionChanged();
             }
         }
-
-        separator = m_streamBuffer.indexOf(QStringLiteral("\n\n"));
     }
 }
 
@@ -237,26 +232,25 @@ void PermissionController::resolve(const QString &decision)
     body.insert(QStringLiteral("permission_id"), m_permissionId);
     body.insert(QStringLiteral("decision"), decision);
 
-    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/permissions/resolve")));
-    request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
-    auto *reply = m_network.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
+    HttpJsonClient client(&m_network);
+    auto *reply = client.postJson(QUrl(QStringLiteral("http://127.0.0.1:17878/permissions/resolve")), body);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply, resolvedPermissionId]() {
         reply->deleteLater();
         setBusy(false);
 
-        const auto document = QJsonDocument::fromJson(reply->readAll());
         if (reply->error() != QNetworkReply::NoError) {
-            setError(QStringLiteral("Failed to resolve permission"));
+            setError(HttpJsonClient::networkErrorString(
+                reply, QStringLiteral("Failed to resolve permission")));
             return;
         }
 
-        if (!document.isObject()) {
+        QJsonObject object;
+        QString parseError;
+        if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
             setError(QStringLiteral("Invalid permission resolve response"));
             return;
         }
-
-        const auto object = document.object();
         m_lastDecision = object.value(QStringLiteral("decision")).toString(QStringLiteral("none"));
         emit decisionChanged();
         fetchDecision(resolvedPermissionId);
@@ -280,23 +274,25 @@ void PermissionController::clearRequest()
 
 void PermissionController::fetchDecision(const QString &permissionId)
 {
-    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/permissions/decision/") + permissionId));
-    auto *reply = m_network.get(request);
+    HttpJsonClient client(&m_network);
+    auto *reply = client.get(QUrl(QStringLiteral("http://127.0.0.1:17878/permissions/decision/") + permissionId));
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
         if (reply->error() != QNetworkReply::NoError) {
-            setError(QStringLiteral("Failed to fetch permission decision"));
+            setError(HttpJsonClient::networkErrorString(
+                reply, QStringLiteral("Failed to fetch permission decision")));
             return;
         }
 
-        const auto document = QJsonDocument::fromJson(reply->readAll());
-        if (!document.isObject()) {
+        QJsonObject object;
+        QString parseError;
+        if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
             setError(QStringLiteral("Invalid permission decision response"));
             return;
         }
 
-        const auto value = document.object().value(QStringLiteral("decision"));
+        const auto value = object.value(QStringLiteral("decision"));
         m_lastDecision = value.isNull() ? QStringLiteral("none") : value.toString(QStringLiteral("none"));
         emit decisionChanged();
     });
