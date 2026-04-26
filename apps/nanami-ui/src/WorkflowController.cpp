@@ -91,6 +91,36 @@ void WorkflowController::startMockWorkflowStream()
     });
 }
 
+void WorkflowController::startCurrentProjectMockWorkflowStream()
+{
+    if (m_busy) {
+        return;
+    }
+
+    resetState();
+    m_streamBuffer.clear();
+    setError(QString());
+    setBusy(true);
+
+    QNetworkRequest request(
+        QUrl(QStringLiteral("http://127.0.0.1:17878/workflow/mock/current-project/stream")));
+    auto *reply = m_network.get(request);
+
+    connect(reply, &QNetworkReply::readyRead, this, [this, reply]() {
+        handleStreamData(reply->readAll());
+    });
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        reply->deleteLater();
+        handleStreamData(reply->readAll());
+        setBusy(false);
+
+        if (reply->error() != QNetworkReply::NoError) {
+            setError(QStringLiteral("nanami-core current-project workflow stream is unavailable"));
+        }
+    });
+}
+
 void WorkflowController::requestMockApplyPatch()
 {
     if (m_busy || m_state.patch.patchId.isEmpty()) {

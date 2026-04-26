@@ -40,6 +40,7 @@ use tokio_stream::once;
 const DEFAULT_OPENCLAW_TIMEOUT_MS: u64 = 3000;
 type NanamiEventStream =
     Pin<Box<dyn tokio_stream::Stream<Item = Result<EventEnvelope, ErrorPayload>> + Send>>;
+type JsonErrorResponse = (StatusCode, [(&'static str, &'static str); 1], String);
 
 #[derive(Debug, Serialize)]
 struct HealthResponse {
@@ -62,6 +63,10 @@ fn router_with_openclaw(openclaw: Arc<dyn OpenClawService>) -> Router {
         .route("/sandbox/mock/stream", get(sandbox_mock_stream))
         .route("/persona/mock/stream", get(persona_mock_stream))
         .route("/workflow/mock/stream", get(workflow_mock_stream))
+        .route(
+            "/workflow/mock/current-project/stream",
+            get(workflow_mock_current_project_stream),
+        )
         .route(
             "/workflow/mock/apply-patch",
             post(workflow_mock_apply_patch),
@@ -553,6 +558,233 @@ async fn workflow_mock_stream() -> Response {
     .into_response()
 }
 
+async fn workflow_mock_current_project_stream(State(state): State<AppState>) -> Response {
+    let selected_project = state.selected_project.lock().unwrap();
+    let Some(project) = selected_project.as_ref() else {
+        return (
+            StatusCode::BAD_REQUEST,
+            [("content-type", "application/json")],
+            serde_json::to_string(&chat_error(
+                "PROJECT_NOT_SELECTED",
+                "No project is currently selected",
+                Some("Select and trust a project before running a current-project workflow"),
+            ))
+            .unwrap(),
+        )
+            .into_response();
+    };
+
+    if project.trust_status != ProjectTrustStatus::SelectedTrusted {
+        return (
+            StatusCode::BAD_REQUEST,
+            [("content-type", "application/json")],
+            serde_json::to_string(&chat_error(
+                "PROJECT_NOT_TRUSTED",
+                "Current selected project must be selected_trusted",
+                Some("Trust the selected project before running a current-project workflow"),
+            ))
+            .unwrap(),
+        )
+            .into_response();
+    }
+
+    let structure = match build_project_structure_summary(project) {
+        Ok(summary) => summary,
+        Err(error) => return error.into_response(),
+    };
+
+    let events = vec![
+        EventEnvelope::new(
+            "evt_workflow_current_project_started_001",
+            chrono::Utc::now(),
+            Event::WorkflowStarted(WorkflowStartedPayload {
+                workflow_id: "workflow_current_project_001".into(),
+                task_id: "task_workflow_current_project_001".into(),
+                project_path: project.project_path.clone(),
+                status: WorkflowStatus::Running,
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_workflow_current_project_open_project_001",
+            chrono::Utc::now(),
+            Event::WorkflowStep(WorkflowStepPayload {
+                workflow_id: "workflow_current_project_001".into(),
+                task_id: "task_workflow_current_project_001".into(),
+                step_kind: WorkflowStepKind::OpenProject,
+                status: WorkflowStepStatus::Completed,
+                summary: format!(
+                    "Selected project {} [{}] ({}, {})",
+                    project.display_name,
+                    project.project_id,
+                    project_kind_label(&project.kind),
+                    project_trust_status_label(&project.trust_status)
+                ),
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_workflow_current_project_analyze_project_001",
+            chrono::Utc::now(),
+            Event::WorkflowStep(WorkflowStepPayload {
+                workflow_id: "workflow_current_project_001".into(),
+                task_id: "task_workflow_current_project_001".into(),
+                step_kind: WorkflowStepKind::AnalyzeProject,
+                status: WorkflowStepStatus::Completed,
+                summary: format!(
+                    "Shallow structure summary includes {} top-level entries",
+                    structure.entries.len()
+                ),
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_workflow_current_project_run_tests_001",
+            chrono::Utc::now(),
+            Event::WorkflowStep(WorkflowStepPayload {
+                workflow_id: "workflow_current_project_001".into(),
+                task_id: "task_workflow_current_project_001".into(),
+                step_kind: WorkflowStepKind::RunTests,
+                status: WorkflowStepStatus::Completed,
+                summary: "Mock tests executed in current project context".into(),
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_workflow_current_project_test_result_001",
+            chrono::Utc::now(),
+            Event::WorkflowTestResult(WorkflowTestResultPayload {
+                workflow_id: "workflow_current_project_001".into(),
+                task_id: "task_workflow_current_project_001".into(),
+                status: WorkflowStatus::Completed,
+                summary: "2 tests passed, 1 failed".into(),
+                command_preview: "cargo test --lib".into(),
+                duration_ms: 1200,
+                passed: 2,
+                failed: 1,
+                failed_test_names: vec!["tests::mock_failure".into()],
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_workflow_current_project_patch_proposed_001",
+            chrono::Utc::now(),
+            Event::WorkflowPatchProposed(WorkflowPatchProposedPayload {
+                workflow_id: "workflow_current_project_001".into(),
+                task_id: "task_workflow_current_project_001".into(),
+                patch_id: "patch_current_project_001".into(),
+                summary: "Mock patch proposal ready".into(),
+                diff_summary: "1 file modified".into(),
+                risk_level: WorkflowPatchRiskLevel::Medium,
+                files: vec![WorkflowPatchFilePreviewPayload {
+                    path: "src/main.rs".into(),
+                    change_type: WorkflowChangeType::Modified,
+                    diff_preview: "- old line\n+ new line".into(),
+                }],
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_workflow_current_project_apply_patch_001",
+            chrono::Utc::now(),
+            Event::WorkflowStep(WorkflowStepPayload {
+                workflow_id: "workflow_current_project_001".into(),
+                task_id: "task_workflow_current_project_001".into(),
+                step_kind: WorkflowStepKind::ApplyPatch,
+                status: WorkflowStepStatus::WaitingPermission,
+                summary: "Waiting for patch approval".into(),
+            }),
+        ),
+        EventEnvelope::new(
+            "evt_workflow_current_project_completed_001",
+            chrono::Utc::now(),
+            Event::WorkflowCompleted(WorkflowCompletedPayload {
+                workflow_id: "workflow_current_project_001".into(),
+                task_id: "task_workflow_current_project_001".into(),
+                status: WorkflowStatus::Completed,
+                summary: "Mock current-project workflow completed".into(),
+            }),
+        ),
+    ];
+
+    Sse::new(tokio_stream::iter(events.into_iter().map(|event| {
+        Ok::<_, Infallible>(SseEvent::default().data(serde_json::to_string(&event).unwrap()))
+    })))
+    .keep_alive(KeepAlive::default())
+    .into_response()
+}
+
+fn build_project_structure_summary(
+    project: &ProjectMetadata,
+) -> Result<ProjectStructureSummary, JsonErrorResponse> {
+    let root = std::path::PathBuf::from(&project.project_path);
+    let read_dir = match std::fs::read_dir(&root) {
+        Ok(read_dir) => read_dir,
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                [("content-type", "application/json")],
+                serde_json::to_string(&chat_error(
+                    "PROJECT_STRUCTURE_UNAVAILABLE",
+                    "Unable to read the selected project directory",
+                    Some("Select a valid project folder again"),
+                ))
+                .unwrap(),
+            ));
+        }
+    };
+
+    let mut entries = Vec::new();
+    for entry in read_dir.flatten() {
+        let file_name = entry.file_name().to_string_lossy().to_string();
+        let file_type = match entry.file_type() {
+            Ok(file_type) => file_type,
+            Err(_) => continue,
+        };
+
+        let entry_type = if file_type.is_dir() {
+            ProjectStructureEntryType::Directory
+        } else {
+            ProjectStructureEntryType::File
+        };
+
+        let marker = match file_name.as_str() {
+            "Cargo.toml" | "package.json" | "pyproject.toml" => ProjectStructureMarker::Manifest,
+            "src" | "app" | "crates" | "packages" => ProjectStructureMarker::SourceDir,
+            ".gitignore" => ProjectStructureMarker::Config,
+            "README.md" | "LICENSE" => ProjectStructureMarker::Other,
+            _ => ProjectStructureMarker::Other,
+        };
+
+        entries.push(ProjectStructureEntry {
+            name: file_name.clone(),
+            relative_path: file_name,
+            entry_type,
+            marker,
+        });
+    }
+
+    entries.sort_by(|left, right| left.relative_path.cmp(&right.relative_path));
+
+    Ok(ProjectStructureSummary {
+        project_id: project.project_id.clone(),
+        project_path: project.project_path.clone(),
+        entries,
+    })
+}
+
+fn project_kind_label(kind: &ProjectKind) -> &'static str {
+    match kind {
+        ProjectKind::Rust => "rust",
+        ProjectKind::Node => "node",
+        ProjectKind::Python => "python",
+        ProjectKind::Unknown => "unknown",
+    }
+}
+
+fn project_trust_status_label(status: &ProjectTrustStatus) -> &'static str {
+    match status {
+        ProjectTrustStatus::Untrusted => "untrusted",
+        ProjectTrustStatus::TrustedMock => "trusted_mock",
+        ProjectTrustStatus::SelectedUntrusted => "selected_untrusted",
+        ProjectTrustStatus::SelectedTrusted => "selected_trusted",
+    }
+}
+
 async fn projects_mock_current() -> Json<ProjectMetadata> {
     Json(ProjectMetadata {
         project_id: "project_mock_001".into(),
@@ -696,62 +928,10 @@ async fn projects_current_structure(State(state): State<AppState>) -> impl IntoR
             .into_response();
     }
 
-    let root = std::path::PathBuf::from(&project.project_path);
-    let read_dir = match std::fs::read_dir(&root) {
-        Ok(read_dir) => read_dir,
-        Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                [("content-type", "application/json")],
-                serde_json::to_string(&chat_error(
-                    "PROJECT_STRUCTURE_UNAVAILABLE",
-                    "Unable to read the selected project directory",
-                    Some("Select a valid project folder again"),
-                ))
-                .unwrap(),
-            )
-                .into_response();
-        }
-    };
-
-    let mut entries = Vec::new();
-    for entry in read_dir.flatten() {
-        let file_name = entry.file_name().to_string_lossy().to_string();
-        let file_type = match entry.file_type() {
-            Ok(file_type) => file_type,
-            Err(_) => continue,
-        };
-
-        let entry_type = if file_type.is_dir() {
-            ProjectStructureEntryType::Directory
-        } else {
-            ProjectStructureEntryType::File
-        };
-
-        let marker = match file_name.as_str() {
-            "Cargo.toml" | "package.json" | "pyproject.toml" => ProjectStructureMarker::Manifest,
-            "src" | "app" | "crates" | "packages" => ProjectStructureMarker::SourceDir,
-            ".gitignore" => ProjectStructureMarker::Config,
-            "README.md" | "LICENSE" => ProjectStructureMarker::Other,
-            _ => ProjectStructureMarker::Other,
-        };
-
-        entries.push(ProjectStructureEntry {
-            name: file_name.clone(),
-            relative_path: file_name,
-            entry_type,
-            marker,
-        });
+    match build_project_structure_summary(project) {
+        Ok(summary) => Json(summary).into_response(),
+        Err(error) => error.into_response(),
     }
-
-    entries.sort_by(|left, right| left.relative_path.cmp(&right.relative_path));
-
-    Json(ProjectStructureSummary {
-        project_id: project.project_id.clone(),
-        project_path: project.project_path.clone(),
-        entries,
-    })
-    .into_response()
 }
 
 async fn workflow_mock_apply_patch(
@@ -1965,6 +2145,101 @@ mod tests {
                 && record["action"] == "permission_requested"
                 && record["permission_action"] == "filesystem.write"
         ));
+    }
+
+    #[tokio::test]
+    async fn workflow_mock_current_project_stream_requires_selected_trusted_project() {
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .uri("/workflow/mock/current-project/stream")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn workflow_mock_current_project_stream_uses_selected_project_metadata_and_structure_count()
+     {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "nanami_workflow_current_project_{}_{}",
+            std::process::id(),
+            chrono::Utc::now().timestamp_nanos_opt().unwrap()
+        ));
+        std::fs::create_dir_all(temp_dir.join("src")).unwrap();
+        std::fs::create_dir_all(temp_dir.join("crates")).unwrap();
+        std::fs::write(temp_dir.join("Cargo.toml"), "").unwrap();
+        std::fs::write(temp_dir.join("README.md"), "").unwrap();
+
+        let app = crate::router();
+        let select_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/select")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(
+                        r#"{{"project_path":"{}"}}"#,
+                        temp_dir.display()
+                    )))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let select_body = axum::body::to_bytes(select_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let select_json: serde_json::Value = serde_json::from_slice(&select_body).unwrap();
+        let project_id = select_json["project_id"].as_str().unwrap().to_owned();
+
+        let trust_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/trust")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(r#"{{"project_id":"{}"}}"#, project_id)))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(trust_response.status(), StatusCode::OK);
+
+        let workflow_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/workflow/mock/current-project/stream")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = workflow_response.status();
+        let body = axum::body::to_bytes(workflow_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+
+        let _ = std::fs::remove_file(temp_dir.join("Cargo.toml"));
+        let _ = std::fs::remove_file(temp_dir.join("README.md"));
+        let _ = std::fs::remove_dir(temp_dir.join("src"));
+        let _ = std::fs::remove_dir(temp_dir.join("crates"));
+        let _ = std::fs::remove_dir(&temp_dir);
+
+        assert_eq!(status, StatusCode::OK);
+        assert!(text.contains("workflow.started"));
+        assert!(text.contains(&project_id));
+        assert!(text.contains(&temp_dir.display().to_string()));
+        assert!(text.contains("selected_trusted"));
+        assert!(text.contains("rust"));
+        assert!(text.contains("4 top-level entries"));
     }
 
     #[tokio::test]

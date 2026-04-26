@@ -219,11 +219,13 @@ Current 0.8b phase: project trust confirmation + in-memory trust state. This pha
 
 Current 0.8c phase: read-only project structure summary. This phase exposes a shallow first-level project structure summary for the currently selected trusted project. It does not read source content, manifest contents, recursively scan the project, execute commands, call CubeSandbox, write files, or apply patches.
 
+Current 0.8d phase: connect selected project context to mock workflow. This phase allows mock workflow generation to reference selected project metadata and shallow structure summary data. It still does not read source content, manifest contents, recursively scan the project, execute commands, call CubeSandbox, write files, or apply patches.
+
 Expected demo:
 
 ```text
-User explicitly selects a project folder, confirms trust, and loads a shallow project structure summary.
-Nanami lists first-level project entries without reading source content or enabling any automatic execution.
+User explicitly selects a project folder, confirms trust, loads a shallow project structure summary, and runs a current-project mock workflow.
+Nanami uses only selected project metadata and first-level structure entries without reading source content or enabling any automatic execution.
 ```
 
 ## Out of Scope for MVP

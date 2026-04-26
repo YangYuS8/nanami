@@ -32,6 +32,8 @@ Current 0.8b status: project trust confirmation + in-memory trust state only. Us
 
 Current 0.8c status: shallow read-only project structure summary only. Nanami may list first-level project entries for the currently selected trusted project, but still does not read source contents, manifest contents, execute commands, call CubeSandbox, write files, or apply patches.
 
+Current 0.8d status: selected project context + mock workflow only. Nanami may reuse selected project metadata and shallow structure summary inside mock workflow visualization, but still does not read source contents, manifest contents, execute commands, call CubeSandbox, write files, or apply patches.
+
 Nanami MUST ask the user before performing risky actions.
 
 Permission decisions MUST be explicit, scoped, recorded, and revocable where possible.

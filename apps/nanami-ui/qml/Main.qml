@@ -492,6 +492,12 @@ ApplicationWindow {
                 onClicked: workflowController.startMockWorkflowStream()
             }
 
+            Button {
+                text: workflowController.busy ? "Running current project mock workflow" : "Run current project mock workflow"
+                enabled: !workflowController.busy && projectController.trustStatus === "selected_trusted"
+                onClicked: workflowController.startCurrentProjectMockWorkflowStream()
+            }
+
             Text {
                 width: parent.width
                 color: "#aeb4c6"

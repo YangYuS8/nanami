@@ -621,6 +621,8 @@ In 0.7d, apply-patch flow remains mock-only as well. Nanami may request permissi
 
 In 0.7e, `nanami-openclaw` may also map structured OpenClaw workflow JSON into these same Nanami workflow events. This mapping remains structure-driven only and must not infer workflow state from natural language text.
 
+In 0.8d, mock workflow generation may also use the currently selected trusted project's metadata and shallow structure summary. This remains metadata-driven only and does not imply source reading or real project analysis.
+
 Valid workflow statuses:
 
 ```text

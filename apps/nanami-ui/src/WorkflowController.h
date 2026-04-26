@@ -34,6 +34,7 @@ public:
     QString error() const;
 
     Q_INVOKABLE void startMockWorkflowStream();
+    Q_INVOKABLE void startCurrentProjectMockWorkflowStream();
     Q_INVOKABLE void requestMockApplyPatch();
 
 signals:
