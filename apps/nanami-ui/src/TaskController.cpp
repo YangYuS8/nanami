@@ -321,6 +321,56 @@ void TaskController::handleEvent(const QJsonObject &event)
         return;
     }
 
+    if (type == QStringLiteral("workflow.started")) {
+        m_sandboxLines.append(
+            QStringLiteral("Workflow started: workflow_id=%1, project=%2, status=%3")
+                .arg(event.value(QStringLiteral("workflow_id")).toString(),
+                     event.value(QStringLiteral("project_path")).toString(),
+                     event.value(QStringLiteral("status")).toString()));
+        rebuildTimeline();
+        return;
+    }
+
+    if (type == QStringLiteral("workflow.step")) {
+        m_sandboxLines.append(
+            QStringLiteral("Workflow step: %1 %2 (%3)")
+                .arg(event.value(QStringLiteral("step_kind")).toString(),
+                     event.value(QStringLiteral("summary")).toString(),
+                     event.value(QStringLiteral("status")).toString()));
+        rebuildTimeline();
+        return;
+    }
+
+    if (type == QStringLiteral("workflow.test_result")) {
+        m_sandboxLines.append(
+            QStringLiteral("Workflow test result: %1, passed=%2, failed=%3, command=%4")
+                .arg(event.value(QStringLiteral("summary")).toString(),
+                     event.value(QStringLiteral("passed")).toVariant().toString(),
+                     event.value(QStringLiteral("failed")).toVariant().toString(),
+                     event.value(QStringLiteral("command_preview")).toString()));
+        rebuildTimeline();
+        return;
+    }
+
+    if (type == QStringLiteral("workflow.patch_proposed")) {
+        m_sandboxLines.append(
+            QStringLiteral("Workflow patch proposed: patch_id=%1, %2, risk=%3")
+                .arg(event.value(QStringLiteral("patch_id")).toString(),
+                     event.value(QStringLiteral("diff_summary")).toString(),
+                     event.value(QStringLiteral("risk_level")).toString()));
+        rebuildTimeline();
+        return;
+    }
+
+    if (type == QStringLiteral("workflow.completed")) {
+        m_sandboxLines.append(
+            QStringLiteral("Workflow completed: %1 (%2)")
+                .arg(event.value(QStringLiteral("summary")).toString(),
+                     event.value(QStringLiteral("status")).toString()));
+        rebuildTimeline();
+        return;
+    }
+
     if (type == QStringLiteral("error.occurred")) {
         setError(event.value(QStringLiteral("message")).toString(QStringLiteral("OpenClaw task stream failed")));
     }
