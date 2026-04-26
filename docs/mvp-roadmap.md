@@ -236,13 +236,6 @@ User explicitly selects a project folder, confirms trust, requests manifest prev
 Nanami returns only a capped preview of the single supported top-level manifest file and does not perform source analysis or command execution.
 ```
 
-Expected demo:
-
-```text
-User explicitly selects a project folder, confirms trust, loads a shallow project structure summary, and runs a current-project mock workflow.
-Nanami uses only selected project metadata and first-level structure entries without reading source content or enabling any automatic execution.
-```
-
 ## Out of Scope for MVP
 
 Do not implement these before the core loop works:

@@ -58,6 +58,7 @@ int main(int argc, char *argv[])
             petRendererController.setPersonaState(
                 personaController.state(), personaController.emotion());
         });
+    projectController.setPermissionController(&permissionController);
     statusController.refresh();
 
     return app.exec();

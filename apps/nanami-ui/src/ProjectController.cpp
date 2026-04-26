@@ -1,5 +1,7 @@
 #include "ProjectController.h"
 
+#include "PermissionController.h"
+
 #include <QFileDialog>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -259,10 +261,12 @@ void ProjectController::requestManifestPreviewPermission()
         }
 
         const auto object = document.object();
-        m_manifestPreviewText = QStringLiteral("Permission requested: %1\nAction: %2\nTarget: %3")
-                                   .arg(object.value(QStringLiteral("permission_id")).toString(),
-                                        object.value(QStringLiteral("action")).toString(),
-                                        object.value(QStringLiteral("target")).toString());
+        if (m_permissionController != nullptr) {
+            m_permissionController->acceptPermissionRequest(object);
+        }
+        m_manifestPreviewText = QStringLiteral(
+                                   "Manifest preview permission requested.\nPermission ID: %1\nApprove or deny it in the Permission Request panel before loading the preview.")
+                                   .arg(object.value(QStringLiteral("permission_id")).toString());
         emit projectChanged();
     });
 }
@@ -317,6 +321,11 @@ void ProjectController::setBusy(bool busy)
 
     m_busy = busy;
     emit busyChanged();
+}
+
+void ProjectController::setPermissionController(PermissionController *permissionController)
+{
+    m_permissionController = permissionController;
 }
 
 void ProjectController::setError(const QString &error)

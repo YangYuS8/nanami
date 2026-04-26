@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QNetworkAccessManager>
+#include <QJsonObject>
 #include <QObject>
 #include <QString>
 
@@ -42,6 +43,7 @@ public:
     Q_INVOKABLE void resolveAllowOnce();
     Q_INVOKABLE void resolveAllowForTask();
     Q_INVOKABLE void resolveDeny();
+    void acceptPermissionRequest(const QJsonObject &object);
 
 signals:
     void permissionChanged();

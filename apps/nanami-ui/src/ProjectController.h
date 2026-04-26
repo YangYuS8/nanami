@@ -4,6 +4,8 @@
 #include <QObject>
 #include <QString>
 
+class PermissionController;
+
 class ProjectController final : public QObject
 {
     Q_OBJECT
@@ -36,6 +38,7 @@ public:
     Q_INVOKABLE void loadProjectStructure();
     Q_INVOKABLE void requestManifestPreviewPermission();
     Q_INVOKABLE void loadManifestPreview();
+    void setPermissionController(PermissionController *permissionController);
 
 signals:
     void projectChanged();
@@ -47,6 +50,7 @@ private:
     void setError(const QString &error);
 
     QNetworkAccessManager m_network;
+    PermissionController *m_permissionController = nullptr;
     QString m_projectId;
     QString m_displayName;
     QString m_projectPath;

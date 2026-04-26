@@ -172,6 +172,22 @@ void PermissionController::resolveDeny()
     resolve(QStringLiteral("deny"));
 }
 
+void PermissionController::acceptPermissionRequest(const QJsonObject &object)
+{
+    m_permissionId = object.value(QStringLiteral("permission_id")).toString();
+    m_permissionLevel = object.value(QStringLiteral("level")).toString();
+    m_permissionAction = object.value(QStringLiteral("action")).toString();
+    m_permissionTarget = object.value(QStringLiteral("target")).toString();
+    m_permissionReason = object.value(QStringLiteral("reason")).toString();
+    m_permissionScope = object.value(QStringLiteral("scope")).toString();
+    m_permissionExpires = object.value(QStringLiteral("expires")).toString();
+    m_hasPermissionRequest = !m_permissionId.isEmpty();
+    m_lastDecision = QStringLiteral("none");
+    emit permissionChanged();
+    emit decisionChanged();
+    refreshAuditLog();
+}
+
 void PermissionController::handleStreamData(const QByteArray &data)
 {
     if (data.isEmpty()) {
