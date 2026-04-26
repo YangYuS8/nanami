@@ -116,6 +116,7 @@ The current goal is Nanami 0.9:
 - 0.9c completed: core module split cleanup.
 - 0.9d completed: QML panel split cleanup.
 - 0.9e completed: core test module split cleanup.
+- 0.9f completed: protocol module split cleanup.
 - `nanami-core` provides mock permission request, decision, audit, and sandbox stream endpoints.
 - `nanami-core` also provides a mock persona state stream endpoint.
 - `nanami-ui` displays mock permission and sandbox visualization skeletons with structured sandbox view state, plus a placeholder pet view.
@@ -161,6 +162,8 @@ The current goal is Nanami 0.9:
 - It reorganizes `Main.qml` into smaller panel components under `qml/components/` while keeping the same context properties, controller behavior, endpoint usage, permission flow, and runtime capability boundaries.
 - 0.9e is a core test module split cleanup only.
 - It reorganizes `nanami-core` crate tests into focused modules and shared support helpers without changing API behavior, protocol shapes, permission semantics, runtime capabilities, or test assertion intent.
+- 0.9f is a protocol module split cleanup only.
+- It reorganizes `nanami-protocol` into focused module files with re-exports from `lib.rs`, without changing public type names, serde shapes, event type strings, protocol fields, or runtime capability boundaries.
 
 ## Development
 
@@ -341,6 +344,8 @@ Nanami 0.9c is a pure internal cleanup phase for `nanami-core`. It splits the ov
 Nanami 0.9d is a pure internal cleanup phase for `nanami-ui`. It splits the oversized `apps/nanami-ui/qml/Main.qml` into panel components such as status, pet, chat, task, permission, sandbox, project, and workflow panels under `qml/components/`. It does not change controller interfaces, endpoint usage, permission behavior, source read scope, command execution, CubeSandbox usage, or file writes.
 
 Nanami 0.9e is a pure internal cleanup phase for `nanami-core` tests. It splits the oversized `apps/nanami-core/src/tests.rs` into focused test modules and shared support helpers for maintainability only. It does not change endpoint paths, protocol fields, permission behavior, runtime capabilities, or the semantics of the existing test assertions.
+
+Nanami 0.9f is a pure internal cleanup phase for `nanami-protocol`. It splits the oversized `crates/nanami-protocol/src/lib.rs` into focused modules such as chat, task, tool, sandbox, persona, project, manifest, workflow, permission, audit, and event, while preserving the same public re-exports from `nanami_protocol`. It does not change any public type names, serde shapes, event type strings, protocol fields, or runtime capability boundaries.
 
 ## Verification
 

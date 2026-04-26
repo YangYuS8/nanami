@@ -235,7 +235,9 @@ Current 0.9d phase: QML panel split cleanup only. This phase reorganizes `nanami
 
 Current 0.9e phase: core test module split cleanup only. This phase reorganizes `nanami-core` tests into focused modules such as health, openclaw, chat, tasks, permissions, sandbox, persona, workflow, projects, and manifest, plus shared support helpers. It does not change public API paths, protocol fields, permission semantics, runtime capability boundaries, or the intended meaning of the test assertions.
 
-0.9 runtime capability boundary remains unchanged across 0.9a through 0.9e: Nanami does not read source content, does not recursively scan the project, does not execute commands, does not call CubeSandbox, does not write files, and does not download dependencies.
+Current 0.9f phase: protocol module split cleanup only. This phase reorganizes `nanami-protocol` into focused modules such as chat, error, session, openclaw, task, tool, sandbox, persona, project, manifest, workflow, permission, audit, and event, while preserving the same public re-exports from `lib.rs`. It does not change public API paths, protocol fields, serde shapes, event type strings, permission semantics, or runtime capability boundaries.
+
+0.9 runtime capability boundary remains unchanged across 0.9a through 0.9f: Nanami does not read source content, does not recursively scan the project, does not execute commands, does not call CubeSandbox, does not write files, and does not download dependencies.
 
 Expected demo:
 
