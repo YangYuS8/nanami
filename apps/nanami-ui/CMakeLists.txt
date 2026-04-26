@@ -53,6 +53,7 @@ qt_add_qml_module(nanami-ui
     VERSION 1.0
     QML_FILES
         qml/Main.qml
+        qml/components/CompanionHome.qml
         qml/components/StatusPanel.qml
         qml/components/PetPanel.qml
         qml/components/ChatPanel.qml

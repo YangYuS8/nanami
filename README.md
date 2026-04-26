@@ -126,6 +126,7 @@ Product positioning note for 0.10a: Nanami is now described as the local visual 
 - 0.9i completed: UI controller networking/SSE cleanup.
 - 0.10a completed: product positioning reset.
 - 0.10b completed: companion-first UI navigation cleanup.
+- 0.10c completed: companion home polish.
 - `nanami-core` provides mock permission request, decision, audit, and sandbox stream endpoints.
 - `nanami-core` also provides a mock persona state stream endpoint.
 - `nanami-ui` displays mock permission and sandbox visualization skeletons with structured sandbox view state, plus a placeholder pet view.

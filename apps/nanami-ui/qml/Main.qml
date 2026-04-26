@@ -48,14 +48,7 @@ ApplicationWindow {
                 ScrollView {
                     clip: true
 
-                    Column {
-                        width: parent.width
-                        spacing: 12
-
-                        PetPanel {}
-                        ChatPanel {}
-                        StatusPanel {}
-                    }
+                    CompanionHome {}
                 }
 
                 ScrollView {
