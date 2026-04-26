@@ -183,6 +183,8 @@ Goal: support a real assisted development loop.
 
 Current 0.7a phase: development workflow protocol + mock workflow stream + UI skeleton. This phase adds structured workflow events, a mock-only workflow SSE endpoint, and a lightweight workflow panel in `nanami-ui`. It does not read real project files, execute commands, call real CubeSandbox, write files, or apply patches.
 
+Current 0.7b phase: mock project metadata + structured workflow state. This phase adds a mock project metadata endpoint, a lightweight project panel in `nanami-ui`, and an internal structured workflow view state. It still does not read real project files, detect project manifests, execute commands, call real CubeSandbox, write files, or apply patches.
+
 Required:
 
 - Open project.
@@ -197,8 +199,8 @@ Required:
 Expected demo:
 
 ```text
-User runs a mock development workflow stream.
-Nanami shows open project, analyze project, run tests, patch proposal, and apply patch waiting-permission steps without touching a real project.
+User loads a mock project and runs a mock development workflow stream.
+Nanami shows project metadata, workflow steps, test results, and patch proposal previews without touching a real project.
 ```
 
 ## Out of Scope for MVP

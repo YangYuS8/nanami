@@ -193,6 +193,31 @@ pub struct PersonaStatePayload {
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+pub enum ProjectKind {
+    Rust,
+    Node,
+    Python,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ProjectTrustStatus {
+    Untrusted,
+    TrustedMock,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ProjectMetadata {
+    pub project_id: String,
+    pub display_name: String,
+    pub project_path: String,
+    pub kind: ProjectKind,
+    pub trust_status: ProjectTrustStatus,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub enum WorkflowStatus {
     Running,
     WaitingPermission,

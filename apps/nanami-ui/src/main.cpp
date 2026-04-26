@@ -2,6 +2,7 @@
 #include "DesktopController.h"
 #include "PersonaController.h"
 #include "PetRendererController.h"
+#include "ProjectController.h"
 #include "PermissionController.h"
 #include "SandboxController.h"
 #include "StatusController.h"
@@ -21,6 +22,7 @@ int main(int argc, char *argv[])
     PersonaController personaController;
     PetRendererController petRendererController;
     DesktopController desktopController(&personaController);
+    ProjectController projectController;
     PermissionController permissionController;
     SandboxController sandboxController;
     StatusController statusController;
@@ -31,6 +33,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("desktopController", &desktopController);
     engine.rootContext()->setContextProperty("personaController", &personaController);
     engine.rootContext()->setContextProperty("petRendererController", &petRendererController);
+    engine.rootContext()->setContextProperty("projectController", &projectController);
     engine.rootContext()->setContextProperty("permissionController", &permissionController);
     engine.rootContext()->setContextProperty("sandboxController", &sandboxController);
     engine.rootContext()->setContextProperty("statusController", &statusController);

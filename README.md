@@ -103,6 +103,7 @@ The current goal is Nanami 0.7:
 - 0.6b completed: tray + notifications + basic window behavior.
 - 0.6c completed: Live2D renderer adapter boundary + placeholder renderer abstraction.
 - 0.7a completed: development workflow protocol + mock workflow stream + UI skeleton.
+- 0.7b completed: mock project metadata + structured workflow state.
 - `nanami-core` provides mock permission request, decision, audit, and sandbox stream endpoints.
 - `nanami-core` also provides a mock persona state stream endpoint.
 - `nanami-ui` displays mock permission and sandbox visualization skeletons with structured sandbox view state, plus a placeholder pet view.
@@ -120,6 +121,8 @@ The current goal is Nanami 0.7:
 - Real Live2D SDK integration, model assets, complex animation, transparency, always-on-top, dragging, and other advanced pet effects remain deferred to later phases.
 - 0.7a adds development workflow mock visualization only.
 - It does not read real project files, execute commands, call real CubeSandbox, write files, or apply patches.
+- 0.7b adds mock project metadata and structured workflow UI state only.
+- It still does not read real project files, execute commands, call real CubeSandbox, write files, apply patches, or turn permission approvals into real writes.
 
 ## Development
 
@@ -274,6 +277,8 @@ curl -N http://127.0.0.1:17878/workflow/mock/stream
 ```
 
 Nanami 0.7a provides development workflow mock visualization only. It does not read real project files, execute commands, call real CubeSandbox, write files, apply patches, or turn permission approvals into real writes.
+
+Nanami 0.7b adds mock project metadata and a structured workflow UI state layer. It still does not read real project files, detect project files, execute commands, call real CubeSandbox, write files, apply patches, or trigger real writes from permission approvals.
 
 ## Verification
 

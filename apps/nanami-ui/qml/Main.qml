@@ -399,6 +399,57 @@ ApplicationWindow {
                 placeholderText: "Related permission audit records will appear here"
             }
 
+            Button {
+                text: projectController.busy ? "Loading mock project" : "Load mock project"
+                enabled: !projectController.busy
+                onClicked: projectController.loadMockProject()
+            }
+
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 13
+                text: "Project ID: " + (projectController.projectId.length > 0 ? projectController.projectId : "none")
+            }
+
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 13
+                text: "Display Name: " + (projectController.displayName.length > 0 ? projectController.displayName : "none")
+            }
+
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 13
+                text: "Project Path: " + (projectController.projectPath.length > 0 ? projectController.projectPath : "none")
+                wrapMode: Text.Wrap
+            }
+
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 13
+                text: "Project Kind: " + (projectController.projectKind.length > 0 ? projectController.projectKind : "none")
+            }
+
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 13
+                text: "Trust Status: " + (projectController.trustStatus.length > 0 ? projectController.trustStatus : "none")
+            }
+
+            Text {
+                width: parent.width
+                color: "#ff9a9a"
+                font.pixelSize: 13
+                text: projectController.error
+                visible: projectController.error.length > 0
+                wrapMode: Text.Wrap
+            }
+
             Text {
                 width: parent.width
                 color: "#ff9a9a"

@@ -20,6 +20,8 @@ Current 0.5c status: structured sandbox view + permission/audit link. Sandbox mo
 
 Current 0.7a status: development workflow mock visualization only. Workflow steps may include mock patch proposal and mock apply-patch waiting-permission states, but no permission decision triggers real file reads, writes, command execution, sandbox execution, or patch application.
 
+Current 0.7b status: mock project metadata + structured workflow state only. Project identity, trust, workflow steps, and patch proposal previews may be displayed more clearly in the UI, but no permission decision triggers real project reads, writes, command execution, sandbox execution, or patch application.
+
 Nanami MUST ask the user before performing risky actions.
 
 Permission decisions MUST be explicit, scoped, recorded, and revocable where possible.

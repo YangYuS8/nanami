@@ -17,7 +17,8 @@ use nanami_openclaw::{
 use nanami_permission::PermissionManager;
 use nanami_protocol::{
     ChatRequest, ChatResponse, ChatStreamEvent, ChatStreamEventKind, ErrorPayload, ErrorSeverity,
-    Event, EventEnvelope, OpenClawConnectionStatus, OpenClawStatusPayload,
+    Event, EventEnvelope, OpenClawConnectionStatus, OpenClawStatusPayload, ProjectKind,
+    ProjectMetadata, ProjectTrustStatus,
     PermissionAuditLogResponse, PermissionDecision, PermissionDecisionStatus, PermissionLevel,
     PermissionRequestPayload, PermissionResolvedPayload, PermissionScope, PersonaEmotion,
     PersonaState, PersonaStatePayload, PersonaStateSource, TaskCompletedPayload,
@@ -60,6 +61,7 @@ fn router_with_openclaw(openclaw: Arc<dyn OpenClawService>) -> Router {
         .route("/sandbox/mock/stream", get(sandbox_mock_stream))
         .route("/persona/mock/stream", get(persona_mock_stream))
         .route("/workflow/mock/stream", get(workflow_mock_stream))
+        .route("/projects/mock/current", get(projects_mock_current))
         .route("/permissions/mock/stream", get(permissions_mock_stream))
         .route("/permissions/resolve", post(permissions_resolve))
         .route(
@@ -509,6 +511,16 @@ async fn workflow_mock_stream() -> Response {
     })))
     .keep_alive(KeepAlive::default())
     .into_response()
+}
+
+async fn projects_mock_current() -> Json<ProjectMetadata> {
+    Json(ProjectMetadata {
+        project_id: "project_mock_001".into(),
+        display_name: "Nanami Mock Workspace".into(),
+        project_path: "/mock/project".into(),
+        kind: ProjectKind::Rust,
+        trust_status: ProjectTrustStatus::TrustedMock,
+    })
 }
 
 fn maybe_permission_for_tool_event(event: &EventEnvelope) -> Option<EventEnvelope> {
@@ -1338,6 +1350,31 @@ mod tests {
         assert!(text.contains("\"step_kind\":\"run_tests\""));
         assert!(text.contains("\"step_kind\":\"apply_patch\""));
         assert!(text.contains("\"status\":\"waiting_permission\""));
+    }
+
+    #[tokio::test]
+    async fn projects_mock_current_returns_mock_project_metadata() {
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .uri("/projects/mock/current")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = response.status();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(json["project_id"], "project_mock_001");
+        assert_eq!(json["display_name"], "Nanami Mock Workspace");
+        assert_eq!(json["project_path"], "/mock/project");
+        assert_eq!(json["kind"], "rust");
+        assert_eq!(json["trust_status"], "trusted_mock");
     }
 
     #[tokio::test]

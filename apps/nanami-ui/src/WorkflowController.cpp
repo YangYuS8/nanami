@@ -14,17 +14,17 @@ WorkflowController::WorkflowController(QObject *parent)
 
 QString WorkflowController::workflowId() const
 {
-    return m_workflowId;
+    return m_state.workflowId;
 }
 
 QString WorkflowController::workflowStatus() const
 {
-    return m_workflowStatus;
+    return m_state.workflowStatus;
 }
 
 QString WorkflowController::projectPath() const
 {
-    return m_projectPath;
+    return m_state.projectPath;
 }
 
 QString WorkflowController::stepText() const
@@ -83,9 +83,7 @@ void WorkflowController::startMockWorkflowStream()
 
 void WorkflowController::resetState()
 {
-    m_workflowId.clear();
-    m_workflowStatus.clear();
-    m_projectPath.clear();
+    m_state = WorkflowViewState {};
     m_stepText.clear();
     m_testResultText.clear();
     m_patchText.clear();
@@ -121,64 +119,74 @@ void WorkflowController::handleEvent(const QJsonObject &event)
     const QString type = event.value(QStringLiteral("type")).toString();
 
     if (type == QStringLiteral("workflow.started")) {
-        m_workflowId = event.value(QStringLiteral("workflow_id")).toString();
-        m_workflowStatus = event.value(QStringLiteral("status")).toString();
-        m_projectPath = event.value(QStringLiteral("project_path")).toString();
+        m_state.workflowId = event.value(QStringLiteral("workflow_id")).toString();
+        m_state.workflowStatus = event.value(QStringLiteral("status")).toString();
+        m_state.projectPath = event.value(QStringLiteral("project_path")).toString();
+        rebuildDerivedText();
         emit workflowChanged();
         return;
     }
 
     if (type == QStringLiteral("workflow.step")) {
-        m_workflowId = event.value(QStringLiteral("workflow_id")).toString(m_workflowId);
-        m_stepText += (m_stepText.isEmpty() ? QString() : QStringLiteral("\n"))
-            + QStringLiteral("%1: %2 (%3)")
-                  .arg(event.value(QStringLiteral("step_kind")).toString(),
-                       event.value(QStringLiteral("summary")).toString(),
-                       event.value(QStringLiteral("status")).toString());
+        m_state.workflowId = event.value(QStringLiteral("workflow_id")).toString(m_state.workflowId);
+        m_state.steps.append(WorkflowStepView {
+            event.value(QStringLiteral("step_kind")).toString(),
+            event.value(QStringLiteral("status")).toString(),
+            event.value(QStringLiteral("summary")).toString(),
+        });
         if (event.contains(QStringLiteral("status"))) {
-            m_workflowStatus = event.value(QStringLiteral("status")).toString(m_workflowStatus);
+            m_state.workflowStatus = event.value(QStringLiteral("status")).toString(m_state.workflowStatus);
         }
+        rebuildDerivedText();
         emit workflowChanged();
         return;
     }
 
     if (type == QStringLiteral("workflow.test_result")) {
-        m_workflowId = event.value(QStringLiteral("workflow_id")).toString(m_workflowId);
-        m_testResultText = QStringLiteral("%1 (passed=%2, failed=%3)")
-                               .arg(event.value(QStringLiteral("summary")).toString(),
-                                    event.value(QStringLiteral("passed")).toVariant().toString(),
-                                    event.value(QStringLiteral("failed")).toVariant().toString());
-        m_workflowStatus = event.value(QStringLiteral("status")).toString(m_workflowStatus);
+        m_state.workflowId = event.value(QStringLiteral("workflow_id")).toString(m_state.workflowId);
+        m_state.testResult = WorkflowTestResultView {
+            event.value(QStringLiteral("status")).toString(),
+            event.value(QStringLiteral("summary")).toString(),
+            event.value(QStringLiteral("passed")).toInt(),
+            event.value(QStringLiteral("failed")).toInt(),
+        };
+        m_state.workflowStatus = event.value(QStringLiteral("status")).toString(m_state.workflowStatus);
+        rebuildDerivedText();
         emit workflowChanged();
         return;
     }
 
     if (type == QStringLiteral("workflow.patch_proposed")) {
-        m_workflowId = event.value(QStringLiteral("workflow_id")).toString(m_workflowId);
-
-        QStringList lines;
-        lines.append(event.value(QStringLiteral("summary")).toString());
-        lines.append(event.value(QStringLiteral("diff_summary")).toString());
+        m_state.workflowId = event.value(QStringLiteral("workflow_id")).toString(m_state.workflowId);
+        m_state.patch.patchId = event.value(QStringLiteral("patch_id")).toString();
+        m_state.patch.summary = event.value(QStringLiteral("summary")).toString();
+        m_state.patch.diffSummary = event.value(QStringLiteral("diff_summary")).toString();
+        m_state.patch.files.clear();
 
         const auto files = event.value(QStringLiteral("files")).toArray();
         for (const auto &value : files) {
             const auto file = value.toObject();
-            lines.append(QStringLiteral("%1 [%2]").arg(
+            m_state.patch.files.append(WorkflowPatchFileView {
                 file.value(QStringLiteral("path")).toString(),
-                file.value(QStringLiteral("change_type")).toString()));
-            lines.append(file.value(QStringLiteral("diff_preview")).toString());
+                file.value(QStringLiteral("change_type")).toString(),
+                file.value(QStringLiteral("diff_preview")).toString(),
+            });
         }
 
-        m_patchText = lines.join(QStringLiteral("\n"));
+        rebuildDerivedText();
         emit workflowChanged();
         return;
     }
 
     if (type == QStringLiteral("workflow.completed")) {
-        m_workflowId = event.value(QStringLiteral("workflow_id")).toString(m_workflowId);
-        m_workflowStatus = event.value(QStringLiteral("status")).toString(m_workflowStatus);
-        m_stepText += (m_stepText.isEmpty() ? QString() : QStringLiteral("\n"))
-            + QStringLiteral("completed: %1").arg(event.value(QStringLiteral("summary")).toString());
+        m_state.workflowId = event.value(QStringLiteral("workflow_id")).toString(m_state.workflowId);
+        m_state.workflowStatus = event.value(QStringLiteral("status")).toString(m_state.workflowStatus);
+        m_state.steps.append(WorkflowStepView {
+            QStringLiteral("completed"),
+            event.value(QStringLiteral("status")).toString(),
+            event.value(QStringLiteral("summary")).toString(),
+        });
+        rebuildDerivedText();
         emit workflowChanged();
         return;
     }
@@ -186,6 +194,35 @@ void WorkflowController::handleEvent(const QJsonObject &event)
     if (type == QStringLiteral("error.occurred")) {
         setError(event.value(QStringLiteral("message")).toString(QStringLiteral("Mock workflow stream failed")));
     }
+}
+
+void WorkflowController::rebuildDerivedText()
+{
+    QStringList stepLines;
+    for (const auto &step : m_state.steps) {
+        stepLines.append(QStringLiteral("%1: %2 (%3)").arg(step.kind, step.summary, step.status));
+    }
+    m_stepText = stepLines.join(QStringLiteral("\n"));
+
+    if (!m_state.testResult.summary.isEmpty()) {
+        m_testResultText = QStringLiteral("%1 (passed=%2, failed=%3)")
+                               .arg(m_state.testResult.summary)
+                               .arg(m_state.testResult.passed)
+                               .arg(m_state.testResult.failed);
+    } else {
+        m_testResultText.clear();
+    }
+
+    QStringList patchLines;
+    if (!m_state.patch.summary.isEmpty()) {
+        patchLines.append(m_state.patch.summary);
+        patchLines.append(m_state.patch.diffSummary);
+        for (const auto &file : m_state.patch.files) {
+            patchLines.append(QStringLiteral("%1 [%2]").arg(file.path, file.changeType));
+            patchLines.append(file.diffPreview);
+        }
+    }
+    m_patchText = patchLines.join(QStringLiteral("\n"));
 }
 
 void WorkflowController::setBusy(bool busy)
