@@ -615,6 +615,8 @@ data: {"type":"persona.state","id":"evt_persona_mock_error_001",...}
 
 Workflow events provide the 0.7a development workflow visualization foundation. In 0.7a, these events are mock-only. They do not read real project files, do not execute commands, do not call real CubeSandbox, do not write files, and do not apply patches.
 
+In 0.7c, workflow test result and patch proposal payloads may include additional lightweight visualization metadata such as command preview, duration, failed test names, and patch risk level. These remain mock-only and do not imply real execution.
+
 Valid workflow statuses:
 
 ```text
@@ -684,8 +686,11 @@ Examples:
   "task_id": "task_workflow_mock_001",
   "status": "completed",
   "summary": "2 tests passed",
+  "command_preview": "cargo test --lib",
+  "duration_ms": 1200,
   "passed": 2,
-  "failed": 0
+  "failed": 0,
+  "failed_test_names": []
 }
 {
   "type": "workflow.patch_proposed",
@@ -696,6 +701,7 @@ Examples:
   "patch_id": "patch_mock_001",
   "summary": "Mock patch proposal ready",
   "diff_summary": "1 file modified",
+  "risk_level": "medium",
   "files": [
     {
       "path": "src/main.rs",

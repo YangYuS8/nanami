@@ -256,6 +256,14 @@ pub enum WorkflowChangeType {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkflowPatchRiskLevel {
+    Low,
+    Medium,
+    High,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct WorkflowStartedPayload {
     pub workflow_id: String,
     pub task_id: String,
@@ -278,8 +286,11 @@ pub struct WorkflowTestResultPayload {
     pub task_id: String,
     pub status: WorkflowStatus,
     pub summary: String,
+    pub command_preview: String,
+    pub duration_ms: u64,
     pub passed: u32,
     pub failed: u32,
+    pub failed_test_names: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -296,6 +307,7 @@ pub struct WorkflowPatchProposedPayload {
     pub patch_id: String,
     pub summary: String,
     pub diff_summary: String,
+    pub risk_level: WorkflowPatchRiskLevel,
     pub files: Vec<WorkflowPatchFilePreviewPayload>,
 }
 

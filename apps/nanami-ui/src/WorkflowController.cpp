@@ -147,9 +147,16 @@ void WorkflowController::handleEvent(const QJsonObject &event)
         m_state.testResult = WorkflowTestResultView {
             event.value(QStringLiteral("status")).toString(),
             event.value(QStringLiteral("summary")).toString(),
+            event.value(QStringLiteral("command_preview")).toString(),
+            event.value(QStringLiteral("duration_ms")).toVariant().toString(),
             event.value(QStringLiteral("passed")).toInt(),
             event.value(QStringLiteral("failed")).toInt(),
         };
+        m_state.testResult.failedTestNames.clear();
+        const auto failedTests = event.value(QStringLiteral("failed_test_names")).toArray();
+        for (const auto &value : failedTests) {
+            m_state.testResult.failedTestNames.append(value.toString());
+        }
         m_state.workflowStatus = event.value(QStringLiteral("status")).toString(m_state.workflowStatus);
         rebuildDerivedText();
         emit workflowChanged();
@@ -161,6 +168,7 @@ void WorkflowController::handleEvent(const QJsonObject &event)
         m_state.patch.patchId = event.value(QStringLiteral("patch_id")).toString();
         m_state.patch.summary = event.value(QStringLiteral("summary")).toString();
         m_state.patch.diffSummary = event.value(QStringLiteral("diff_summary")).toString();
+        m_state.patch.riskLevel = event.value(QStringLiteral("risk_level")).toString();
         m_state.patch.files.clear();
 
         const auto files = event.value(QStringLiteral("files")).toArray();
@@ -205,10 +213,18 @@ void WorkflowController::rebuildDerivedText()
     m_stepText = stepLines.join(QStringLiteral("\n"));
 
     if (!m_state.testResult.summary.isEmpty()) {
-        m_testResultText = QStringLiteral("%1 (passed=%2, failed=%3)")
-                               .arg(m_state.testResult.summary)
-                               .arg(m_state.testResult.passed)
-                               .arg(m_state.testResult.failed);
+        QStringList resultLines;
+        resultLines.append(m_state.testResult.summary);
+        resultLines.append(QStringLiteral("command: %1").arg(m_state.testResult.commandPreview));
+        resultLines.append(QStringLiteral("duration_ms: %1").arg(m_state.testResult.durationMs));
+        resultLines.append(
+            QStringLiteral("passed=%1, failed=%2")
+                .arg(m_state.testResult.passed)
+                .arg(m_state.testResult.failed));
+        for (const auto &failedTest : m_state.testResult.failedTestNames) {
+            resultLines.append(QStringLiteral("failed test: %1").arg(failedTest));
+        }
+        m_testResultText = resultLines.join(QStringLiteral("\n"));
     } else {
         m_testResultText.clear();
     }
@@ -217,6 +233,7 @@ void WorkflowController::rebuildDerivedText()
     if (!m_state.patch.summary.isEmpty()) {
         patchLines.append(m_state.patch.summary);
         patchLines.append(m_state.patch.diffSummary);
+        patchLines.append(QStringLiteral("risk: %1").arg(m_state.patch.riskLevel));
         for (const auto &file : m_state.patch.files) {
             patchLines.append(QStringLiteral("%1 [%2]").arg(file.path, file.changeType));
             patchLines.append(file.diffPreview);

@@ -2,8 +2,8 @@ use chrono::DateTime;
 use nanami_protocol::{
     Event, EventEnvelope, WorkflowChangeType, WorkflowCompletedPayload,
     WorkflowPatchFilePreviewPayload, WorkflowPatchProposedPayload, WorkflowStartedPayload,
-    WorkflowStatus, WorkflowStepKind, WorkflowStepPayload, WorkflowStepStatus,
-    WorkflowTestResultPayload,
+    WorkflowPatchRiskLevel, WorkflowStatus, WorkflowStepKind, WorkflowStepPayload,
+    WorkflowStepStatus, WorkflowTestResultPayload,
 };
 
 fn timestamp() -> chrono::DateTime<chrono::Utc> {
@@ -72,14 +72,19 @@ fn workflow_test_result_serializes_json_shape() {
             task_id: "task_workflow_mock_001".into(),
             status: WorkflowStatus::Completed,
             summary: "2 tests passed".into(),
+            command_preview: "cargo test --lib".into(),
+            duration_ms: 1200,
             passed: 2,
             failed: 0,
+            failed_test_names: Vec::new(),
         }),
     );
 
     let json = serde_json::to_value(event).unwrap();
 
     assert_eq!(json["type"], "workflow.test_result");
+    assert_eq!(json["command_preview"], "cargo test --lib");
+    assert_eq!(json["duration_ms"], 1200);
     assert_eq!(json["passed"], 2);
     assert_eq!(json["failed"], 0);
 }
@@ -95,6 +100,7 @@ fn workflow_patch_proposed_serializes_json_shape() {
             patch_id: "patch_mock_001".into(),
             summary: "Mock patch proposal".into(),
             diff_summary: "1 file modified".into(),
+            risk_level: WorkflowPatchRiskLevel::Medium,
             files: vec![WorkflowPatchFilePreviewPayload {
                 path: "src/main.rs".into(),
                 change_type: WorkflowChangeType::Modified,
@@ -108,6 +114,7 @@ fn workflow_patch_proposed_serializes_json_shape() {
     assert_eq!(json["type"], "workflow.patch_proposed");
     assert_eq!(json["patch_id"], "patch_mock_001");
     assert_eq!(json["diff_summary"], "1 file modified");
+    assert_eq!(json["risk_level"], "medium");
     assert_eq!(json["files"][0]["path"], "src/main.rs");
     assert_eq!(json["files"][0]["change_type"], "modified");
 }

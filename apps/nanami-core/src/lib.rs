@@ -24,9 +24,9 @@ use nanami_protocol::{
     PersonaState, PersonaStatePayload, PersonaStateSource, TaskCompletedPayload,
     TaskStartedPayload, TaskStatus, ToolCallStatus, ToolCompletedPayload, ToolOutputPayload,
     ToolOutputStream, ToolStartedPayload, WorkflowChangeType, WorkflowCompletedPayload,
-    WorkflowPatchFilePreviewPayload, WorkflowPatchProposedPayload, WorkflowStartedPayload,
-    WorkflowStatus, WorkflowStepKind, WorkflowStepPayload, WorkflowStepStatus,
-    WorkflowTestResultPayload,
+    WorkflowPatchFilePreviewPayload, WorkflowPatchProposedPayload, WorkflowPatchRiskLevel,
+    WorkflowStartedPayload, WorkflowStatus, WorkflowStepKind, WorkflowStepPayload,
+    WorkflowStepStatus, WorkflowTestResultPayload,
 };
 use serde::Serialize;
 use std::convert::Infallible;
@@ -463,8 +463,11 @@ async fn workflow_mock_stream() -> Response {
                 task_id: "task_workflow_mock_001".into(),
                 status: WorkflowStatus::Completed,
                 summary: "2 tests passed".into(),
+                command_preview: "cargo test --lib".into(),
+                duration_ms: 1200,
                 passed: 2,
-                failed: 0,
+                failed: 1,
+                failed_test_names: vec!["tests::mock_failure".into()],
             }),
         ),
         EventEnvelope::new(
@@ -476,6 +479,7 @@ async fn workflow_mock_stream() -> Response {
                 patch_id: "patch_mock_001".into(),
                 summary: "Mock patch proposal ready".into(),
                 diff_summary: "1 file modified".into(),
+                risk_level: WorkflowPatchRiskLevel::Medium,
                 files: vec![WorkflowPatchFilePreviewPayload {
                     path: "src/main.rs".into(),
                     change_type: WorkflowChangeType::Modified,
@@ -1350,6 +1354,10 @@ mod tests {
         assert!(text.contains("\"step_kind\":\"run_tests\""));
         assert!(text.contains("\"step_kind\":\"apply_patch\""));
         assert!(text.contains("\"status\":\"waiting_permission\""));
+        assert!(text.contains("\"command_preview\":\"cargo test --lib\""));
+        assert!(text.contains("\"duration_ms\":1200"));
+        assert!(text.contains("\"failed_test_names\":[\"tests::mock_failure\"]"));
+        assert!(text.contains("\"risk_level\":\"medium\""));
     }
 
     #[tokio::test]

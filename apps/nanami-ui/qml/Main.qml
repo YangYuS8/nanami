@@ -493,7 +493,7 @@ ApplicationWindow {
                 readOnly: true
                 wrapMode: TextArea.Wrap
                 text: workflowController.stepText
-                placeholderText: "Workflow steps will appear here"
+                placeholderText: "Steps will appear here"
             }
 
             TextArea {
@@ -502,7 +502,7 @@ ApplicationWindow {
                 readOnly: true
                 wrapMode: TextArea.Wrap
                 text: workflowController.testResultText
-                placeholderText: "Workflow test result will appear here"
+                placeholderText: "Test Result will appear here"
             }
 
             TextArea {
@@ -511,7 +511,7 @@ ApplicationWindow {
                 readOnly: true
                 wrapMode: TextArea.Wrap
                 text: workflowController.patchText
-                placeholderText: "Mock patch proposal will appear here"
+                placeholderText: "Patch Proposal will appear here"
             }
 
             Text {

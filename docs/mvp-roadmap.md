@@ -185,6 +185,8 @@ Current 0.7a phase: development workflow protocol + mock workflow stream + UI sk
 
 Current 0.7b phase: mock project metadata + structured workflow state. This phase adds a mock project metadata endpoint, a lightweight project panel in `nanami-ui`, and an internal structured workflow view state. It still does not read real project files, detect project manifests, execute commands, call real CubeSandbox, write files, or apply patches.
 
+Current 0.7c phase: sandbox test result visualization + patch proposal view. This phase extends mock workflow visualization with richer test result and patch proposal metadata such as command preview, duration, failed test names, and patch risk level. It still does not read real project files, execute commands, call real CubeSandbox, write files, or apply patches.
+
 Required:
 
 - Open project.
@@ -200,7 +202,7 @@ Expected demo:
 
 ```text
 User loads a mock project and runs a mock development workflow stream.
-Nanami shows project metadata, workflow steps, test results, and patch proposal previews without touching a real project.
+Nanami shows project metadata, workflow steps, richer mock test results, and patch proposal previews without touching a real project.
 ```
 
 ## Out of Scope for MVP

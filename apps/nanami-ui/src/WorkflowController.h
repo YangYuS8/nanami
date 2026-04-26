@@ -46,8 +46,11 @@ private:
     struct WorkflowTestResultView {
         QString status;
         QString summary;
+        QString commandPreview;
+        QString durationMs;
         int passed = 0;
         int failed = 0;
+        QVector<QString> failedTestNames;
     };
 
     struct WorkflowPatchFileView {
@@ -60,6 +63,7 @@ private:
         QString patchId;
         QString summary;
         QString diffSummary;
+        QString riskLevel;
         QVector<WorkflowPatchFileView> files;
     };
 
