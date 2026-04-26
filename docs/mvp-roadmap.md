@@ -262,6 +262,8 @@ Current 0.10c phase: companion home polish. This phase adds a lightweight `Compa
 
 Current 0.10d phase: UI i18n foundation + Simplified Chinese baseline. This phase introduces `qsTr(...)` coverage for QML user-facing text, `tr(...)` coverage for key C++ UI strings, minimal `QTranslator` loading based on system locale, and a baseline `nanami_zh_CN.ts` translation source. It does not change protocol fields, event type strings, endpoint paths, permission actions, controller public slots, or runtime capability boundaries.
 
+Current 0.10e phase: Live2D renderer adapter foundation. This phase extends `PetRendererController` and `PetPanel` with an explicit placeholder/live2d renderer backend boundary, renderer availability state, model path state, model loaded state, and explicit fallback behavior. It does not introduce the Live2D SDK, model resources, binary assets, file reads, protocol changes, controller public slot changes outside the UI adapter itself, or runtime capability expansion.
+
 Direction for 0.10 and later client-facing iterations:
 
 - Improve local client experience and clarity.
@@ -285,6 +287,7 @@ The product narrative emphasizes companion UX, chat entry, event visualization, 
 The default UI now foregrounds the companion and chat experience instead of stacking every panel onto one debug-style screen.
 The companion home further presents pet, chat, and status as a cohesive landing view rather than a raw panel stack.
 The UI also has a working Qt/QML i18n foundation with Simplified Chinese as a first-class baseline locale.
+The renderer surface now exposes a clear placeholder/live2d adapter boundary with safe fallback behavior before any real SDK integration.
 ```
 
 ## Out of Scope for MVP

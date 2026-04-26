@@ -155,6 +155,12 @@ It MUST NOT:
 - Store permanent permissions by itself.
 - Implement agent reasoning logic.
 
+Live2D renderer notes:
+
+- The UI renderer adapter MAY expose multiple backends such as `placeholder` and `live2d`.
+- Real Live2D SDK integration, model resources, packaging, and platform support MUST be handled separately from the adapter foundation.
+- When the Live2D SDK or model resources are unavailable, the UI MUST fall back safely to the placeholder renderer.
+
 ### nanami-core
 
 `nanami-core` is responsible for local client orchestration and policy enforcement.

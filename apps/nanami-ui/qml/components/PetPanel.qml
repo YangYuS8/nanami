@@ -43,13 +43,67 @@ Rectangle {
 
         Text { color: "#aeb4c6"; text: qsTr("Renderer: ") + petRendererController.rendererName }
         Text { color: "#aeb4c6"; text: qsTr("Renderer Status: ") + petRendererController.rendererStatus }
+        Text { color: "#aeb4c6"; text: qsTr("Renderer Backend: ") + petRendererController.rendererBackend }
+        Text { color: "#aeb4c6"; text: qsTr("Renderer Availability: ") + petRendererController.rendererAvailability }
+        Text { color: "#aeb4c6"; text: qsTr("Model Path: ") + (petRendererController.modelPath.length > 0 ? petRendererController.modelPath : qsTr("not configured")); wrapMode: Text.Wrap }
+        Text { color: "#aeb4c6"; text: qsTr("Model Loaded: ") + (petRendererController.modelLoaded ? qsTr("yes") : qsTr("no")) }
         Text { color: "#aeb4c6"; text: qsTr("State: ") + (petRendererController.currentState.length > 0 ? petRendererController.currentState : qsTr("none")) }
         Text { color: "#aeb4c6"; text: qsTr("Emotion: ") + (petRendererController.currentEmotion.length > 0 ? petRendererController.currentEmotion : qsTr("none")) }
         Text { color: "#aeb4c6"; text: qsTr("Source: ") + (personaController.source.length > 0 ? personaController.source : qsTr("none")) }
 
+        TextField {
+            id: modelPathInput
+            width: parent.width
+            placeholderText: qsTr("Enter Live2D model path")
+            text: petRendererController.modelPath
+        }
+
+        Row {
+            width: parent.width
+            spacing: 8
+
+            Button {
+                text: qsTr("Set model path")
+                onClicked: petRendererController.setModelPath(modelPathInput.text)
+            }
+
+            Button {
+                text: qsTr("Load model")
+                onClicked: petRendererController.loadModel()
+            }
+
+            Button {
+                text: qsTr("Unload model")
+                onClicked: petRendererController.unloadModel()
+            }
+        }
+
+        Row {
+            width: parent.width
+            spacing: 8
+
+            Button {
+                text: qsTr("Use placeholder renderer")
+                onClicked: petRendererController.selectPlaceholderRenderer()
+            }
+
+            Button {
+                text: qsTr("Use Live2D renderer")
+                onClicked: petRendererController.selectLive2DRenderer()
+            }
+        }
+
         Text {
             color: "#aeb4c6"
             text: personaController.text.length > 0 ? personaController.text : qsTr("Persona text will appear here")
+            wrapMode: Text.Wrap
+        }
+
+        Text {
+            width: parent.width
+            color: "#ffb3b3"
+            text: petRendererController.lastRendererError
+            visible: petRendererController.lastRendererError.length > 0
             wrapMode: Text.Wrap
         }
 

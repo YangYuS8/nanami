@@ -54,6 +54,22 @@
       <translation>渲染器状态：</translation>
     </message>
     <message>
+      <source>Renderer Backend: </source>
+      <translation>渲染后端：</translation>
+    </message>
+    <message>
+      <source>Renderer Availability: </source>
+      <translation>渲染器可用性：</translation>
+    </message>
+    <message>
+      <source>Model Path: </source>
+      <translation>模型路径：</translation>
+    </message>
+    <message>
+      <source>Model Loaded: </source>
+      <translation>模型已加载：</translation>
+    </message>
+    <message>
       <source>State: </source>
       <translation>状态：</translation>
     </message>
@@ -70,8 +86,44 @@
       <translation>无</translation>
     </message>
     <message>
+      <source>not configured</source>
+      <translation>未配置</translation>
+    </message>
+    <message>
+      <source>yes</source>
+      <translation>是</translation>
+    </message>
+    <message>
+      <source>no</source>
+      <translation>否</translation>
+    </message>
+    <message>
       <source>Persona text will appear here</source>
       <translation>人格文本将显示在这里</translation>
+    </message>
+    <message>
+      <source>Enter Live2D model path</source>
+      <translation>输入 Live2D 模型路径</translation>
+    </message>
+    <message>
+      <source>Set model path</source>
+      <translation>设置模型路径</translation>
+    </message>
+    <message>
+      <source>Load model</source>
+      <translation>加载模型</translation>
+    </message>
+    <message>
+      <source>Unload model</source>
+      <translation>卸载模型</translation>
+    </message>
+    <message>
+      <source>Use placeholder renderer</source>
+      <translation>使用占位渲染器</translation>
+    </message>
+    <message>
+      <source>Use Live2D renderer</source>
+      <translation>使用 Live2D 渲染器</translation>
     </message>
     <message>
       <source>Running mock persona</source>
@@ -506,6 +558,58 @@
     <message>
       <source>placeholder_active</source>
       <translation>占位激活中</translation>
+    </message>
+    <message>
+      <source>Live2D Renderer</source>
+      <translation>Live2D 渲染器</translation>
+    </message>
+    <message>
+      <source>placeholder</source>
+      <translation>placeholder</translation>
+    </message>
+    <message>
+      <source>live2d</source>
+      <translation>live2d</translation>
+    </message>
+    <message>
+      <source>available</source>
+      <translation>可用</translation>
+    </message>
+    <message>
+      <source>unavailable</source>
+      <translation>不可用</translation>
+    </message>
+    <message>
+      <source>live2d_selected</source>
+      <translation>已选择 Live2D</translation>
+    </message>
+    <message>
+      <source>live2d_unavailable</source>
+      <translation>Live2D 不可用</translation>
+    </message>
+    <message>
+      <source>live2d_ready</source>
+      <translation>Live2D 就绪</translation>
+    </message>
+    <message>
+      <source>live2d_active</source>
+      <translation>Live2D 激活中</translation>
+    </message>
+    <message>
+      <source>placeholder_selected</source>
+      <translation>已选择占位渲染器</translation>
+    </message>
+    <message>
+      <source>Placeholder renderer does not load external models</source>
+      <translation>占位渲染器不加载外部模型</translation>
+    </message>
+    <message>
+      <source>Live2D model path is not configured</source>
+      <translation>Live2D 模型路径未配置</translation>
+    </message>
+    <message>
+      <source>Live2D SDK is unavailable in this build</source>
+      <translation>当前构建未提供 Live2D SDK</translation>
     </message>
   </context>
   <context>
