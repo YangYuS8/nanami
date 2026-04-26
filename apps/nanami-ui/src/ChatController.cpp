@@ -1,9 +1,10 @@
 #include "ChatController.h"
 
-#include <QJsonDocument>
+#include "HttpJsonClient.h"
+#include "SseStreamParser.h"
+
 #include <QJsonObject>
 #include <QNetworkReply>
-#include <QNetworkRequest>
 #include <QUrl>
 
 ChatController::ChatController(QObject *parent)
@@ -44,9 +45,8 @@ void ChatController::sendMessage(const QString &text)
     QJsonObject body;
     body.insert(QStringLiteral("message"), trimmed);
 
-    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/chat/stream")));
-    request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
-    auto *reply = m_network.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
+    HttpJsonClient client(&m_network);
+    auto *reply = client.postJson(QUrl(QStringLiteral("http://127.0.0.1:17878/chat/stream")), body);
 
     connect(reply, &QNetworkReply::readyRead, this, [this, reply]() {
         handleStreamData(reply->readAll());
@@ -58,7 +58,8 @@ void ChatController::sendMessage(const QString &text)
         setBusy(false);
 
         if (reply->error() != QNetworkReply::NoError) {
-            setError(QStringLiteral("nanami-core streaming chat endpoint is unavailable"));
+            setError(HttpJsonClient::networkErrorString(
+                reply, QStringLiteral("nanami-core streaming chat endpoint is unavailable")));
             m_assistantOpen = false;
             m_assistantHasContent = false;
             return;
@@ -95,21 +96,12 @@ void ChatController::handleStreamData(const QByteArray &data)
         return;
     }
 
-    m_streamBuffer.append(QString::fromUtf8(data));
-    int separator = m_streamBuffer.indexOf(QStringLiteral("\n\n"));
-    while (separator >= 0) {
-        const QString frame = m_streamBuffer.left(separator).trimmed();
-        m_streamBuffer.remove(0, separator + 2);
-
-        if (frame.startsWith(QStringLiteral("data:"))) {
-            const QString payload = frame.mid(5).trimmed();
-            const auto document = QJsonDocument::fromJson(payload.toUtf8());
-            if (document.isObject()) {
-                handleStreamEvent(document.object());
-            }
+    const QStringList payloads = SseStreamParser::extractDataFrames(&m_streamBuffer, data);
+    for (const QString &payload : payloads) {
+        const auto document = QJsonDocument::fromJson(payload.toUtf8());
+        if (document.isObject()) {
+            handleStreamEvent(document.object());
         }
-
-        separator = m_streamBuffer.indexOf(QStringLiteral("\n\n"));
     }
 }
 

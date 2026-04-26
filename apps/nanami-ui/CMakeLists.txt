@@ -53,6 +53,14 @@ qt_add_qml_module(nanami-ui
     VERSION 1.0
     QML_FILES
         qml/Main.qml
+        qml/components/StatusPanel.qml
+        qml/components/PetPanel.qml
+        qml/components/ChatPanel.qml
+        qml/components/TaskPanel.qml
+        qml/components/PermissionPanel.qml
+        qml/components/SandboxPanel.qml
+        qml/components/ProjectPanel.qml
+        qml/components/WorkflowPanel.qml
 )
 
 target_link_libraries(nanami-ui

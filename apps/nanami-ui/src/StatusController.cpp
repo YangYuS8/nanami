@@ -1,9 +1,9 @@
 #include "StatusController.h"
 
-#include <QJsonDocument>
+#include "HttpJsonClient.h"
+
 #include <QJsonObject>
 #include <QNetworkReply>
-#include <QNetworkRequest>
 #include <QUrl>
 
 StatusController::StatusController(QObject *parent)
@@ -42,8 +42,8 @@ void StatusController::refresh()
 
 void StatusController::refreshCoreStatus()
 {
-    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/health")));
-    auto *reply = m_network.get(request);
+    HttpJsonClient client(&m_network);
+    auto *reply = client.get(QUrl(QStringLiteral("http://127.0.0.1:17878/health")));
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
@@ -53,13 +53,13 @@ void StatusController::refreshCoreStatus()
             return;
         }
 
-        const auto document = QJsonDocument::fromJson(reply->readAll());
-        if (!document.isObject()) {
+        QJsonObject object;
+        QString parseError;
+        if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
             setCoreStatus(QStringLiteral("error"));
             return;
         }
 
-        const auto object = document.object();
         setCoreStatus(object.value(QStringLiteral("status")).toString() == QStringLiteral("ok")
                           ? QStringLiteral("connected")
                           : QStringLiteral("error"));
@@ -68,8 +68,8 @@ void StatusController::refreshCoreStatus()
 
 void StatusController::refreshOpenClawStatus()
 {
-    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/openclaw/status")));
-    auto *reply = m_network.get(request);
+    HttpJsonClient client(&m_network);
+    auto *reply = client.get(QUrl(QStringLiteral("http://127.0.0.1:17878/openclaw/status")));
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
@@ -80,14 +80,14 @@ void StatusController::refreshOpenClawStatus()
             return;
         }
 
-        const auto document = QJsonDocument::fromJson(reply->readAll());
-        if (!document.isObject()) {
+        QJsonObject object;
+        QString parseError;
+        if (!HttpJsonClient::parseObject(reply, &object, &parseError)) {
             setOpenClawStatus(QStringLiteral("error"));
             setOpenClawMessage(QStringLiteral("Invalid nanami-core OpenClaw status response"));
             return;
         }
 
-        const auto object = document.object();
         setOpenClawStatus(object.value(QStringLiteral("status")).toString(QStringLiteral("error")));
         setOpenClawGatewayUrl(object.value(QStringLiteral("gateway_url")).toString());
         setOpenClawMessage(object.value(QStringLiteral("message")).toString());

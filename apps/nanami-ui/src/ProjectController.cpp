@@ -3,8 +3,6 @@
 #include "HttpJsonClient.h"
 #include "PermissionController.h"
 
-#include "SseStreamParser.h"
-
 #include <QFileDialog>
 #include <QJsonArray>
 #include <QJsonObject>
