@@ -191,8 +191,6 @@ Current 0.7d phase: permission-gated apply patch mock flow. This phase adds a mo
 
 Current 0.7e phase: OpenClaw workflow event mapping. This phase maps structured OpenClaw workflow JSON into Nanami workflow events on `/tasks/openclaw/stream`. It still does not read real project files, execute commands, call real CubeSandbox, write files, or apply patches.
 
-Current 0.8a phase: explicit project selection + manifest-only project metadata. This phase allows the user to explicitly choose a project directory and lets `nanami-core` detect only top-level manifest filenames to produce minimal metadata. It does not read source content, manifest contents, recursively scan the project, execute commands, call CubeSandbox, write files, or apply patches.
-
 Required:
 
 - Open project.
@@ -210,6 +208,12 @@ Expected demo:
 User selects a project folder or loads a mock project, then runs a mock workflow or receives structured OpenClaw workflow events.
 Nanami shows minimal project metadata and workflow visualization without reading source content or touching the real project state.
 ```
+
+## Version 0.8: Real Project Selection and Trust
+
+Goal: let the user explicitly choose a real project boundary before later trust and workflow expansion.
+
+Current 0.8a phase: explicit project selection + manifest-only project metadata. This phase allows the user to explicitly choose a project directory and lets `nanami-core` detect only top-level manifest filenames to produce minimal metadata. It does not read source content, manifest contents, recursively scan the project, execute commands, call CubeSandbox, write files, or apply patches.
 
 ## Out of Scope for MVP
 

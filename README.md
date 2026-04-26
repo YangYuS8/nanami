@@ -91,7 +91,7 @@ Agents working on Nanami MUST follow these rules:
 
 ## Current Priority
 
-The current goal is Nanami 0.7:
+The current goal is Nanami 0.8:
 
 - 0.4a completed: permission protocol + mock permission flow.
 - 0.4b completed: dangerous tool request interception visibility.
