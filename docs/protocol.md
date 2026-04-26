@@ -746,6 +746,7 @@ Valid trust statuses:
 untrusted
 trusted_mock
 selected_untrusted
+selected_trusted
 ```
 
 Example:
@@ -769,6 +770,18 @@ Selected project example:
   "project_path": "/home/user/Code/my-project",
   "kind": "rust",
   "trust_status": "selected_untrusted"
+}
+```
+
+Trusted selected project example:
+
+```json
+{
+  "project_id": "project_selected_my-project",
+  "display_name": "my-project",
+  "project_path": "/home/user/Code/my-project",
+  "kind": "rust",
+  "trust_status": "selected_trusted"
 }
 ```
 

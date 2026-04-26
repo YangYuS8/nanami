@@ -133,6 +133,47 @@ void ProjectController::selectProjectFolder()
     });
 }
 
+void ProjectController::trustSelectedProject()
+{
+    if (m_busy || m_projectId.isEmpty()) {
+        return;
+    }
+
+    setError(QString());
+    setBusy(true);
+
+    QJsonObject body;
+    body.insert(QStringLiteral("project_id"), m_projectId);
+
+    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/projects/trust")));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+    auto *reply = m_network.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        reply->deleteLater();
+        setBusy(false);
+
+        if (reply->error() != QNetworkReply::NoError) {
+            setError(QStringLiteral("Failed to trust selected project"));
+            return;
+        }
+
+        const auto document = QJsonDocument::fromJson(reply->readAll());
+        if (!document.isObject()) {
+            setError(QStringLiteral("Invalid trusted project response"));
+            return;
+        }
+
+        const auto object = document.object();
+        m_projectId = object.value(QStringLiteral("project_id")).toString();
+        m_displayName = object.value(QStringLiteral("display_name")).toString();
+        m_projectPath = object.value(QStringLiteral("project_path")).toString();
+        m_projectKind = object.value(QStringLiteral("kind")).toString();
+        m_trustStatus = object.value(QStringLiteral("trust_status")).toString();
+        emit projectChanged();
+    });
+}
+
 void ProjectController::setBusy(bool busy)
 {
     if (m_busy == busy) {

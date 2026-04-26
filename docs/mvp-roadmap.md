@@ -215,6 +215,15 @@ Goal: let the user explicitly choose a real project boundary before later trust 
 
 Current 0.8a phase: explicit project selection + manifest-only project metadata. This phase allows the user to explicitly choose a project directory and lets `nanami-core` detect only top-level manifest filenames to produce minimal metadata. It does not read source content, manifest contents, recursively scan the project, execute commands, call CubeSandbox, write files, or apply patches.
 
+Current 0.8b phase: project trust confirmation + in-memory trust state. This phase lets the user explicitly confirm trust for the currently selected project, but stores that trust in memory only. It still does not read source content, manifest contents, recursively scan the project, execute commands, call CubeSandbox, write files, or apply patches.
+
+Expected demo:
+
+```text
+User explicitly selects a project folder, sees manifest-only metadata, and then confirms trust for that selected project.
+Nanami updates trust state in memory only without reading source content or enabling any automatic execution.
+```
+
 ## Out of Scope for MVP
 
 Do not implement these before the core loop works:

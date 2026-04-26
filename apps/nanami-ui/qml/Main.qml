@@ -411,6 +411,12 @@ ApplicationWindow {
                 onClicked: projectController.selectProjectFolder()
             }
 
+            Button {
+                text: projectController.busy ? "Trusting selected project" : "Trust selected project"
+                enabled: !projectController.busy && projectController.trustStatus === "selected_untrusted"
+                onClicked: projectController.trustSelectedProject()
+            }
+
             Text {
                 width: parent.width
                 color: "#aeb4c6"

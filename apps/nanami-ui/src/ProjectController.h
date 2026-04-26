@@ -28,6 +28,7 @@ public:
 
     Q_INVOKABLE void loadMockProject();
     Q_INVOKABLE void selectProjectFolder();
+    Q_INVOKABLE void trustSelectedProject();
 
 signals:
     void projectChanged();

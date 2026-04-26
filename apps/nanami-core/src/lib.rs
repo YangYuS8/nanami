@@ -65,6 +65,7 @@ fn router_with_openclaw(openclaw: Arc<dyn OpenClawService>) -> Router {
             post(workflow_mock_apply_patch),
         )
         .route("/projects/select", post(projects_select))
+        .route("/projects/trust", post(projects_trust))
         .route("/projects/mock/current", get(projects_mock_current))
         .route("/permissions/mock/stream", get(permissions_mock_stream))
         .route("/permissions/resolve", post(permissions_resolve))
@@ -76,6 +77,7 @@ fn router_with_openclaw(openclaw: Arc<dyn OpenClawService>) -> Router {
         .with_state(AppState {
             openclaw,
             permission_manager: Arc::new(Mutex::new(PermissionManager::new())),
+            selected_project: Arc::new(Mutex::new(None)),
         })
 }
 
@@ -83,6 +85,7 @@ fn router_with_openclaw(openclaw: Arc<dyn OpenClawService>) -> Router {
 struct AppState {
     openclaw: Arc<dyn OpenClawService>,
     permission_manager: Arc<Mutex<PermissionManager>>,
+    selected_project: Arc<Mutex<Option<ProjectMetadata>>>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -99,6 +102,11 @@ struct WorkflowApplyPatchRequest {
 #[derive(Debug, serde::Deserialize)]
 struct ProjectSelectRequest {
     project_path: String,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct ProjectTrustRequest {
+    project_id: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -549,7 +557,10 @@ async fn projects_mock_current() -> Json<ProjectMetadata> {
     })
 }
 
-async fn projects_select(Json(request): Json<ProjectSelectRequest>) -> impl IntoResponse {
+async fn projects_select(
+    State(state): State<AppState>,
+    Json(request): Json<ProjectSelectRequest>,
+) -> impl IntoResponse {
     let project_path = std::path::PathBuf::from(&request.project_path);
 
     if !project_path.exists() || !project_path.is_dir() {
@@ -582,14 +593,71 @@ async fn projects_select(Json(request): Json<ProjectSelectRequest>) -> impl Into
         .unwrap_or("selected-project")
         .to_owned();
 
-    Json(ProjectMetadata {
+    let metadata = ProjectMetadata {
         project_id: format!("project_selected_{}", display_name),
         display_name,
         project_path: request.project_path,
         kind,
         trust_status: ProjectTrustStatus::SelectedUntrusted,
-    })
-    .into_response()
+    };
+
+    // Record the current explicitly selected project in memory only.
+    // 0.8a/0.8b still do not grant any automatic read/write or execution.
+    *state.selected_project.lock().unwrap() = Some(metadata.clone());
+
+    Json(metadata).into_response()
+}
+
+async fn projects_trust(
+    State(state): State<AppState>,
+    Json(request): Json<ProjectTrustRequest>,
+) -> impl IntoResponse {
+    let mut selected_project = state.selected_project.lock().unwrap();
+    let Some(project) = selected_project.as_mut() else {
+        return (
+            StatusCode::BAD_REQUEST,
+            [("content-type", "application/json")],
+            serde_json::to_string(&chat_error(
+                "PROJECT_NOT_SELECTED",
+                "No project is currently selected",
+                Some("Select a project folder before trusting it"),
+            ))
+            .unwrap(),
+        )
+            .into_response();
+    };
+
+    if project.project_id != request.project_id {
+        return (
+            StatusCode::BAD_REQUEST,
+            [("content-type", "application/json")],
+            serde_json::to_string(&chat_error(
+                "PROJECT_ID_MISMATCH",
+                "The requested project does not match the current selected project",
+                Some("Trust the currently selected project only"),
+            ))
+            .unwrap(),
+        )
+            .into_response();
+    }
+
+    if project.trust_status != ProjectTrustStatus::SelectedUntrusted {
+        return (
+            StatusCode::BAD_REQUEST,
+            [("content-type", "application/json")],
+            serde_json::to_string(&chat_error(
+                "PROJECT_TRUST_INVALID_STATE",
+                "Only selected_untrusted projects can be trusted",
+                Some("Select a project and trust it once"),
+            ))
+            .unwrap(),
+        )
+            .into_response();
+    }
+
+    project.trust_status = ProjectTrustStatus::SelectedTrusted;
+
+    Json(project.clone()).into_response()
 }
 
 async fn workflow_mock_apply_patch(
@@ -1550,6 +1618,80 @@ mod tests {
 
         assert_eq!(json["kind"], "unknown");
         assert_eq!(json["trust_status"], "selected_untrusted");
+    }
+
+    #[tokio::test]
+    async fn projects_trust_updates_selected_project_to_selected_trusted() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "nanami_project_trust_{}_{}",
+            std::process::id(),
+            chrono::Utc::now().timestamp_nanos_opt().unwrap()
+        ));
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        std::fs::write(temp_dir.join("Cargo.toml"), "").unwrap();
+
+        let app = crate::router();
+        let select_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/select")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(
+                        r#"{{"project_path":"{}"}}"#,
+                        temp_dir.display()
+                    )))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let select_body = axum::body::to_bytes(select_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let select_json: serde_json::Value = serde_json::from_slice(&select_body).unwrap();
+        let project_id = select_json["project_id"].as_str().unwrap().to_owned();
+
+        let trust_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/trust")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(r#"{{"project_id":"{}"}}"#, project_id)))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = trust_response.status();
+        let trust_body = axum::body::to_bytes(trust_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let trust_json: serde_json::Value = serde_json::from_slice(&trust_body).unwrap();
+
+        let _ = std::fs::remove_file(temp_dir.join("Cargo.toml"));
+        let _ = std::fs::remove_dir(&temp_dir);
+
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(trust_json["trust_status"], "selected_trusted");
+    }
+
+    #[tokio::test]
+    async fn projects_trust_rejects_non_selected_project_id() {
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/trust")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"project_id":"project_missing_001"}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
 
     #[tokio::test]
