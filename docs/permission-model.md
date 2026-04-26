@@ -26,6 +26,8 @@ Current 0.7c status: mock test result + patch proposal visualization only. Workf
 
 Current 0.7d status: permission-gated apply patch mock flow only. Nanami may record a mock permission request for patch application and display a mock apply result, but permission decisions still do not trigger real file writes, patch application, command execution, or sandbox execution.
 
+Current 0.8a status: explicit project selection + manifest-only metadata only. User-triggered project folder selection may return minimal metadata, but Nanami still does not read source files, manifest contents, execute commands, call CubeSandbox, write files, or apply patches.
+
 Nanami MUST ask the user before performing risky actions.
 
 Permission decisions MUST be explicit, scoped, recorded, and revocable where possible.

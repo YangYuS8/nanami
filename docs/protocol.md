@@ -729,6 +729,8 @@ Examples:
 
 Project metadata provides the 0.7b mock project identity foundation. In 0.7b, this metadata is mock-only. Nanami does not read the real filesystem, does not inspect `Cargo.toml`, `package.json`, or `pyproject.toml`, does not scan directories, and does not establish real trust.
 
+In 0.8a, project selection may be explicitly triggered by the user. Nanami still only performs manifest-only metadata detection by checking whether top-level `Cargo.toml`, `package.json`, or `pyproject.toml` filenames exist. It does not read manifest contents, source files, or recursively scan the project.
+
 Valid project kinds:
 
 ```text
@@ -743,6 +745,7 @@ Valid trust statuses:
 ```text
 untrusted
 trusted_mock
+selected_untrusted
 ```
 
 Example:
@@ -754,6 +757,18 @@ Example:
   "project_path": "/mock/project",
   "kind": "rust",
   "trust_status": "trusted_mock"
+}
+```
+
+Selected project example:
+
+```json
+{
+  "project_id": "project_selected_my-project",
+  "display_name": "my-project",
+  "project_path": "/home/user/Code/my-project",
+  "kind": "rust",
+  "trust_status": "selected_untrusted"
 }
 ```
 

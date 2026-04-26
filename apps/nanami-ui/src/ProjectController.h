@@ -27,6 +27,7 @@ public:
     QString error() const;
 
     Q_INVOKABLE void loadMockProject();
+    Q_INVOKABLE void selectProjectFolder();
 
 signals:
     void projectChanged();

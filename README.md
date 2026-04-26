@@ -107,6 +107,7 @@ The current goal is Nanami 0.7:
 - 0.7c completed: sandbox test result visualization + patch proposal view.
 - 0.7d completed: permission-gated apply patch mock flow.
 - 0.7e completed: OpenClaw workflow event mapping.
+- 0.8a completed: explicit project selection + manifest-only project metadata.
 - `nanami-core` provides mock permission request, decision, audit, and sandbox stream endpoints.
 - `nanami-core` also provides a mock persona state stream endpoint.
 - `nanami-ui` displays mock permission and sandbox visualization skeletons with structured sandbox view state, plus a placeholder pet view.
@@ -132,6 +133,8 @@ The current goal is Nanami 0.7:
 - It still does not read real project files, write files, apply real patches, execute commands, call real CubeSandbox, or turn permission approvals into real writes.
 - 0.7e maps structured OpenClaw workflow JSON into Nanami workflow events through `/tasks/openclaw/stream` only.
 - It still does not read real project files, execute commands, call real CubeSandbox, write files, apply patches, or infer workflow state from natural language.
+- 0.8a adds explicit user-triggered project folder selection and manifest-only metadata detection.
+- It does not read source content, does not read manifest contents, does not recursively scan the project, does not execute commands, and does not call CubeSandbox.
 
 ## Development
 
@@ -294,6 +297,8 @@ Nanami 0.7c improves mock test result and patch proposal visualization with comm
 Nanami 0.7d adds a permission-gated apply patch mock flow for visualization only. It records mock permission requests and mock apply status without reading real project files, writing files, or applying real patches.
 
 Nanami 0.7e adds OpenClaw structured workflow event mapping into Nanami workflow events on `/tasks/openclaw/stream`. It still does not read real project files, execute commands, call real CubeSandbox, write files, or apply patches.
+
+Nanami 0.8a adds explicit project selection and manifest-only project metadata detection. It only checks top-level manifest filenames and still does not read source content, manifest contents, execute commands, call CubeSandbox, write files, or apply patches.
 
 ## Verification
 

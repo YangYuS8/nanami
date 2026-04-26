@@ -64,6 +64,7 @@ fn router_with_openclaw(openclaw: Arc<dyn OpenClawService>) -> Router {
             "/workflow/mock/apply-patch",
             post(workflow_mock_apply_patch),
         )
+        .route("/projects/select", post(projects_select))
         .route("/projects/mock/current", get(projects_mock_current))
         .route("/permissions/mock/stream", get(permissions_mock_stream))
         .route("/permissions/resolve", post(permissions_resolve))
@@ -93,6 +94,11 @@ struct PermissionResolveRequest {
 #[derive(Debug, serde::Deserialize)]
 struct WorkflowApplyPatchRequest {
     patch_id: String,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct ProjectSelectRequest {
+    project_path: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -541,6 +547,49 @@ async fn projects_mock_current() -> Json<ProjectMetadata> {
         kind: ProjectKind::Rust,
         trust_status: ProjectTrustStatus::TrustedMock,
     })
+}
+
+async fn projects_select(Json(request): Json<ProjectSelectRequest>) -> impl IntoResponse {
+    let project_path = std::path::PathBuf::from(&request.project_path);
+
+    if !project_path.exists() || !project_path.is_dir() {
+        return (
+            StatusCode::BAD_REQUEST,
+            [("content-type", "application/json")],
+            serde_json::to_string(&chat_error(
+                "PROJECT_PATH_INVALID",
+                "Selected project path must be an existing directory",
+                Some("Choose an existing project folder"),
+            ))
+            .unwrap(),
+        )
+            .into_response();
+    }
+
+    let kind = if project_path.join("Cargo.toml").is_file() {
+        ProjectKind::Rust
+    } else if project_path.join("package.json").is_file() {
+        ProjectKind::Node
+    } else if project_path.join("pyproject.toml").is_file() {
+        ProjectKind::Python
+    } else {
+        ProjectKind::Unknown
+    };
+
+    let display_name = project_path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("selected-project")
+        .to_owned();
+
+    Json(ProjectMetadata {
+        project_id: format!("project_selected_{}", display_name),
+        display_name,
+        project_path: request.project_path,
+        kind,
+        trust_status: ProjectTrustStatus::SelectedUntrusted,
+    })
+    .into_response()
 }
 
 async fn workflow_mock_apply_patch(
@@ -1426,6 +1475,81 @@ mod tests {
         assert_eq!(json["project_path"], "/mock/project");
         assert_eq!(json["kind"], "rust");
         assert_eq!(json["trust_status"], "trusted_mock");
+    }
+
+    #[tokio::test]
+    async fn projects_select_detects_top_level_rust_manifest_and_returns_selected_untrusted() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "nanami_project_select_rust_{}_{}",
+            std::process::id(),
+            chrono::Utc::now().timestamp_nanos_opt().unwrap()
+        ));
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        std::fs::write(temp_dir.join("Cargo.toml"), "").unwrap();
+
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/select")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(
+                        r#"{{"project_path":"{}"}}"#,
+                        temp_dir.display()
+                    )))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = response.status();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        let _ = std::fs::remove_file(temp_dir.join("Cargo.toml"));
+        let _ = std::fs::remove_dir(&temp_dir);
+
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(json["kind"], "rust");
+        assert_eq!(json["trust_status"], "selected_untrusted");
+    }
+
+    #[tokio::test]
+    async fn projects_select_returns_unknown_when_no_top_level_manifest_exists() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "nanami_project_select_unknown_{}_{}",
+            std::process::id(),
+            chrono::Utc::now().timestamp_nanos_opt().unwrap()
+        ));
+        std::fs::create_dir_all(temp_dir.join("nested")).unwrap();
+        std::fs::write(temp_dir.join("nested").join("Cargo.toml"), "").unwrap();
+
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/select")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(
+                        r#"{{"project_path":"{}"}}"#,
+                        temp_dir.display()
+                    )))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        let _ = std::fs::remove_file(temp_dir.join("nested").join("Cargo.toml"));
+        let _ = std::fs::remove_dir(temp_dir.join("nested"));
+        let _ = std::fs::remove_dir(&temp_dir);
+
+        assert_eq!(json["kind"], "unknown");
+        assert_eq!(json["trust_status"], "selected_untrusted");
     }
 
     #[tokio::test]

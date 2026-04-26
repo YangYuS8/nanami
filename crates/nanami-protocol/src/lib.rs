@@ -205,6 +205,7 @@ pub enum ProjectKind {
 pub enum ProjectTrustStatus {
     Untrusted,
     TrustedMock,
+    SelectedUntrusted,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]

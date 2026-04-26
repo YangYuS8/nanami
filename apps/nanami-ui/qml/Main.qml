@@ -405,6 +405,12 @@ ApplicationWindow {
                 onClicked: projectController.loadMockProject()
             }
 
+            Button {
+                text: projectController.busy ? "Selecting project folder" : "Select project folder"
+                enabled: !projectController.busy
+                onClicked: projectController.selectProjectFolder()
+            }
+
             Text {
                 width: parent.width
                 color: "#aeb4c6"

@@ -15,6 +15,13 @@ fn project_trust_status_trusted_mock_serializes_snake_case() {
 }
 
 #[test]
+fn project_trust_status_selected_untrusted_serializes_snake_case() {
+    let json = serde_json::to_value(ProjectTrustStatus::SelectedUntrusted).unwrap();
+
+    assert_eq!(json, "selected_untrusted");
+}
+
+#[test]
 fn project_metadata_serializes_json_shape() {
     let metadata = ProjectMetadata {
         project_id: "project_mock_001".into(),
