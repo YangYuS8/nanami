@@ -237,7 +237,9 @@ Current 0.9e phase: core test module split cleanup only. This phase reorganizes 
 
 Current 0.9f phase: protocol module split cleanup only. This phase reorganizes `nanami-protocol` into focused modules such as chat, error, session, openclaw, task, tool, sandbox, persona, project, manifest, workflow, permission, audit, and event, while preserving the same public re-exports from `lib.rs`. It does not change public API paths, protocol fields, serde shapes, event type strings, permission semantics, or runtime capability boundaries.
 
-0.9 runtime capability boundary remains unchanged across 0.9a through 0.9f: Nanami does not read source content, does not recursively scan the project, does not execute commands, does not call CubeSandbox, does not write files, and does not download dependencies.
+Current 0.9g phase: OpenClaw adapter module split cleanup only. This phase reorganizes `nanami-openclaw` into focused modules such as client, config, error, status, chat, SSE parsing, agent stream handling, and mapping helpers for tool, sandbox, and workflow events. It does not change public API paths, protocol fields, event mapping behavior, serde shapes, error semantics, or runtime capability boundaries.
+
+0.9 runtime capability boundary remains unchanged across 0.9a through 0.9g: Nanami does not read source content, does not recursively scan the project, does not execute commands, does not call CubeSandbox, does not write files, and does not download dependencies.
 
 Expected demo:
 
