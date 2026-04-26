@@ -118,6 +118,7 @@ The current goal is Nanami 0.9:
 - 0.9e completed: core test module split cleanup.
 - 0.9f completed: protocol module split cleanup.
 - 0.9g completed: OpenClaw adapter module split cleanup.
+- 0.9h completed: OpenClaw adapter test module split cleanup.
 - `nanami-core` provides mock permission request, decision, audit, and sandbox stream endpoints.
 - `nanami-core` also provides a mock persona state stream endpoint.
 - `nanami-ui` displays mock permission and sandbox visualization skeletons with structured sandbox view state, plus a placeholder pet view.
@@ -167,6 +168,8 @@ The current goal is Nanami 0.9:
 - It reorganizes `nanami-protocol` into focused module files with re-exports from `lib.rs`, without changing public type names, serde shapes, event type strings, protocol fields, or runtime capability boundaries.
 - 0.9g is an OpenClaw adapter module split cleanup only.
 - It reorganizes `nanami-openclaw` into focused client/config/error/chat/SSE/agent/mapping modules without changing its public API, event mapping behavior, serde shapes, error semantics, or runtime capability boundaries.
+- 0.9h is an OpenClaw adapter test module split cleanup only.
+- It reorganizes `nanami-openclaw` agent event mapping tests into focused native/tool/sandbox/workflow modules and shared support helpers without changing public API, event mapping behavior, serde shapes, error semantics, runtime capability boundaries, or test assertion intent.
 
 ## Development
 
@@ -351,6 +354,8 @@ Nanami 0.9e is a pure internal cleanup phase for `nanami-core` tests. It splits 
 Nanami 0.9f is a pure internal cleanup phase for `nanami-protocol`. It splits the oversized `crates/nanami-protocol/src/lib.rs` into focused modules such as chat, task, tool, sandbox, persona, project, manifest, workflow, permission, audit, and event, while preserving the same public re-exports from `nanami_protocol`. It does not change any public type names, serde shapes, event type strings, protocol fields, or runtime capability boundaries.
 
 Nanami 0.9g is a pure internal cleanup phase for `nanami-openclaw`. It splits the oversized `crates/nanami-openclaw/src/lib.rs` into focused modules such as client, config, error, status, chat, SSE parsing, agent stream handling, and mapping helpers for tool, sandbox, and workflow events. It does not change the adapter public API, event mapping behavior, serde shapes, error semantics, or runtime capability boundaries.
+
+Nanami 0.9h is a pure internal cleanup phase for `nanami-openclaw` tests. It splits the mixed `crates/nanami-openclaw/tests/agent_events.rs` coverage into focused native, tool, sandbox, and workflow test modules with shared support helpers. It does not change the adapter public API, event mapping behavior, serde shapes, error semantics, runtime capability boundaries, or the meaning of existing test assertions.
 
 ## Verification
 
