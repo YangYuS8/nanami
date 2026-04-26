@@ -256,6 +256,8 @@ Goal: align Nanami's product direction around being OpenClaw's local visual desk
 
 Current 0.10a phase: product positioning reset. This phase updates product language and architecture framing so Nanami is clearly described as the local visual companion client for OpenClaw. It preserves all existing runtime capability boundaries and does not add new protocol, core API, UI behavior, permission semantics, command execution, file write, patch apply, or CubeSandbox capabilities.
 
+Current 0.10b phase: companion-first UI navigation cleanup. This phase reorganizes `nanami-ui` from a single vertically stacked debug-style page into companion-first grouped navigation with `Companion`, `Activity`, `Safety`, and `Project` sections. It preserves the existing visual style, panel components, controller public slots, endpoint usage, JSON shapes, permission flow, and runtime capability boundaries.
+
 Direction for 0.10 and later client-facing iterations:
 
 - Improve local client experience and clarity.
@@ -276,6 +278,7 @@ Expected demo:
 ```text
 Nanami is presented as OpenClaw's local visual desktop client.
 The product narrative emphasizes companion UX, chat entry, event visualization, permission interaction, and CubeSandbox result presentation without changing runtime ownership.
+The default UI now foregrounds the companion and chat experience instead of stacking every panel onto one debug-style screen.
 ```
 
 ## Out of Scope for MVP
