@@ -1658,6 +1658,99 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn tasks_openclaw_stream_contains_workflow_events() {
+        let response = crate::router_with_openclaw(Arc::new(StubOpenClawService {
+            response: Err(crate::chat_error("unused", "unused", None)),
+            stream_response: Ok(Vec::new()),
+            agent_stream_response: Ok(vec![
+                EventEnvelope::new(
+                    "evt_workflow_started_001",
+                    chrono::Utc::now(),
+                    Event::WorkflowStarted(nanami_protocol::WorkflowStartedPayload {
+                        workflow_id: "workflow_mock_001".into(),
+                        task_id: "task_workflow_mock_001".into(),
+                        project_path: "/mock/project".into(),
+                        status: nanami_protocol::WorkflowStatus::Running,
+                    }),
+                ),
+                EventEnvelope::new(
+                    "evt_workflow_step_001",
+                    chrono::Utc::now(),
+                    Event::WorkflowStep(nanami_protocol::WorkflowStepPayload {
+                        workflow_id: "workflow_mock_001".into(),
+                        task_id: "task_workflow_mock_001".into(),
+                        step_kind: nanami_protocol::WorkflowStepKind::AnalyzeProject,
+                        status: nanami_protocol::WorkflowStepStatus::Completed,
+                        summary: "Mock analysis finished".into(),
+                    }),
+                ),
+                EventEnvelope::new(
+                    "evt_workflow_test_result_001",
+                    chrono::Utc::now(),
+                    Event::WorkflowTestResult(nanami_protocol::WorkflowTestResultPayload {
+                        workflow_id: "workflow_mock_001".into(),
+                        task_id: "task_workflow_mock_001".into(),
+                        status: nanami_protocol::WorkflowStatus::Completed,
+                        summary: "2 tests passed, 1 failed".into(),
+                        command_preview: "cargo test --lib".into(),
+                        duration_ms: 1200,
+                        passed: 2,
+                        failed: 1,
+                        failed_test_names: vec!["tests::mock_failure".into()],
+                    }),
+                ),
+                EventEnvelope::new(
+                    "evt_workflow_patch_proposed_001",
+                    chrono::Utc::now(),
+                    Event::WorkflowPatchProposed(nanami_protocol::WorkflowPatchProposedPayload {
+                        workflow_id: "workflow_mock_001".into(),
+                        task_id: "task_workflow_mock_001".into(),
+                        patch_id: "patch_mock_001".into(),
+                        summary: "Mock patch proposal ready".into(),
+                        diff_summary: "1 file modified".into(),
+                        risk_level: nanami_protocol::WorkflowPatchRiskLevel::Medium,
+                        files: vec![nanami_protocol::WorkflowPatchFilePreviewPayload {
+                            path: "src/main.rs".into(),
+                            change_type: nanami_protocol::WorkflowChangeType::Modified,
+                            diff_preview: "- old line\n+ new line".into(),
+                        }],
+                    }),
+                ),
+                EventEnvelope::new(
+                    "evt_workflow_completed_001",
+                    chrono::Utc::now(),
+                    Event::WorkflowCompleted(nanami_protocol::WorkflowCompletedPayload {
+                        workflow_id: "workflow_mock_001".into(),
+                        task_id: "task_workflow_mock_001".into(),
+                        status: nanami_protocol::WorkflowStatus::Completed,
+                        summary: "Mock workflow completed".into(),
+                    }),
+                ),
+            ]),
+        }))
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/tasks/openclaw/stream")
+                .header("content-type", "application/json")
+                .body(Body::from(r#"{"message":"Run task"}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+
+        assert!(text.contains("workflow.started"));
+        assert!(text.contains("workflow.step"));
+        assert!(text.contains("workflow.test_result"));
+        assert!(text.contains("workflow.patch_proposed"));
+        assert!(text.contains("workflow.completed"));
+    }
+
+    #[tokio::test]
     async fn tasks_openclaw_stream_inserts_permission_for_shell_tool() {
         let event = EventEnvelope::new(
             "evt_shell_started_001",

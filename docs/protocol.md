@@ -619,6 +619,8 @@ In 0.7c, workflow test result and patch proposal payloads may include additional
 
 In 0.7d, apply-patch flow remains mock-only as well. Nanami may request permission and record a mock apply-patch status, but it still does not perform any real file write or patch application.
 
+In 0.7e, `nanami-openclaw` may also map structured OpenClaw workflow JSON into these same Nanami workflow events. This mapping remains structure-driven only and must not infer workflow state from natural language text.
+
 Valid workflow statuses:
 
 ```text
