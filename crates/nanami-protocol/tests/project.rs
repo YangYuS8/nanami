@@ -1,6 +1,6 @@
 use nanami_protocol::{
-    ProjectKind, ProjectMetadata, ProjectStructureEntry, ProjectStructureEntryType,
-    ProjectStructureMarker, ProjectStructureSummary, ProjectTrustStatus,
+    ManifestPreview, ProjectKind, ProjectMetadata, ProjectStructureEntry,
+    ProjectStructureEntryType, ProjectStructureMarker, ProjectStructureSummary, ProjectTrustStatus,
 };
 
 #[test]
@@ -137,4 +137,25 @@ fn project_structure_summary_serializes_json_shape() {
     assert_eq!(json["entries"][1]["marker"], "source_dir");
     assert_eq!(json["entries"][2]["marker"], "config");
     assert_eq!(json["entries"][3]["marker"], "other");
+}
+
+#[test]
+fn manifest_preview_serializes_json_shape() {
+    let preview = ManifestPreview {
+        project_id: "project_selected_demo".into(),
+        manifest_path: "/mock/project/Cargo.toml".into(),
+        kind: ProjectKind::Rust,
+        content_preview: "[package]\nname = \"demo\"\n".into(),
+        truncated: false,
+        size_bytes: 26,
+    };
+
+    let json = serde_json::to_value(preview).unwrap();
+
+    assert_eq!(json["project_id"], "project_selected_demo");
+    assert_eq!(json["manifest_path"], "/mock/project/Cargo.toml");
+    assert_eq!(json["kind"], "rust");
+    assert_eq!(json["content_preview"], "[package]\nname = \"demo\"\n");
+    assert_eq!(json["truncated"], false);
+    assert_eq!(json["size_bytes"], 26);
 }

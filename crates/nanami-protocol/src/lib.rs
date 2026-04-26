@@ -250,6 +250,16 @@ pub struct ProjectStructureSummary {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ManifestPreview {
+    pub project_id: String,
+    pub manifest_path: String,
+    pub kind: ProjectKind,
+    pub content_preview: String,
+    pub truncated: bool,
+    pub size_bytes: u64,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum WorkflowStatus {
     Running,

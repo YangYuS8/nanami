@@ -477,6 +477,27 @@ ApplicationWindow {
                 placeholderText: "Shallow project structure summary will appear here"
             }
 
+            Button {
+                text: projectController.busy ? "Requesting manifest preview permission" : "Request manifest preview permission"
+                enabled: !projectController.busy && projectController.trustStatus === "selected_trusted"
+                onClicked: projectController.requestManifestPreviewPermission()
+            }
+
+            Button {
+                text: projectController.busy ? "Loading manifest preview" : "Load manifest preview"
+                enabled: !projectController.busy && projectController.trustStatus === "selected_trusted"
+                onClicked: projectController.loadManifestPreview()
+            }
+
+            TextArea {
+                width: parent.width
+                height: 140
+                readOnly: true
+                wrapMode: TextArea.Wrap
+                text: projectController.manifestPreviewText
+                placeholderText: "Manifest preview will appear here after explicit permission approval"
+            }
+
             Text {
                 width: parent.width
                 color: "#ff9a9a"

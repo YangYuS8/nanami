@@ -830,6 +830,25 @@ Example:
 }
 ```
 
+### Manifest Preview
+
+Manifest preview provides the 0.9a permission-gated manifest preview response. It is available only for the currently selected trusted project after an explicit approved L2 `filesystem.read` permission decision. Nanami reads only one supported top-level manifest file: `Cargo.toml`, `package.json`, or `pyproject.toml`.
+
+This is manifest preview only. It is not source analysis. Nanami does not read source files, does not recursively scan the project, does not execute commands, does not call CubeSandbox, and does not write files.
+
+Example:
+
+```json
+{
+  "project_id": "project_selected_my-project",
+  "manifest_path": "/home/user/Code/my-project/Cargo.toml",
+  "kind": "rust",
+  "content_preview": "[package]\nname = \"my-project\"\nversion = \"0.1.0\"\n",
+  "truncated": false,
+  "size_bytes": 58
+}
+```
+
 ### Tool Events
 
 ```json
@@ -898,6 +917,8 @@ artifact
   "decision": "allow_once"
 }
 ```
+
+For 0.9a manifest preview, `nanami-core` creates a dedicated L2 `filesystem.read` permission request through `POST /projects/current/manifest/preview-request`. Approval with `allow_once` or `allow_for_task` is required before `GET /projects/current/manifest/preview` will read the selected top-level manifest preview.
 
 Valid permission decisions:
 

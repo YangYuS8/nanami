@@ -17,7 +17,7 @@ use nanami_openclaw::{
 use nanami_permission::PermissionManager;
 use nanami_protocol::{
     ChatRequest, ChatResponse, ChatStreamEvent, ChatStreamEventKind, ErrorPayload, ErrorSeverity,
-    Event, EventEnvelope, OpenClawConnectionStatus, OpenClawStatusPayload,
+    Event, EventEnvelope, ManifestPreview, OpenClawConnectionStatus, OpenClawStatusPayload,
     PermissionAuditLogResponse, PermissionDecision, PermissionDecisionStatus, PermissionLevel,
     PermissionRequestPayload, PermissionResolvedPayload, PermissionScope, PersonaEmotion,
     PersonaState, PersonaStatePayload, PersonaStateSource, ProjectKind, ProjectMetadata,
@@ -41,6 +41,7 @@ const DEFAULT_OPENCLAW_TIMEOUT_MS: u64 = 3000;
 type NanamiEventStream =
     Pin<Box<dyn tokio_stream::Stream<Item = Result<EventEnvelope, ErrorPayload>> + Send>>;
 type JsonErrorResponse = (StatusCode, [(&'static str, &'static str); 1], String);
+const MANIFEST_PREVIEW_MAX_BYTES: u64 = 8 * 1024;
 
 #[derive(Debug, Serialize)]
 struct HealthResponse {
@@ -77,6 +78,14 @@ fn router_with_openclaw(openclaw: Arc<dyn OpenClawService>) -> Router {
         .route(
             "/projects/current/structure",
             get(projects_current_structure),
+        )
+        .route(
+            "/projects/current/manifest/preview-request",
+            post(projects_current_manifest_preview_request),
+        )
+        .route(
+            "/projects/current/manifest/preview",
+            get(projects_current_manifest_preview),
         )
         .route("/permissions/mock/stream", get(permissions_mock_stream))
         .route("/permissions/resolve", post(permissions_resolve))
@@ -899,39 +908,207 @@ async fn projects_trust(
 }
 
 async fn projects_current_structure(State(state): State<AppState>) -> impl IntoResponse {
+    let project = match selected_trusted_project(&state, "loading its structure") {
+        Ok(project) => project,
+        Err(error) => return error.into_response(),
+    };
+
+    match build_project_structure_summary(&project) {
+        Ok(summary) => Json(summary).into_response(),
+        Err(error) => error.into_response(),
+    }
+}
+
+async fn projects_current_manifest_preview_request(
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    let project = match selected_trusted_project(&state, "requesting manifest preview") {
+        Ok(project) => project,
+        Err(error) => return error.into_response(),
+    };
+
+    let manifest_path = match top_level_manifest_path(&project) {
+        Ok(path) => path,
+        Err(error) => return error.into_response(),
+    };
+
+    let permission_id = manifest_preview_permission_id(&project);
+    let permission_request = PermissionRequestPayload {
+        task_id: None,
+        permission_id,
+        level: PermissionLevel::L2,
+        action: "filesystem.read".into(),
+        target: manifest_path.display().to_string(),
+        reason: "Read top-level manifest preview for the currently selected trusted project".into(),
+        scope: PermissionScope::Task,
+        expires: "task_completed".into(),
+    };
+
+    let mut manager = state.permission_manager.lock().unwrap();
+    Json(manager.request_permission(permission_request)).into_response()
+}
+
+async fn projects_current_manifest_preview(State(state): State<AppState>) -> impl IntoResponse {
+    let project = match selected_trusted_project(&state, "loading manifest preview") {
+        Ok(project) => project,
+        Err(error) => return error.into_response(),
+    };
+
+    let permission_id = manifest_preview_permission_id(&project);
+    let decision = {
+        let manager = state.permission_manager.lock().unwrap();
+        manager.decision_for(&permission_id)
+    };
+
+    if !matches!(
+        decision,
+        Some(PermissionDecision::AllowOnce | PermissionDecision::AllowForTask)
+    ) {
+        return (
+            StatusCode::FORBIDDEN,
+            [("content-type", "application/json")],
+            serde_json::to_string(&chat_error(
+                "MANIFEST_PREVIEW_PERMISSION_REQUIRED",
+                "Manifest preview requires an approved filesystem.read permission",
+                Some("Request manifest preview permission and approve allow_once or allow_for_task first"),
+            ))
+            .unwrap(),
+        )
+            .into_response();
+    }
+
+    match build_manifest_preview(&project) {
+        Ok(preview) => Json(preview).into_response(),
+        Err(error) => error.into_response(),
+    }
+}
+
+fn selected_trusted_project(
+    state: &AppState,
+    action: &'static str,
+) -> Result<ProjectMetadata, JsonErrorResponse> {
     let selected_project = state.selected_project.lock().unwrap();
     let Some(project) = selected_project.as_ref() else {
-        return (
+        return Err((
             StatusCode::BAD_REQUEST,
             [("content-type", "application/json")],
             serde_json::to_string(&chat_error(
                 "PROJECT_NOT_SELECTED",
                 "No project is currently selected",
-                Some("Select and trust a project before loading its structure"),
+                Some(match action {
+                    "requesting manifest preview" => {
+                        "Select and trust a project before requesting manifest preview"
+                    }
+                    "loading manifest preview" => {
+                        "Select and trust a project before loading manifest preview"
+                    }
+                    _ => "Select and trust a project before loading its structure",
+                }),
             ))
             .unwrap(),
-        )
-            .into_response();
+        ));
     };
 
     if project.trust_status != ProjectTrustStatus::SelectedTrusted {
-        return (
+        return Err((
             StatusCode::BAD_REQUEST,
             [("content-type", "application/json")],
             serde_json::to_string(&chat_error(
                 "PROJECT_NOT_TRUSTED",
                 "Current selected project must be selected_trusted",
-                Some("Trust the selected project before loading its structure"),
+                Some(match action {
+                    "requesting manifest preview" => {
+                        "Trust the selected project before requesting manifest preview"
+                    }
+                    "loading manifest preview" => {
+                        "Trust the selected project before loading manifest preview"
+                    }
+                    _ => "Trust the selected project before loading its structure",
+                }),
             ))
             .unwrap(),
-        )
-            .into_response();
+        ));
     }
 
-    match build_project_structure_summary(project) {
-        Ok(summary) => Json(summary).into_response(),
-        Err(error) => error.into_response(),
+    Ok(project.clone())
+}
+
+fn top_level_manifest_path(
+    project: &ProjectMetadata,
+) -> Result<std::path::PathBuf, JsonErrorResponse> {
+    let root = std::path::PathBuf::from(&project.project_path);
+    let manifest_name = match project.kind {
+        ProjectKind::Rust => "Cargo.toml",
+        ProjectKind::Node => "package.json",
+        ProjectKind::Python => "pyproject.toml",
+        ProjectKind::Unknown => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                [("content-type", "application/json")],
+                serde_json::to_string(&chat_error(
+                    "PROJECT_MANIFEST_UNAVAILABLE",
+                    "No supported top-level manifest is available for the current project",
+                    Some("Select a project with Cargo.toml, package.json, or pyproject.toml"),
+                ))
+                .unwrap(),
+            ));
+        }
+    };
+
+    let manifest_path = root.join(manifest_name);
+    if !manifest_path.is_file() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            [("content-type", "application/json")],
+            serde_json::to_string(&chat_error(
+                "PROJECT_MANIFEST_UNAVAILABLE",
+                "The supported top-level manifest file is not available",
+                Some("Re-select the project folder to refresh top-level manifest detection"),
+            ))
+            .unwrap(),
+        ));
     }
+
+    Ok(manifest_path)
+}
+
+fn build_manifest_preview(project: &ProjectMetadata) -> Result<ManifestPreview, JsonErrorResponse> {
+    let manifest_path = top_level_manifest_path(project)?;
+    let bytes = match std::fs::read(&manifest_path) {
+        Ok(bytes) => bytes,
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                [("content-type", "application/json")],
+                serde_json::to_string(&chat_error(
+                    "MANIFEST_PREVIEW_UNAVAILABLE",
+                    "Unable to read the selected top-level manifest file",
+                    Some("Re-select the project folder and request manifest preview again"),
+                ))
+                .unwrap(),
+            ));
+        }
+    };
+
+    let size_bytes = bytes.len() as u64;
+    let preview_bytes = if size_bytes > MANIFEST_PREVIEW_MAX_BYTES {
+        &bytes[..MANIFEST_PREVIEW_MAX_BYTES as usize]
+    } else {
+        &bytes[..]
+    };
+
+    Ok(ManifestPreview {
+        project_id: project.project_id.clone(),
+        manifest_path: manifest_path.display().to_string(),
+        kind: project.kind.clone(),
+        content_preview: String::from_utf8_lossy(preview_bytes).into_owned(),
+        truncated: size_bytes > MANIFEST_PREVIEW_MAX_BYTES,
+        size_bytes,
+    })
+}
+
+fn manifest_preview_permission_id(project: &ProjectMetadata) -> String {
+    format!("perm_manifest_preview_{}", project.project_id)
 }
 
 async fn workflow_mock_apply_patch(
@@ -1236,6 +1413,7 @@ fn chat_error(code: &str, message: &str, action_hint: Option<&str>) -> ErrorPayl
 
 #[cfg(test)]
 mod tests {
+    use crate::MANIFEST_PREVIEW_MAX_BYTES;
     use crate::NanamiEventStream;
     use crate::OpenClawService;
     use axum::body::Body;
@@ -2095,6 +2273,384 @@ mod tests {
                 .unwrap()
                 .iter()
                 .any(|entry| entry["relative_path"] == "src/nested.rs")
+        );
+    }
+
+    #[tokio::test]
+    async fn projects_current_manifest_preview_request_requires_selected_trusted_project() {
+        let response = crate::router()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/current/manifest/preview-request")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn projects_current_manifest_preview_request_records_l2_permission_for_top_level_manifest()
+     {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "nanami_manifest_preview_request_{}_{}",
+            std::process::id(),
+            chrono::Utc::now().timestamp_nanos_opt().unwrap()
+        ));
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        std::fs::write(temp_dir.join("Cargo.toml"), "[package]\nname = \"demo\"\n").unwrap();
+
+        let app = crate::router();
+        let select_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/select")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(
+                        r#"{{"project_path":"{}"}}"#,
+                        temp_dir.display()
+                    )))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let select_body = axum::body::to_bytes(select_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let select_json: serde_json::Value = serde_json::from_slice(&select_body).unwrap();
+        let project_id = select_json["project_id"].as_str().unwrap().to_owned();
+
+        let trust_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/trust")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(r#"{{"project_id":"{}"}}"#, project_id)))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(trust_response.status(), StatusCode::OK);
+
+        let preview_request_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/current/manifest/preview-request")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = preview_request_response.status();
+        let body = axum::body::to_bytes(preview_request_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        let _ = std::fs::remove_file(temp_dir.join("Cargo.toml"));
+        let _ = std::fs::remove_dir(&temp_dir);
+
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(json["level"], "l2");
+        assert_eq!(json["action"], "filesystem.read");
+        assert_eq!(
+            json["permission_id"],
+            format!("perm_manifest_preview_{}", project_id)
+        );
+        assert_eq!(
+            json["target"],
+            temp_dir.join("Cargo.toml").display().to_string()
+        );
+    }
+
+    #[tokio::test]
+    async fn projects_current_manifest_preview_requires_permission_decision() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "nanami_manifest_preview_permission_{}_{}",
+            std::process::id(),
+            chrono::Utc::now().timestamp_nanos_opt().unwrap()
+        ));
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        std::fs::write(temp_dir.join("Cargo.toml"), "[package]\nname = \"demo\"\n").unwrap();
+
+        let app = crate::router();
+        let select_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/select")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(
+                        r#"{{"project_path":"{}"}}"#,
+                        temp_dir.display()
+                    )))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let select_body = axum::body::to_bytes(select_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let select_json: serde_json::Value = serde_json::from_slice(&select_body).unwrap();
+        let project_id = select_json["project_id"].as_str().unwrap().to_owned();
+
+        let trust_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/trust")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(r#"{{"project_id":"{}"}}"#, project_id)))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(trust_response.status(), StatusCode::OK);
+
+        let preview_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/projects/current/manifest/preview")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let _ = std::fs::remove_file(temp_dir.join("Cargo.toml"));
+        let _ = std::fs::remove_dir(&temp_dir);
+
+        assert_eq!(preview_response.status(), StatusCode::FORBIDDEN);
+    }
+
+    #[tokio::test]
+    async fn projects_current_manifest_preview_returns_top_level_preview_after_allow_once() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "nanami_manifest_preview_allow_{}_{}",
+            std::process::id(),
+            chrono::Utc::now().timestamp_nanos_opt().unwrap()
+        ));
+        std::fs::create_dir_all(temp_dir.join("nested")).unwrap();
+        std::fs::write(temp_dir.join("Cargo.toml"), "[package]\nname = \"demo\"\n").unwrap();
+        std::fs::write(
+            temp_dir.join("nested").join("Cargo.toml"),
+            "[package]\nname = \"nested\"\n",
+        )
+        .unwrap();
+
+        let app = crate::router();
+        let select_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/select")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(
+                        r#"{{"project_path":"{}"}}"#,
+                        temp_dir.display()
+                    )))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let select_body = axum::body::to_bytes(select_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let select_json: serde_json::Value = serde_json::from_slice(&select_body).unwrap();
+        let project_id = select_json["project_id"].as_str().unwrap().to_owned();
+        let permission_id = format!("perm_manifest_preview_{}", project_id);
+
+        let trust_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/trust")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(r#"{{"project_id":"{}"}}"#, project_id)))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(trust_response.status(), StatusCode::OK);
+
+        let request_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/current/manifest/preview-request")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(request_response.status(), StatusCode::OK);
+
+        let resolve_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/permissions/resolve")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(
+                        r#"{{"permission_id":"{}","decision":"allow_once"}}"#,
+                        permission_id
+                    )))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resolve_response.status(), StatusCode::OK);
+
+        let preview_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/projects/current/manifest/preview")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = preview_response.status();
+        let body = axum::body::to_bytes(preview_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        let _ = std::fs::remove_file(temp_dir.join("Cargo.toml"));
+        let _ = std::fs::remove_file(temp_dir.join("nested").join("Cargo.toml"));
+        let _ = std::fs::remove_dir(temp_dir.join("nested"));
+        let _ = std::fs::remove_dir(&temp_dir);
+
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(json["project_id"], project_id);
+        assert_eq!(json["kind"], "rust");
+        assert_eq!(
+            json["manifest_path"],
+            temp_dir.join("Cargo.toml").display().to_string()
+        );
+        assert_eq!(json["content_preview"], "[package]\nname = \"demo\"\n");
+        assert_eq!(json["truncated"], false);
+        assert_eq!(json["size_bytes"], 24);
+    }
+
+    #[tokio::test]
+    async fn projects_current_manifest_preview_truncates_to_8kb() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "nanami_manifest_preview_truncate_{}_{}",
+            std::process::id(),
+            chrono::Utc::now().timestamp_nanos_opt().unwrap()
+        ));
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        let manifest_content = "a".repeat((MANIFEST_PREVIEW_MAX_BYTES as usize) + 17);
+        std::fs::write(temp_dir.join("Cargo.toml"), &manifest_content).unwrap();
+
+        let app = crate::router();
+        let select_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/select")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(
+                        r#"{{"project_path":"{}"}}"#,
+                        temp_dir.display()
+                    )))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let select_body = axum::body::to_bytes(select_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let select_json: serde_json::Value = serde_json::from_slice(&select_body).unwrap();
+        let project_id = select_json["project_id"].as_str().unwrap().to_owned();
+        let permission_id = format!("perm_manifest_preview_{}", project_id);
+
+        let trust_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/trust")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(r#"{{"project_id":"{}"}}"#, project_id)))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(trust_response.status(), StatusCode::OK);
+
+        let request_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/projects/current/manifest/preview-request")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(request_response.status(), StatusCode::OK);
+
+        let resolve_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/permissions/resolve")
+                    .header("content-type", "application/json")
+                    .body(Body::from(format!(
+                        r#"{{"permission_id":"{}","decision":"allow_for_task"}}"#,
+                        permission_id
+                    )))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resolve_response.status(), StatusCode::OK);
+
+        let preview_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/projects/current/manifest/preview")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(preview_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        let _ = std::fs::remove_file(temp_dir.join("Cargo.toml"));
+        let _ = std::fs::remove_dir(&temp_dir);
+
+        assert_eq!(json["truncated"], true);
+        assert_eq!(json["size_bytes"], MANIFEST_PREVIEW_MAX_BYTES + 17);
+        assert_eq!(
+            json["content_preview"].as_str().unwrap().len(),
+            MANIFEST_PREVIEW_MAX_BYTES as usize
         );
     }
 

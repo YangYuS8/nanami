@@ -34,6 +34,8 @@ Current 0.8c status: shallow read-only project structure summary only. Nanami ma
 
 Current 0.8d status: selected project context + mock workflow only. Nanami may reuse selected project metadata and shallow structure summary inside mock workflow visualization, but still does not read source contents, manifest contents, execute commands, call CubeSandbox, write files, or apply patches.
 
+Current 0.9a status: permission-gated manifest preview only. Nanami may request explicit L2 `filesystem.read` approval for the currently selected trusted project and, after `allow_once` or `allow_for_task`, read only one supported top-level manifest file preview capped to 8 KB. It still does not read source contents, recursively scan the project, execute commands, call CubeSandbox, or write files.
+
 Nanami MUST ask the user before performing risky actions.
 
 Permission decisions MUST be explicit, scoped, recorded, and revocable where possible.
@@ -80,6 +82,7 @@ Rules:
 - Must show reason.
 - Must limit scope to a selected directory.
 - Must not read home directory recursively without explicit approval.
+- In 0.9a manifest preview, this scope is narrower: only one supported top-level manifest file in the currently selected trusted project may be read, and only after explicit approval.
 
 ### L3: Write Project Files
 

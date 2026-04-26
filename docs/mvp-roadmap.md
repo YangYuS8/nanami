@@ -221,6 +221,21 @@ Current 0.8c phase: read-only project structure summary. This phase exposes a sh
 
 Current 0.8d phase: connect selected project context to mock workflow. This phase allows mock workflow generation to reference selected project metadata and shallow structure summary data. It still does not read source content, manifest contents, recursively scan the project, execute commands, call CubeSandbox, write files, or apply patches.
 
+## Version 0.9: Permission-Gated Manifest Preview
+
+Goal: allow a narrow, explicit, audited read of the selected trusted project's top-level manifest without expanding into source analysis or execution.
+
+Current 0.9a phase: permission-gated manifest preview only. This phase allows `nanami-core` to request explicit L2 `filesystem.read` approval for the currently selected trusted project, then read only one supported top-level manifest file (`Cargo.toml`, `package.json`, or `pyproject.toml`) and return a capped preview of at most 8 KB.
+
+It does not read source content, does not recursively scan the project, does not execute commands, does not call CubeSandbox, and does not write files.
+
+Expected demo:
+
+```text
+User explicitly selects a project folder, confirms trust, requests manifest preview permission, approves the L2 read, and loads a top-level manifest preview.
+Nanami returns only a capped preview of the single supported top-level manifest file and does not perform source analysis or command execution.
+```
+
 Expected demo:
 
 ```text
