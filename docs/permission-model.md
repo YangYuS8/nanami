@@ -24,6 +24,8 @@ Current 0.7b status: mock project metadata + structured workflow state only. Pro
 
 Current 0.7c status: mock test result + patch proposal visualization only. Workflow UI may display richer metadata such as command preview, duration, failed test names, and patch risk level, but no permission decision triggers real project reads, writes, command execution, sandbox execution, or patch application.
 
+Current 0.7d status: permission-gated apply patch mock flow only. Nanami may record a mock permission request for patch application and display a mock apply result, but permission decisions still do not trigger real file writes, patch application, command execution, or sandbox execution.
+
 Nanami MUST ask the user before performing risky actions.
 
 Permission decisions MUST be explicit, scoped, recorded, and revocable where possible.

@@ -496,6 +496,13 @@ ApplicationWindow {
                 placeholderText: "Steps will appear here"
             }
 
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 12
+                text: "Test Result"
+            }
+
             TextArea {
                 width: parent.width
                 height: 70
@@ -505,6 +512,13 @@ ApplicationWindow {
                 placeholderText: "Test Result will appear here"
             }
 
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 12
+                text: "Patch Proposal"
+            }
+
             TextArea {
                 width: parent.width
                 height: 110
@@ -512,6 +526,28 @@ ApplicationWindow {
                 wrapMode: TextArea.Wrap
                 text: workflowController.patchText
                 placeholderText: "Patch Proposal will appear here"
+            }
+
+            Button {
+                text: workflowController.busy ? "Requesting mock apply patch" : "Request mock apply patch"
+                enabled: !workflowController.busy
+                onClicked: workflowController.requestMockApplyPatch()
+            }
+
+            Text {
+                width: parent.width
+                color: "#aeb4c6"
+                font.pixelSize: 13
+                text: "Apply Patch Status: " + (workflowController.applyPatchStatus.length > 0 ? workflowController.applyPatchStatus : "none")
+            }
+
+            TextArea {
+                width: parent.width
+                height: 70
+                readOnly: true
+                wrapMode: TextArea.Wrap
+                text: workflowController.applyPatchText
+                placeholderText: "Mock apply patch result will appear here"
             }
 
             Text {

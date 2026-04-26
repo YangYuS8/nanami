@@ -617,6 +617,8 @@ Workflow events provide the 0.7a development workflow visualization foundation. 
 
 In 0.7c, workflow test result and patch proposal payloads may include additional lightweight visualization metadata such as command preview, duration, failed test names, and patch risk level. These remain mock-only and do not imply real execution.
 
+In 0.7d, apply-patch flow remains mock-only as well. Nanami may request permission and record a mock apply-patch status, but it still does not perform any real file write or patch application.
+
 Valid workflow statuses:
 
 ```text

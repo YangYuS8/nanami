@@ -42,6 +42,16 @@ QString WorkflowController::patchText() const
     return m_patchText;
 }
 
+QString WorkflowController::applyPatchStatus() const
+{
+    return m_applyPatchStatus;
+}
+
+QString WorkflowController::applyPatchText() const
+{
+    return m_applyPatchText;
+}
+
 bool WorkflowController::busy() const
 {
     return m_busy;
@@ -81,12 +91,54 @@ void WorkflowController::startMockWorkflowStream()
     });
 }
 
+void WorkflowController::requestMockApplyPatch()
+{
+    if (m_busy || m_state.patch.patchId.isEmpty()) {
+        return;
+    }
+
+    setError(QString());
+    setBusy(true);
+
+    QJsonObject body;
+    body.insert(QStringLiteral("patch_id"), m_state.patch.patchId);
+
+    QNetworkRequest request(QUrl(QStringLiteral("http://127.0.0.1:17878/workflow/mock/apply-patch")));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+    auto *reply = m_network.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        reply->deleteLater();
+        setBusy(false);
+
+        if (reply->error() != QNetworkReply::NoError) {
+            setError(QStringLiteral("Failed to request mock apply patch"));
+            return;
+        }
+
+        const auto document = QJsonDocument::fromJson(reply->readAll());
+        if (!document.isObject()) {
+            setError(QStringLiteral("Invalid mock apply patch response"));
+            return;
+        }
+
+        const auto object = document.object();
+        m_applyPatchStatus = object.value(QStringLiteral("status")).toString();
+        m_applyPatchText = QStringLiteral("%1 (permission_id=%2)")
+                               .arg(object.value(QStringLiteral("message")).toString(),
+                                    object.value(QStringLiteral("permission_id")).toString());
+        emit workflowChanged();
+    });
+}
+
 void WorkflowController::resetState()
 {
     m_state = WorkflowViewState {};
     m_stepText.clear();
     m_testResultText.clear();
     m_patchText.clear();
+    m_applyPatchStatus.clear();
+    m_applyPatchText.clear();
     emit workflowChanged();
 }
 

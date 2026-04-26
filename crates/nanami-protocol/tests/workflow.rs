@@ -1,8 +1,8 @@
 use chrono::DateTime;
 use nanami_protocol::{
     Event, EventEnvelope, WorkflowChangeType, WorkflowCompletedPayload,
-    WorkflowPatchFilePreviewPayload, WorkflowPatchProposedPayload, WorkflowStartedPayload,
-    WorkflowPatchRiskLevel, WorkflowStatus, WorkflowStepKind, WorkflowStepPayload,
+    WorkflowPatchFilePreviewPayload, WorkflowPatchProposedPayload, WorkflowPatchRiskLevel,
+    WorkflowStartedPayload, WorkflowStatus, WorkflowStepKind, WorkflowStepPayload,
     WorkflowStepStatus, WorkflowTestResultPayload,
 };
 

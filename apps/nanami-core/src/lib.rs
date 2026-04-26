@@ -17,16 +17,15 @@ use nanami_openclaw::{
 use nanami_permission::PermissionManager;
 use nanami_protocol::{
     ChatRequest, ChatResponse, ChatStreamEvent, ChatStreamEventKind, ErrorPayload, ErrorSeverity,
-    Event, EventEnvelope, OpenClawConnectionStatus, OpenClawStatusPayload, ProjectKind,
-    ProjectMetadata, ProjectTrustStatus,
+    Event, EventEnvelope, OpenClawConnectionStatus, OpenClawStatusPayload,
     PermissionAuditLogResponse, PermissionDecision, PermissionDecisionStatus, PermissionLevel,
     PermissionRequestPayload, PermissionResolvedPayload, PermissionScope, PersonaEmotion,
-    PersonaState, PersonaStatePayload, PersonaStateSource, TaskCompletedPayload,
-    TaskStartedPayload, TaskStatus, ToolCallStatus, ToolCompletedPayload, ToolOutputPayload,
-    ToolOutputStream, ToolStartedPayload, WorkflowChangeType, WorkflowCompletedPayload,
-    WorkflowPatchFilePreviewPayload, WorkflowPatchProposedPayload, WorkflowPatchRiskLevel,
-    WorkflowStartedPayload, WorkflowStatus, WorkflowStepKind, WorkflowStepPayload,
-    WorkflowStepStatus, WorkflowTestResultPayload,
+    PersonaState, PersonaStatePayload, PersonaStateSource, ProjectKind, ProjectMetadata,
+    ProjectTrustStatus, TaskCompletedPayload, TaskStartedPayload, TaskStatus, ToolCallStatus,
+    ToolCompletedPayload, ToolOutputPayload, ToolOutputStream, ToolStartedPayload,
+    WorkflowChangeType, WorkflowCompletedPayload, WorkflowPatchFilePreviewPayload,
+    WorkflowPatchProposedPayload, WorkflowPatchRiskLevel, WorkflowStartedPayload, WorkflowStatus,
+    WorkflowStepKind, WorkflowStepPayload, WorkflowStepStatus, WorkflowTestResultPayload,
 };
 use serde::Serialize;
 use std::convert::Infallible;
@@ -61,6 +60,10 @@ fn router_with_openclaw(openclaw: Arc<dyn OpenClawService>) -> Router {
         .route("/sandbox/mock/stream", get(sandbox_mock_stream))
         .route("/persona/mock/stream", get(persona_mock_stream))
         .route("/workflow/mock/stream", get(workflow_mock_stream))
+        .route(
+            "/workflow/mock/apply-patch",
+            post(workflow_mock_apply_patch),
+        )
         .route("/projects/mock/current", get(projects_mock_current))
         .route("/permissions/mock/stream", get(permissions_mock_stream))
         .route("/permissions/resolve", post(permissions_resolve))
@@ -85,6 +88,19 @@ struct AppState {
 struct PermissionResolveRequest {
     permission_id: String,
     decision: PermissionDecision,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct WorkflowApplyPatchRequest {
+    patch_id: String,
+}
+
+#[derive(Debug, Serialize)]
+struct WorkflowApplyPatchResponse {
+    patch_id: String,
+    permission_id: String,
+    status: &'static str,
+    message: &'static str,
 }
 
 trait OpenClawService: Send + Sync {
@@ -524,6 +540,33 @@ async fn projects_mock_current() -> Json<ProjectMetadata> {
         project_path: "/mock/project".into(),
         kind: ProjectKind::Rust,
         trust_status: ProjectTrustStatus::TrustedMock,
+    })
+}
+
+async fn workflow_mock_apply_patch(
+    State(state): State<AppState>,
+    Json(request): Json<WorkflowApplyPatchRequest>,
+) -> Json<WorkflowApplyPatchResponse> {
+    let permission_id = format!("perm_workflow_patch_{}", request.patch_id);
+    let permission_request = PermissionRequestPayload {
+        task_id: Some("task_workflow_mock_001".into()),
+        permission_id: permission_id.clone(),
+        level: PermissionLevel::L3,
+        action: "filesystem.write".into(),
+        target: format!("mock patch proposal {}", request.patch_id),
+        reason: "Mock apply patch request recorded for workflow visualization".into(),
+        scope: PermissionScope::Task,
+        expires: "task_completed".into(),
+    };
+
+    let mut manager = state.permission_manager.lock().unwrap();
+    manager.request_permission(permission_request);
+
+    Json(WorkflowApplyPatchResponse {
+        patch_id: request.patch_id,
+        permission_id,
+        status: "waiting_permission",
+        message: "Mock apply patch request recorded",
     })
 }
 
@@ -1383,6 +1426,55 @@ mod tests {
         assert_eq!(json["project_path"], "/mock/project");
         assert_eq!(json["kind"], "rust");
         assert_eq!(json["trust_status"], "trusted_mock");
+    }
+
+    #[tokio::test]
+    async fn workflow_mock_apply_patch_records_permission_and_returns_waiting_status() {
+        let app = crate::router();
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/workflow/mock/apply-patch")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"patch_id":"patch_mock_001"}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = response.status();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(json["patch_id"], "patch_mock_001");
+        assert_eq!(json["status"], "waiting_permission");
+        assert_eq!(json["permission_id"], "perm_workflow_patch_patch_mock_001");
+
+        let audit_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/permissions/audit")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let audit_body = axum::body::to_bytes(audit_response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let audit_json: serde_json::Value = serde_json::from_slice(&audit_body).unwrap();
+
+        assert!(audit_json["records"].as_array().unwrap().iter().any(
+            |record| record["permission_id"] == "perm_workflow_patch_patch_mock_001"
+                && record["action"] == "permission_requested"
+                && record["permission_action"] == "filesystem.write"
+        ));
     }
 
     #[tokio::test]

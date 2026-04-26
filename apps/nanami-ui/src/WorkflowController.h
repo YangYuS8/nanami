@@ -14,6 +14,8 @@ class WorkflowController final : public QObject
     Q_PROPERTY(QString stepText READ stepText NOTIFY workflowChanged)
     Q_PROPERTY(QString testResultText READ testResultText NOTIFY workflowChanged)
     Q_PROPERTY(QString patchText READ patchText NOTIFY workflowChanged)
+    Q_PROPERTY(QString applyPatchStatus READ applyPatchStatus NOTIFY workflowChanged)
+    Q_PROPERTY(QString applyPatchText READ applyPatchText NOTIFY workflowChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
     Q_PROPERTY(QString error READ error NOTIFY errorChanged)
 
@@ -26,10 +28,13 @@ public:
     QString stepText() const;
     QString testResultText() const;
     QString patchText() const;
+    QString applyPatchStatus() const;
+    QString applyPatchText() const;
     bool busy() const;
     QString error() const;
 
     Q_INVOKABLE void startMockWorkflowStream();
+    Q_INVOKABLE void requestMockApplyPatch();
 
 signals:
     void workflowChanged();
@@ -88,6 +93,8 @@ private:
     QString m_stepText;
     QString m_testResultText;
     QString m_patchText;
+    QString m_applyPatchStatus;
+    QString m_applyPatchText;
     QString m_error;
     WorkflowViewState m_state;
     bool m_busy = false;
