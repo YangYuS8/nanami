@@ -685,12 +685,12 @@ Examples:
   "workflow_id": "workflow_mock_001",
   "task_id": "task_workflow_mock_001",
   "status": "completed",
-  "summary": "2 tests passed",
+  "summary": "2 tests passed, 1 failed",
   "command_preview": "cargo test --lib",
   "duration_ms": 1200,
   "passed": 2,
-  "failed": 0,
-  "failed_test_names": []
+  "failed": 1,
+  "failed_test_names": ["tests::mock_failure"]
 }
 {
   "type": "workflow.patch_proposed",

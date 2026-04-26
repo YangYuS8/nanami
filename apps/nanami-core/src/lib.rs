@@ -462,7 +462,7 @@ async fn workflow_mock_stream() -> Response {
                 workflow_id: "workflow_mock_001".into(),
                 task_id: "task_workflow_mock_001".into(),
                 status: WorkflowStatus::Completed,
-                summary: "2 tests passed".into(),
+                summary: "2 tests passed, 1 failed".into(),
                 command_preview: "cargo test --lib".into(),
                 duration_ms: 1200,
                 passed: 2,
