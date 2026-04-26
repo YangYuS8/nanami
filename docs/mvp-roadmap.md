@@ -231,6 +231,8 @@ Current 0.9b phase: permission-gated manifest summary extraction only. This phas
 
 Current 0.9c phase: core module split cleanup only. This phase reorganizes `nanami-core` internals into smaller modules such as routes, services, state, error handling, and mock workflow helpers. It does not change public API paths, protocol fields, permission semantics, or runtime capability boundaries.
 
+Current 0.9d phase: QML panel split cleanup only. This phase reorganizes `nanami-ui` by splitting `Main.qml` into focused panel components such as status, pet, chat, task, permission, sandbox, project, and workflow panels. It does not change public API paths, protocol fields, controller interfaces, permission semantics, or runtime capability boundaries.
+
 It does not read source content, does not recursively scan the project, does not execute commands, does not call CubeSandbox, does not write files, and does not download dependencies.
 
 Expected demo:
