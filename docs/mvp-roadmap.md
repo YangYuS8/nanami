@@ -229,6 +229,8 @@ Current 0.9a phase: permission-gated manifest preview only. This phase allows `n
 
 Current 0.9b phase: permission-gated manifest summary extraction only. This phase allows `nanami-core` to reuse the same approved top-level manifest read, still capped to 8 KB, and derive a structured summary from that manifest content only. It may extract package name, version, dependency count, script count, and a short summary text, but it does not widen the read scope beyond the same top-level manifest.
 
+Current 0.9c phase: core module split cleanup only. This phase reorganizes `nanami-core` internals into smaller modules such as routes, services, state, error handling, and mock workflow helpers. It does not change public API paths, protocol fields, permission semantics, or runtime capability boundaries.
+
 It does not read source content, does not recursively scan the project, does not execute commands, does not call CubeSandbox, does not write files, and does not download dependencies.
 
 Expected demo:
