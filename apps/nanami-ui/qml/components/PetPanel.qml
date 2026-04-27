@@ -9,6 +9,43 @@ Rectangle {
     border.width: 1
     implicitHeight: personaColumn.implicitHeight + 24
 
+    function backendLabel(value) {
+        if (value === "live2d")
+            return qsTr("Live2D")
+
+        return qsTr("Placeholder")
+    }
+
+    function availabilityLabel(value) {
+        if (value === "available")
+            return qsTr("Available")
+        if (value === "unavailable")
+            return qsTr("Unavailable")
+
+        return value
+    }
+
+    function statusLabel(value) {
+        switch (value) {
+        case "ready":
+            return qsTr("Ready")
+        case "placeholder_active":
+            return qsTr("Placeholder Active")
+        case "placeholder_selected":
+            return qsTr("Placeholder Selected")
+        case "live2d_selected":
+            return qsTr("Live2D Selected")
+        case "live2d_unavailable":
+            return qsTr("Live2D Unavailable")
+        case "live2d_ready":
+            return qsTr("Live2D Ready")
+        case "live2d_active":
+            return qsTr("Live2D Active")
+        default:
+            return value
+        }
+    }
+
     Column {
         id: personaColumn
         anchors.fill: parent
@@ -42,9 +79,9 @@ Rectangle {
         }
 
         Text { color: "#aeb4c6"; text: qsTr("Renderer: ") + petRendererController.rendererName }
-        Text { color: "#aeb4c6"; text: qsTr("Renderer Status: ") + petRendererController.rendererStatus }
-        Text { color: "#aeb4c6"; text: qsTr("Renderer Backend: ") + petRendererController.rendererBackend }
-        Text { color: "#aeb4c6"; text: qsTr("Renderer Availability: ") + petRendererController.rendererAvailability }
+        Text { color: "#aeb4c6"; text: qsTr("Renderer Status: ") + statusLabel(petRendererController.rendererStatus) }
+        Text { color: "#aeb4c6"; text: qsTr("Renderer Backend: ") + backendLabel(petRendererController.rendererBackend) }
+        Text { color: "#aeb4c6"; text: qsTr("Renderer Availability: ") + availabilityLabel(petRendererController.rendererAvailability) }
         Text { color: "#aeb4c6"; text: qsTr("Model Path: ") + (petRendererController.modelPath.length > 0 ? petRendererController.modelPath : qsTr("not configured")); wrapMode: Text.Wrap }
         Text { color: "#aeb4c6"; text: qsTr("Model Loaded: ") + (petRendererController.modelLoaded ? qsTr("yes") : qsTr("no")) }
         Text { color: "#aeb4c6"; text: qsTr("State: ") + (petRendererController.currentState.length > 0 ? petRendererController.currentState : qsTr("none")) }

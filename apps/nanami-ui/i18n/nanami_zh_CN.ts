@@ -62,6 +62,50 @@
       <translation>渲染器可用性：</translation>
     </message>
     <message>
+      <source>Live2D</source>
+      <translation>Live2D</translation>
+    </message>
+    <message>
+      <source>Placeholder</source>
+      <translation>占位</translation>
+    </message>
+    <message>
+      <source>Available</source>
+      <translation>可用</translation>
+    </message>
+    <message>
+      <source>Unavailable</source>
+      <translation>不可用</translation>
+    </message>
+    <message>
+      <source>Ready</source>
+      <translation>就绪</translation>
+    </message>
+    <message>
+      <source>Placeholder Active</source>
+      <translation>占位激活中</translation>
+    </message>
+    <message>
+      <source>Placeholder Selected</source>
+      <translation>已选择占位渲染器</translation>
+    </message>
+    <message>
+      <source>Live2D Selected</source>
+      <translation>已选择 Live2D 渲染器</translation>
+    </message>
+    <message>
+      <source>Live2D Unavailable</source>
+      <translation>Live2D 不可用</translation>
+    </message>
+    <message>
+      <source>Live2D Ready</source>
+      <translation>Live2D 就绪</translation>
+    </message>
+    <message>
+      <source>Live2D Active</source>
+      <translation>Live2D 激活中</translation>
+    </message>
+    <message>
       <source>Model Path: </source>
       <translation>模型路径：</translation>
     </message>
@@ -552,52 +596,8 @@
       <translation>占位渲染器</translation>
     </message>
     <message>
-      <source>ready</source>
-      <translation>就绪</translation>
-    </message>
-    <message>
-      <source>placeholder_active</source>
-      <translation>占位激活中</translation>
-    </message>
-    <message>
       <source>Live2D Renderer</source>
       <translation>Live2D 渲染器</translation>
-    </message>
-    <message>
-      <source>placeholder</source>
-      <translation>placeholder</translation>
-    </message>
-    <message>
-      <source>live2d</source>
-      <translation>live2d</translation>
-    </message>
-    <message>
-      <source>available</source>
-      <translation>可用</translation>
-    </message>
-    <message>
-      <source>unavailable</source>
-      <translation>不可用</translation>
-    </message>
-    <message>
-      <source>live2d_selected</source>
-      <translation>已选择 Live2D</translation>
-    </message>
-    <message>
-      <source>live2d_unavailable</source>
-      <translation>Live2D 不可用</translation>
-    </message>
-    <message>
-      <source>live2d_ready</source>
-      <translation>Live2D 就绪</translation>
-    </message>
-    <message>
-      <source>live2d_active</source>
-      <translation>Live2D 激活中</translation>
-    </message>
-    <message>
-      <source>placeholder_selected</source>
-      <translation>已选择占位渲染器</translation>
     </message>
     <message>
       <source>Placeholder renderer does not load external models</source>

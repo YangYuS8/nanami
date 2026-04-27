@@ -1,5 +1,19 @@
 #include "PetRendererController.h"
 
+namespace {
+constexpr auto kBackendPlaceholder = "placeholder";
+constexpr auto kBackendLive2D = "live2d";
+constexpr auto kAvailabilityAvailable = "available";
+constexpr auto kAvailabilityUnavailable = "unavailable";
+constexpr auto kStatusReady = "ready";
+constexpr auto kStatusPlaceholderActive = "placeholder_active";
+constexpr auto kStatusPlaceholderSelected = "placeholder_selected";
+constexpr auto kStatusLive2DSelected = "live2d_selected";
+constexpr auto kStatusLive2DUnavailable = "live2d_unavailable";
+constexpr auto kStatusLive2DReady = "live2d_ready";
+constexpr auto kStatusLive2DActive = "live2d_active";
+}
+
 PetRendererController::PetRendererController(QObject *parent)
     : QObject(parent)
 {
@@ -53,11 +67,12 @@ QString PetRendererController::currentEmotion() const
 
 void PetRendererController::setPersonaState(const QString &state, const QString &emotion)
 {
-    QString nextStatus = tr("placeholder_active");
-    if (m_rendererBackend == tr("live2d")) {
-        nextStatus = m_modelLoaded ? tr("live2d_active") : tr("live2d_selected");
+    QString nextStatus = QString::fromLatin1(kStatusPlaceholderActive);
+    if (m_rendererBackend == QLatin1String(kBackendLive2D)) {
+        nextStatus = m_modelLoaded ? QString::fromLatin1(kStatusLive2DActive)
+                                   : QString::fromLatin1(kStatusLive2DSelected);
     } else if (state.isEmpty() && emotion.isEmpty()) {
-        nextStatus = tr("ready");
+        nextStatus = QString::fromLatin1(kStatusReady);
     }
 
     if (m_currentState == state && m_currentEmotion == emotion && m_rendererStatus == nextStatus) {
@@ -78,9 +93,10 @@ void PetRendererController::resetRenderer()
 
     m_currentState.clear();
     m_currentEmotion.clear();
-    m_rendererStatus = m_rendererBackend == tr("live2d")
-        ? (m_modelLoaded ? tr("live2d_ready") : tr("live2d_selected"))
-        : tr("ready");
+    m_rendererStatus = m_rendererBackend == QLatin1String(kBackendLive2D)
+        ? (m_modelLoaded ? QString::fromLatin1(kStatusLive2DReady)
+                         : QString::fromLatin1(kStatusLive2DSelected))
+        : QString::fromLatin1(kStatusReady);
     emit rendererChanged();
 }
 
@@ -111,10 +127,10 @@ void PetRendererController::setModelPath(const QString &path)
 
 void PetRendererController::loadModel()
 {
-    if (m_rendererBackend == tr("placeholder")) {
+    if (m_rendererBackend == QLatin1String(kBackendPlaceholder)) {
         m_modelLoaded = false;
         m_lastRendererError = tr("Placeholder renderer does not load external models");
-        m_rendererStatus = tr("placeholder_selected");
+        m_rendererStatus = QString::fromLatin1(kStatusPlaceholderSelected);
         emit rendererChanged();
         return;
     }
@@ -122,14 +138,14 @@ void PetRendererController::loadModel()
     if (m_modelPath.isEmpty()) {
         m_modelLoaded = false;
         m_lastRendererError = tr("Live2D model path is not configured");
-        m_rendererStatus = tr("live2d_unavailable");
+        m_rendererStatus = QString::fromLatin1(kStatusLive2DUnavailable);
         emit rendererChanged();
         return;
     }
 
     m_modelLoaded = false;
     m_lastRendererError = tr("Live2D SDK is unavailable in this build");
-    m_rendererStatus = tr("live2d_unavailable");
+    m_rendererStatus = QString::fromLatin1(kStatusLive2DUnavailable);
     emit rendererChanged();
 }
 
@@ -141,16 +157,18 @@ void PetRendererController::unloadModel()
 
     m_modelLoaded = false;
     clearRendererError();
-    m_rendererStatus = m_rendererBackend == tr("live2d") ? tr("live2d_selected") : tr("ready");
+    m_rendererStatus = m_rendererBackend == QLatin1String(kBackendLive2D)
+        ? QString::fromLatin1(kStatusLive2DSelected)
+        : QString::fromLatin1(kStatusReady);
     emit rendererChanged();
 }
 
 void PetRendererController::applyPlaceholderBackend()
 {
     m_rendererName = tr("Placeholder Renderer");
-    m_rendererBackend = tr("placeholder");
-    m_rendererAvailability = tr("available");
-    m_rendererStatus = tr("ready");
+    m_rendererBackend = QString::fromLatin1(kBackendPlaceholder);
+    m_rendererAvailability = QString::fromLatin1(kAvailabilityAvailable);
+    m_rendererStatus = QString::fromLatin1(kStatusReady);
     m_modelLoaded = false;
     clearRendererError();
 }
@@ -158,9 +176,9 @@ void PetRendererController::applyPlaceholderBackend()
 void PetRendererController::applyLive2DBackendIntent()
 {
     m_rendererName = tr("Live2D Renderer");
-    m_rendererBackend = tr("live2d");
-    m_rendererAvailability = tr("unavailable");
-    m_rendererStatus = tr("live2d_selected");
+    m_rendererBackend = QString::fromLatin1(kBackendLive2D);
+    m_rendererAvailability = QString::fromLatin1(kAvailabilityUnavailable);
+    m_rendererStatus = QString::fromLatin1(kStatusLive2DSelected);
     m_modelLoaded = false;
     clearRendererError();
 }
