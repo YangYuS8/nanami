@@ -130,6 +130,7 @@ Product positioning note for 0.10a: Nanami is now described as the local visual 
 - 0.10d completed: UI i18n foundation + Simplified Chinese baseline.
 - 0.10e completed: Live2D renderer adapter foundation.
 - 0.10f completed: desktop pet window foundation.
+- 0.10g completed: Cubism Native SDK optional build skeleton.
 - `nanami-core` provides mock permission request, decision, audit, and sandbox stream endpoints.
 - `nanami-core` also provides a mock persona state stream endpoint.
 - `nanami-ui` displays mock permission and sandbox visualization skeletons with structured sandbox view state, plus a placeholder pet view.
@@ -189,6 +190,12 @@ Product positioning note for 0.10a: Nanami is now described as the local visual 
 Install Rust stable, CMake, Ninja, and Qt 6 Quick development packages.
 
 UI translation sources live under `apps/nanami-ui/i18n/`. The initial baseline translation file is `apps/nanami-ui/i18n/nanami_zh_CN.ts`.
+
+Optional Cubism SDK for Native build skeleton:
+
+- `NANAMI_ENABLE_LIVE2D=OFF` by default.
+- `NANAMI_CUBISM_SDK_ROOT` may point to a local Cubism SDK for Native checkout when enabling the build skeleton.
+- 0.10g only provides an optional build boundary and placeholder adapter path. It does not ship the SDK, model resources, or real model rendering.
 
 Check the Rust workspace:
 

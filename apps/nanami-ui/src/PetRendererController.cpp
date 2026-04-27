@@ -1,5 +1,7 @@
 #include "PetRendererController.h"
 
+#include "live2d/Live2DRendererAdapter.h"
+
 namespace {
 constexpr auto kBackendPlaceholder = "placeholder";
 constexpr auto kBackendLive2D = "live2d";
@@ -111,6 +113,13 @@ void PetRendererController::selectPlaceholderRenderer()
 void PetRendererController::selectLive2DRenderer()
 {
     applyLive2DBackendIntent();
+
+    if (!Live2DRendererAdapter::isBuiltWithLive2DSupport()
+        || !Live2DRendererAdapter::isRuntimeAvailable()) {
+        m_rendererAvailability = QString::fromLatin1(kAvailabilityUnavailable);
+        m_lastRendererError = Live2DRendererAdapter::unavailableReason();
+    }
+
     emit rendererChanged();
 }
 
@@ -131,6 +140,16 @@ void PetRendererController::loadModel()
         m_modelLoaded = false;
         m_lastRendererError = tr("Placeholder renderer does not load external models");
         m_rendererStatus = QString::fromLatin1(kStatusPlaceholderSelected);
+        emit rendererChanged();
+        return;
+    }
+
+    if (!Live2DRendererAdapter::isBuiltWithLive2DSupport()
+        || !Live2DRendererAdapter::isRuntimeAvailable()) {
+        m_modelLoaded = false;
+        m_lastRendererError = Live2DRendererAdapter::unavailableReason();
+        m_rendererAvailability = QString::fromLatin1(kAvailabilityUnavailable);
+        m_rendererStatus = QString::fromLatin1(kStatusLive2DUnavailable);
         emit rendererChanged();
         return;
     }

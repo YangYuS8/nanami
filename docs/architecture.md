@@ -160,6 +160,9 @@ Live2D renderer notes:
 
 - The UI renderer adapter MAY expose multiple backends such as `placeholder` and `live2d`.
 - The pet window belongs to the `nanami-ui` presentation layer and MUST remain a UI-only shell around renderer/controller state.
+- Cubism SDK for Native is the planned native desktop route for a future real Live2D backend.
+- The Cubism SDK for Native MUST NOT be committed into this repository as part of the optional build skeleton.
+- Live2D model resources MUST NOT be committed into this repository as part of the optional build skeleton.
 - Real Live2D SDK integration, model resources, packaging, and platform support MUST be handled separately from the adapter foundation.
 - When the Live2D SDK or model resources are unavailable, the UI MUST fall back safely to the placeholder renderer.
 

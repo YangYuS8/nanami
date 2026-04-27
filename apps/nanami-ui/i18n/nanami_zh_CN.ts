@@ -652,6 +652,17 @@
     </message>
   </context>
   <context>
+    <name>Live2DRendererAdapter</name>
+    <message>
+      <source>Live2D SDK integration is not implemented in this build</source>
+      <translation>当前构建尚未实现 Live2D SDK 集成</translation>
+    </message>
+    <message>
+      <source>Live2D support is not enabled in this build</source>
+      <translation>当前构建未启用 Live2D 支持</translation>
+    </message>
+  </context>
+  <context>
     <name>StatusController</name>
     <message>
       <source>disconnected</source>

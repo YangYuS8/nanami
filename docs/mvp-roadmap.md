@@ -266,6 +266,8 @@ Current 0.10e phase: Live2D renderer adapter foundation. This phase extends `Pet
 
 Current 0.10f phase: desktop pet window foundation. This phase adds an independent frameless transparent pet window in `nanami-ui`, basic window dragging, conservative always-on-top presentation, tray controls for pet visibility, and companion-home entry points for toggling the pet window. It does not introduce Live2D SDK integration, model resources, platform-specific hacks, protocol changes, or runtime capability expansion.
 
+Current 0.10g phase: Cubism Native SDK optional build skeleton. This phase adds optional CMake toggles for a future Cubism SDK for Native integration path, placeholder `src/live2d/` adapter files, and build-aware Live2D availability messaging. It does not ship the SDK, model resources, binary assets, runtime initialization, model parsing, texture loading, or real rendering.
+
 Direction for 0.10 and later client-facing iterations:
 
 - Improve local client experience and clarity.
@@ -291,6 +293,7 @@ The companion home further presents pet, chat, and status as a cohesive landing 
 The UI also has a working Qt/QML i18n foundation with Simplified Chinese as a first-class baseline locale.
 The renderer surface now exposes a clear placeholder/live2d adapter boundary with safe fallback behavior before any real SDK integration.
 Nanami also has a dedicated desktop pet window form instead of appearing only as a tool-style main window.
+The Live2D path now also has an optional Cubism Native SDK build skeleton without bringing SDK files or models into the repository.
 ```
 
 ## Out of Scope for MVP
