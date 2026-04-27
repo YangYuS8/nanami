@@ -138,6 +138,7 @@ It is not a separate policy engine. Policy enforcement still belongs to `nanami-
 It MAY:
 
 - Render the Live2D companion.
+- Present a dedicated pet window as part of the desktop companion layer.
 - Display chat messages.
 - Display task state.
 - Display tool call progress.
@@ -158,6 +159,7 @@ It MUST NOT:
 Live2D renderer notes:
 
 - The UI renderer adapter MAY expose multiple backends such as `placeholder` and `live2d`.
+- The pet window belongs to the `nanami-ui` presentation layer and MUST remain a UI-only shell around renderer/controller state.
 - Real Live2D SDK integration, model resources, packaging, and platform support MUST be handled separately from the adapter foundation.
 - When the Live2D SDK or model resources are unavailable, the UI MUST fall back safely to the placeholder renderer.
 

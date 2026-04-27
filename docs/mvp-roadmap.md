@@ -264,6 +264,8 @@ Current 0.10d phase: UI i18n foundation + Simplified Chinese baseline. This phas
 
 Current 0.10e phase: Live2D renderer adapter foundation. This phase extends `PetRendererController` and `PetPanel` with an explicit placeholder/live2d renderer backend boundary, renderer availability state, model path state, model loaded state, and explicit fallback behavior. It does not introduce the Live2D SDK, model resources, binary assets, file reads, protocol changes, controller public slot changes outside the UI adapter itself, or runtime capability expansion.
 
+Current 0.10f phase: desktop pet window foundation. This phase adds an independent frameless transparent pet window in `nanami-ui`, basic window dragging, conservative always-on-top presentation, tray controls for pet visibility, and companion-home entry points for toggling the pet window. It does not introduce Live2D SDK integration, model resources, platform-specific hacks, protocol changes, or runtime capability expansion.
+
 Direction for 0.10 and later client-facing iterations:
 
 - Improve local client experience and clarity.
@@ -288,6 +290,7 @@ The default UI now foregrounds the companion and chat experience instead of stac
 The companion home further presents pet, chat, and status as a cohesive landing view rather than a raw panel stack.
 The UI also has a working Qt/QML i18n foundation with Simplified Chinese as a first-class baseline locale.
 The renderer surface now exposes a clear placeholder/live2d adapter boundary with safe fallback behavior before any real SDK integration.
+Nanami also has a dedicated desktop pet window form instead of appearing only as a tool-style main window.
 ```
 
 ## Out of Scope for MVP

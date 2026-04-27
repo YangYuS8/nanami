@@ -21,39 +21,77 @@ DesktopController::DesktopController(PersonaController *personaController, QObje
 
 void DesktopController::attachWindow(QWindow *window)
 {
-    m_window = window;
+    m_mainWindow = window;
+}
+
+void DesktopController::attachPetWindow(QWindow *window)
+{
+    m_petWindow = window;
 }
 
 void DesktopController::showMainWindow()
 {
-    if (!hasWindow()) {
+    if (!hasMainWindow()) {
         return;
     }
 
-    m_window->show();
-    m_window->raise();
-    m_window->requestActivate();
+    m_mainWindow->show();
+    m_mainWindow->raise();
+    m_mainWindow->requestActivate();
 }
 
 void DesktopController::hideMainWindow()
 {
-    if (!hasWindow()) {
+    if (!hasMainWindow()) {
         return;
     }
 
-    m_window->hide();
+    m_mainWindow->hide();
 }
 
 void DesktopController::toggleMainWindow()
 {
-    if (!hasWindow()) {
+    if (!hasMainWindow()) {
         return;
     }
 
-    if (m_window->isVisible()) {
+    if (m_mainWindow->isVisible()) {
         hideMainWindow();
     } else {
         showMainWindow();
+    }
+}
+
+void DesktopController::showPetWindow()
+{
+    if (!hasPetWindow()) {
+        return;
+    }
+
+    m_petWindow->show();
+    m_petWindow->raise();
+    m_petWindow->requestActivate();
+}
+
+void DesktopController::hidePetWindow()
+{
+    if (!hasPetWindow()) {
+        return;
+    }
+
+    m_petWindow->hide();
+}
+
+void DesktopController::togglePetWindow()
+{
+    if (!hasPetWindow()) {
+        return;
+    }
+
+    if (m_petWindow->isVisible()) {
+        hidePetWindow();
+    } else {
+        showPetWindow();
     }
 }
 
@@ -91,8 +129,13 @@ void DesktopController::setupTray()
     m_trayIcon.setToolTip(tr("Nanami"));
     m_trayIcon.setIcon(QIcon(trayPixmap));
 
-    auto *toggleAction = m_trayMenu.addAction(tr("Show/Hide Nanami"));
-    connect(toggleAction, &QAction::triggered, this, &DesktopController::toggleMainWindow);
+    auto *togglePetAction = m_trayMenu.addAction(tr("Show/Hide Pet"));
+    connect(togglePetAction, &QAction::triggered, this, &DesktopController::togglePetWindow);
+
+    auto *toggleMainAction = m_trayMenu.addAction(tr("Show/Hide Main Window"));
+    connect(toggleMainAction, &QAction::triggered, this, &DesktopController::toggleMainWindow);
+
+    m_trayMenu.addSeparator();
 
     auto *mockPersonaAction = m_trayMenu.addAction(tr("Run mock persona stream"));
     connect(mockPersonaAction, &QAction::triggered, this, [this]() {
@@ -110,7 +153,12 @@ void DesktopController::setupTray()
     m_trayIcon.show();
 }
 
-bool DesktopController::hasWindow() const
+bool DesktopController::hasMainWindow() const
 {
-    return !m_window.isNull();
+    return !m_mainWindow.isNull();
+}
+
+bool DesktopController::hasPetWindow() const
+{
+    return !m_petWindow.isNull();
 }

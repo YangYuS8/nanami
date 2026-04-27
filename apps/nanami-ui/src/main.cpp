@@ -13,6 +13,7 @@
 #include <QLocale>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QObject>
 #include <QQuickWindow>
 #include <QTranslator>
 
@@ -53,9 +54,18 @@ int main(int argc, char *argv[])
         []() { QCoreApplication::exit(-1); },
         Qt::QueuedConnection);
     engine.loadFromModule("Nanami", "Main");
-    if (!engine.rootObjects().isEmpty()) {
-        desktopController.attachWindow(
-            qobject_cast<QQuickWindow *>(engine.rootObjects().constFirst()));
+    engine.loadFromModule("Nanami", "PetWindow");
+    for (QObject *object : engine.rootObjects()) {
+        auto *window = qobject_cast<QQuickWindow *>(object);
+        if (window == nullptr) {
+            continue;
+        }
+
+        if (window->objectName() == QStringLiteral("mainWindow")) {
+            desktopController.attachWindow(window);
+        } else if (window->objectName() == QStringLiteral("petWindow")) {
+            desktopController.attachPetWindow(window);
+        }
     }
     QObject::connect(
         &personaController,

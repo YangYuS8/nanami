@@ -129,6 +129,7 @@ Product positioning note for 0.10a: Nanami is now described as the local visual 
 - 0.10c completed: companion home polish.
 - 0.10d completed: UI i18n foundation + Simplified Chinese baseline.
 - 0.10e completed: Live2D renderer adapter foundation.
+- 0.10f completed: desktop pet window foundation.
 - `nanami-core` provides mock permission request, decision, audit, and sandbox stream endpoints.
 - `nanami-core` also provides a mock persona state stream endpoint.
 - `nanami-ui` displays mock permission and sandbox visualization skeletons with structured sandbox view state, plus a placeholder pet view.

@@ -38,6 +38,41 @@
       <source>Connection Status</source>
       <translation>连接状态</translation>
     </message>
+    <message>
+      <source>Toggle pet window</source>
+      <translation>切换桌宠窗口</translation>
+    </message>
+  </context>
+  <context>
+    <name>PetWindow</name>
+    <message>
+      <source>Nanami Pet</source>
+      <translation>Nanami 桌宠</translation>
+    </message>
+    <message>
+      <source>Nanami</source>
+      <translation>Nanami</translation>
+    </message>
+    <message>
+      <source>Companion standby</source>
+      <translation>伴侣待机中</translation>
+    </message>
+    <message>
+      <source>Emotion: </source>
+      <translation>情绪：</translation>
+    </message>
+    <message>
+      <source>Renderer: </source>
+      <translation>渲染器：</translation>
+    </message>
+    <message>
+      <source>Status: </source>
+      <translation>状态：</translation>
+    </message>
+    <message>
+      <source>none</source>
+      <translation>无</translation>
+    </message>
   </context>
   <context>
     <name>PetPanel</name>
@@ -577,8 +612,12 @@
       <translation>Nanami</translation>
     </message>
     <message>
-      <source>Show/Hide Nanami</source>
-      <translation>显示/隐藏 Nanami</translation>
+      <source>Show/Hide Pet</source>
+      <translation>显示/隐藏桌宠</translation>
+    </message>
+    <message>
+      <source>Show/Hide Main Window</source>
+      <translation>显示/隐藏主窗口</translation>
     </message>
     <message>
       <source>Run mock persona stream</source>

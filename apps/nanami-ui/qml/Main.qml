@@ -5,6 +5,7 @@ import "components"
 
 ApplicationWindow {
     id: window
+    objectName: "mainWindow"
     width: 720
     height: 760
     visible: true

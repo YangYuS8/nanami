@@ -33,6 +33,11 @@ Column {
                 wrapMode: Text.Wrap
                 text: qsTr("Nanami is your local companion client for OpenClaw. Start a chat, check the companion state, and keep core runtime status visible without leaving the desktop view.")
             }
+
+            Button {
+                text: qsTr("Toggle pet window")
+                onClicked: desktopController.togglePetWindow()
+            }
         }
     }
 
